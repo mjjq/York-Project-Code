@@ -1,10 +1,10 @@
-from scipy.integrate import odeint
+from scipy.integrate import odeint, solve_ivp
 from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
 
 def dj_dr(radial_coordinate: float,
-          shaping_exponent: float = 1.0) -> float:
+          shaping_exponent: float = 2.0) -> float:
     """
     Normalised derivative in the current profile.
 
@@ -14,17 +14,17 @@ def dj_dr(radial_coordinate: float,
     r = radial_coordinate
     nu = shaping_exponent
 
-    return -2*nu*(r**2) * (1-r**2)**(nu-1)
+    return -2*nu*(r) * (1-r**2)**(nu-1)
 
 def q(radial_coordinate: float,
-      shaping_exponent: float = 1.0) -> float:
+      shaping_exponent: float = 2.0) -> float:
     r = radial_coordinate
     nu = shaping_exponent
 
     return (1-r**2)**(-nu)
 
 def rational_surface(target_q: float,
-                     shaping_exponent: float = 1.0) -> float:
+                     shaping_exponent: float = 2.0) -> float:
     """
     Compute the location of the rational surface of the q-profile defined in q().
     """
@@ -59,11 +59,11 @@ def solve_system():
     toroidal_mode = 1
     axis_q = 1.0
 
-    initial_psi = 0
-    initial_dpsi_dr = 100
+    initial_psi = 0.0
+    initial_dpsi_dr = 1
 
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
-    r_s_thickness = 0.001
+    r_s_thickness = 0.01
 
     print(f"Rational surface located at r={r_s:.4f}")
 
@@ -74,8 +74,7 @@ def solve_system():
         compute_derivatives,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, q),
-        tcrit = [0.0]
+        args = (poloidal_mode, toroidal_mode, dj_dr, q)
     )
 
     psi_forwards, dpsi_dr_forwards = (
@@ -89,18 +88,23 @@ def solve_system():
         compute_derivatives,
         (initial_psi, -initial_dpsi_dr),
         r_range_bkwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, q),
-        tcrit = [1.0]
+        args = (poloidal_mode, toroidal_mode, dj_dr, q)
     )
 
     psi_backwards, dpsi_dr_backwards = (
         results_backwards[:,0], results_backwards[:,1]
     )
+    #print(psi_backwards)
+    #print(dpsi_dr_backwards)
 
     fig, ax = plt.subplots(1)
 
     ax.plot(r_range_fwd, psi_forwards)
     ax.plot(r_range_bkwd, psi_backwards)
+    ax.vlines(
+        r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
+        linestyle='--', color='red'
+    )
 
     ax.set_xlabel("Normalised minor radial co-ordinate (r/a)")
     ax.set_ylabel("Normalised perturbed flux ($\delta \psi / a^2 J_\phi$)")
@@ -108,4 +112,5 @@ def solve_system():
 
 if __name__=='__main__':
     solve_system()
+    plt.tight_layout()
     plt.show()
