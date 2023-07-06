@@ -17,6 +17,7 @@ def dj_dr(radial_coordinate: float,
 
     return -2*nu*(r) * (1-r**2)**(nu-1)
 
+@np.vectorize
 def q(radial_coordinate: float,
       shaping_exponent: float = 2.0) -> float:
     r = radial_coordinate
@@ -123,11 +124,12 @@ def solve_system():
     fig, axs = plt.subplots(3, figsize=(6,10), sharex=True)
     ax, ax2, ax3 = axs
 
-    ax.plot(r_range_fwd, psi_forwards)
-    ax.plot(r_range_bkwd, psi_backwards)
-    ax.vlines(
+    ax.plot(r_range_fwd, psi_forwards, label='Solution below $\hat{r}_s$')
+    ax.plot(r_range_bkwd, psi_backwards, label='Solution above $\hat{r}_s$')
+    rs_line = ax.vlines(
         r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
-        linestyle='--', color='red'
+        linestyle='--', color='red', 
+        label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
     )
 
     ax3.set_xlabel("Normalised minor radial co-ordinate (r/a)")
@@ -136,9 +138,25 @@ def solve_system():
     r = np.linspace(0, 1.0, 100)
     ax2.plot(r, dj_dr(r))
     ax2.set_ylabel("Normalised current gradient $[d\hat{J}_\phi/d\hat{r}]$")
+    ax2.vlines(
+        r_s, 
+        ymin=np.min(dj_dr(r)), 
+        ymax=np.max(dj_dr(r)), 
+        linestyle='--', 
+        color='red'    
+    )
+    
     ax3.plot(r, np.vectorize(q)(r))
     ax3.set_ylabel("Normalised q-profile $[\hat{q}(\hat{r})]$")
+    ax3.vlines(
+        r_s, 
+        ymin=np.min(q(r)), 
+        ymax=np.max(q(r)), 
+        linestyle='--', 
+        color='red'    
+    )
     #ax3.set_yscale('log')
+    ax.legend()
     
 
 
