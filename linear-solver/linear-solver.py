@@ -1,4 +1,5 @@
 from scipy.integrate import odeint, solve_ivp
+from scipy.optimize import minimize_scalar
 from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
@@ -20,16 +21,38 @@ def q(radial_coordinate: float,
       shaping_exponent: float = 2.0) -> float:
     r = radial_coordinate
     nu = shaping_exponent
+    
+    # Prevent division by zero for small r values.
+    # For this function, in the limit r->0, q(r)->1. This is proven
+    # mathematically in the lab book.
+    if np.abs(r) < 1e-10:
+        return 1.0
 
-    return (1-r**2)**(-nu)
+    return (nu+1)*(r**2)/(1-(1-r**2)**(nu+1))
 
 def rational_surface(target_q: float,
                      shaping_exponent: float = 2.0) -> float:
     """
     Compute the location of the rational surface of the q-profile defined in q().
     """
+    
+    # Establish the function to pass to scipy's scalar minimiser. We want to 
+    # find the value of r such that q(r) = target_q. This is equivalent to
+    # finding the value of r that minimises (q(r) - target_q)^2
+    # Call vectorize so that it converts q(r) into a function that can take
+    # np arrays. This is necessary because q(r) contains an if statement which
+    # fails if the function is not vectorized.
+    fun = np.vectorize(lambda r : (q(r, shaping_exponent) - target_q)**2)
+    
+    r = np.linspace(0,1,100)
+    plt.plot(r, fun(r))
+    
+    print("Plotted results")
+    
+    rs = minimize_scalar(fun, bounds=(0.0, 1.0), method='bounded')
+    print(rs)
 
-    return np.sqrt(1-target_q**(-1/shaping_exponent))
+    return rs.x
 
 
 def compute_derivatives(y: Tuple[float, float],
@@ -97,7 +120,8 @@ def solve_system():
     #print(psi_backwards)
     #print(dpsi_dr_backwards)
 
-    fig, ax = plt.subplots(1)
+    fig, axs = plt.subplots(3, figsize=(6,10), sharex=True)
+    ax, ax2, ax3 = axs
 
     ax.plot(r_range_fwd, psi_forwards)
     ax.plot(r_range_bkwd, psi_backwards)
@@ -106,11 +130,20 @@ def solve_system():
         linestyle='--', color='red'
     )
 
-    ax.set_xlabel("Normalised minor radial co-ordinate (r/a)")
+    ax3.set_xlabel("Normalised minor radial co-ordinate (r/a)")
     ax.set_ylabel("Normalised perturbed flux ($\delta \psi / a^2 J_\phi$)")
+    
+    r = np.linspace(0, 1.0, 100)
+    ax2.plot(r, dj_dr(r))
+    ax2.set_ylabel("Normalised current gradient $[d\hat{J}_\phi/d\hat{r}]$")
+    ax3.plot(r, np.vectorize(q)(r))
+    ax3.set_ylabel("Normalised q-profile $[\hat{q}(\hat{r})]$")
+    #ax3.set_yscale('log')
+    
 
 
 if __name__=='__main__':
     solve_system()
     plt.tight_layout()
+    plt.savefig("tm-with-q-djdr.png", dpi=300)
     plt.show()
