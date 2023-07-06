@@ -17,6 +17,13 @@ def dj_dr(radial_coordinate: float,
 
     return -2*nu*(r) * (1-r**2)**(nu-1)
 
+def d2j_dr2(radial_coordinate: float,
+            shaping_exponent: float = 2.0) -> float:
+    r = radial_coordinate
+    nu = shaping_exponent
+    
+    return -2*nu*(1-r**2)**(nu-1) + 4*nu*(r**2)*(1-r**2)**(nu-2)
+
 @np.vectorize
 def q(radial_coordinate: float,
       shaping_exponent: float = 2.0) -> float:
@@ -26,7 +33,8 @@ def q(radial_coordinate: float,
     # Prevent division by zero for small r values.
     # For this function, in the limit r->0, q(r)->1. This is proven
     # mathematically in the lab book.
-    if np.abs(r) < 1e-10:
+    print(r)
+    if np.abs(r) < 1e-5:
         return 1.0
 
     return (nu+1)*(r**2)/(1-(1-r**2)**(nu+1))
@@ -61,30 +69,37 @@ def compute_derivatives(y: Tuple[float, float],
                         poloidal_mode: int,
                         toroidal_mode: int,
                         j_profile_derivative,
+                        j_profile_second_derivative,
                         q_profile,
                         axis_q: float = 1.0) -> Tuple[float, float]:
     psi, dpsi_dr = y
 
     m = poloidal_mode
     n = toroidal_mode
-    q = q_profile(r)
     q_0 = axis_q
     dj_dr = j_profile_derivative(r)
-
-    d2psi_dr2 = -dpsi_dr/r**2 + psi * (
-            (m/r)**2 - 2.0*q*m/(r*(n*q*q_0-m))*dj_dr
+    
+    if np.abs(r) < 1e-5:
+        print("small r")
+        d2psi_dr2 = -2.0*m/((n*q_0-m)*(2.0-(m**2)/2.0))*(
+            j_profile_second_derivative(0.0)
         )
+    else:
+        q = q_profile(r)
+        d2psi_dr2 = -dpsi_dr/r**2 + psi * (
+                (m/r)**2 - 2.0*q*m/(r*(n*q*q_0-m))*dj_dr
+            )
 
     return dpsi_dr, d2psi_dr2
 
 
 def solve_system():
-    poloidal_mode = 2
-    toroidal_mode = 1
+    poloidal_mode = 3
+    toroidal_mode = 2
     axis_q = 1.0
 
     initial_psi = 0.0
-    initial_dpsi_dr = 1
+    initial_dpsi_dr = 0.0
 
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
     r_s_thickness = 0.01
@@ -92,13 +107,13 @@ def solve_system():
     print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
-    r_range_fwd = np.linspace(0.001, r_s-r_s_thickness, 10000)
+    r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, 10000)
 
     results_forwards = odeint(
         compute_derivatives,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, q)
+        args = (poloidal_mode, toroidal_mode, dj_dr, d2j_dr2, q)
     )
 
     psi_forwards, dpsi_dr_forwards = (
@@ -106,13 +121,13 @@ def solve_system():
     )
 
     # Solve from minor radius moving inwards towards rational surface
-    r_range_bkwd = np.linspace(0.999, r_s+r_s_thickness, 10000)
+    r_range_bkwd = np.linspace(1.0, r_s+r_s_thickness, 10000)
 
     results_backwards = odeint(
         compute_derivatives,
         (initial_psi, -initial_dpsi_dr),
         r_range_bkwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, q)
+        args = (poloidal_mode, toroidal_mode, dj_dr, d2j_dr2, q)
     )
 
     psi_backwards, dpsi_dr_backwards = (
@@ -126,11 +141,11 @@ def solve_system():
 
     ax.plot(r_range_fwd, psi_forwards, label='Solution below $\hat{r}_s$')
     ax.plot(r_range_bkwd, psi_backwards, label='Solution above $\hat{r}_s$')
-    rs_line = ax.vlines(
-        r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
-        linestyle='--', color='red', 
-        label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
-    )
+    # rs_line = ax.vlines(
+    #     r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
+    #     linestyle='--', color='red', 
+    #     label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
+    # )
 
     ax3.set_xlabel("Normalised minor radial co-ordinate (r/a)")
     ax.set_ylabel("Normalised perturbed flux ($\delta \psi / a^2 J_\phi$)")
