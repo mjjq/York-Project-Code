@@ -17,13 +17,6 @@ def dj_dr(radial_coordinate: float,
 
     return -2*nu*(r) * (1-r**2)**(nu-1)
 
-def d2j_dr2(radial_coordinate: float,
-            shaping_exponent: float = 2.0) -> float:
-    r = radial_coordinate
-    nu = shaping_exponent
-    
-    return -2*nu*(1-r**2)**(nu-1) + 4*nu*(r**2)*(1-r**2)**(nu-2)
-
 @np.vectorize
 def q(radial_coordinate: float,
       shaping_exponent: float = 2.0) -> float:
@@ -63,7 +56,6 @@ def compute_derivatives(y: Tuple[float, float],
                         poloidal_mode: int,
                         toroidal_mode: int,
                         j_profile_derivative,
-                        j_profile_second_derivative,
                         q_profile,
                         axis_q: float = 1.0,
                         epsilon: float = 1e-5) -> Tuple[float, float]:
@@ -114,8 +106,6 @@ def compute_derivatives(y: Tuple[float, float],
     j_profile_derivative : func
         Derivative in the current profile. Must be a function which accepts
         the radial co-ordinate r as a parameter.
-    j_profile_second_derivative : f
-        DESCRIPTION.
     q_profile : TYPE
         Safety factor profile. Must be a function which accepts the radial
         co-ordinate r as a parameter.
@@ -174,7 +164,7 @@ def solve_system():
         compute_derivatives,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, d2j_dr2, q),
+        args = (poloidal_mode, toroidal_mode, dj_dr, q),
         tcrit=(0.0)
     )
 
@@ -189,7 +179,7 @@ def solve_system():
         compute_derivatives,
         (initial_psi, -initial_dpsi_dr),
         r_range_bkwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, d2j_dr2, q)
+        args = (poloidal_mode, toroidal_mode, dj_dr, q)
     )
 
     psi_backwards, dpsi_dr_backwards = (
