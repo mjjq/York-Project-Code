@@ -65,22 +65,91 @@ def compute_derivatives(y: Tuple[float, float],
                         j_profile_derivative,
                         j_profile_second_derivative,
                         q_profile,
-                        axis_q: float = 1.0) -> Tuple[float, float]:
+                        axis_q: float = 1.0,
+                        epsilon: float = 1e-5) -> Tuple[float, float]:
+    """
+    Compute derivatives for the perturbed flux outside of the resonant region
+    (resistivity and inertia neglected).
+    
+    The equation we are solving is
+    
+    r^2 f'' + rf' + 2rfA - m^2 f = 0,
+    
+    where f is the normalised perturbed flux, r is the radial co-ordinate,
+    m is the poloidal mode number, and A = (q*m*dj_dr)/(n*q_0*q - m), where
+    q is the normalised safety factor, dj_dr is the normalised gradient in
+    the toroidal current, q_0 is the normalised safety factor at r=0, and
+    n is the toroidal mode number.
+    
+    The equation is singular at r=0, so to get ODEINT to play nicely we
+    formulate the following coupled ODE:
+        
+    y = [f, r^2 f']
+         
+    y'= [f', r^2 f'' + 2rf']
+    
+      = [f', f(m^2 - 2rA) + rf']
+      
+    Then, for r=0, 
+    
+    y'= [f', m^2 f]
+
+    We set the initial f' at r=0 to some arbitrary positive value. Note that,
+    for r>0, this function will then receive a tuple containing f and 
+    **r^2 f'** instead of just f and f', as this is what we are calculating
+    in y as defined above.
+    
+    Hence, for r>0, we must divide the incoming f' by r^2.
+
+    Parameters
+    ----------
+    y : Tuple[float, float]
+        Perturbed flux and radial derivative in perturbed flux.
+    r : float
+        Radial co-ordinate.
+    poloidal_mode : int
+        Poloidal mode number.
+    toroidal_mode : int
+        Toroidal mode number.
+    j_profile_derivative : func
+        Derivative in the current profile. Must be a function which accepts
+        the radial co-ordinate r as a parameter.
+    j_profile_second_derivative : f
+        DESCRIPTION.
+    q_profile : TYPE
+        Safety factor profile. Must be a function which accepts the radial
+        co-ordinate r as a parameter.
+    axis_q : float, optional
+        Value of the normalised safety factor on-axis. The default is 1.0.
+    epsilon : float, optional
+        Tolerance value to determine values of r which are sufficiently close
+        to r=0. The default is 1e-5.
+
+    Returns
+    -------
+    Tuple[float, float]
+        Radial derivative in perturbed flux and second radial derivative in 
+        perturbed flux.
+
+    """
     psi, dpsi_dr = y
+    
+    if np.abs(r) > epsilon:
+        dpsi_dr = dpsi_dr/r**2
 
     m = poloidal_mode
     n = toroidal_mode
     q_0 = axis_q
-    dj_dr = j_profile_derivative(r)
     
-    # d2psi_dr2 is singular at r=0. Return 0 if zero is passed in
-    if np.abs(r) < 1e-5:
-        d2psi_dr2 = 0.0
+    if np.abs(r) < epsilon:
+        d2psi_dr2 = psi*m**2
     else:
+        dj_dr = j_profile_derivative(r)
         q = q_profile(r)
-        d2psi_dr2 = -dpsi_dr/r**2 + psi * (
-                (m/r)**2 - 2.0*q*m/(r*(n*q*q_0-m))*dj_dr
-            )
+        A = (q*m*dj_dr)/(n*q_0*q - m)
+        d2psi_dr2 = psi*(m**2 - 2*A*r) + r*dpsi_dr
+        
+    #print(dpsi_dr)
 
     return dpsi_dr, d2psi_dr2
 
@@ -91,7 +160,7 @@ def solve_system():
     axis_q = 1.0
 
     initial_psi = 0.0
-    initial_dpsi_dr = 2.0
+    initial_dpsi_dr = 1.0
 
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
     r_s_thickness = 0.0001
@@ -99,13 +168,14 @@ def solve_system():
     print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
-    r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, 10000)
+    r_range_fwd = np.linspace(0.01, r_s-r_s_thickness, 10000)
 
     results_forwards = odeint(
         compute_derivatives,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, d2j_dr2, q)
+        args = (poloidal_mode, toroidal_mode, dj_dr, d2j_dr2, q),
+        tcrit=(0.0)
     )
 
     psi_forwards, dpsi_dr_forwards = (
