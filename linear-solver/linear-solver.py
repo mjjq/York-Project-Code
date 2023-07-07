@@ -33,7 +33,7 @@ def q(radial_coordinate: float,
     # Prevent division by zero for small r values.
     # For this function, in the limit r->0, q(r)->1. This is proven
     # mathematically in the lab book.
-    print(r)
+    #print(r)
     if np.abs(r) < 1e-5:
         return 1.0
 
@@ -53,13 +53,7 @@ def rational_surface(target_q: float,
     # fails if the function is not vectorized.
     fun = np.vectorize(lambda r : (q(r, shaping_exponent) - target_q)**2)
     
-    r = np.linspace(0,1,100)
-    plt.plot(r, fun(r))
-    
-    print("Plotted results")
-    
     rs = minimize_scalar(fun, bounds=(0.0, 1.0), method='bounded')
-    print(rs)
 
     return rs.x
 
@@ -79,11 +73,9 @@ def compute_derivatives(y: Tuple[float, float],
     q_0 = axis_q
     dj_dr = j_profile_derivative(r)
     
+    # d2psi_dr2 is singular at r=0. Return 0 if zero is passed in
     if np.abs(r) < 1e-5:
-        print("small r")
-        d2psi_dr2 = -2.0*m/((n*q_0-m)*(2.0-(m**2)/2.0))*(
-            j_profile_second_derivative(0.0)
-        )
+        d2psi_dr2 = 0.0
     else:
         q = q_profile(r)
         d2psi_dr2 = -dpsi_dr/r**2 + psi * (
@@ -94,15 +86,15 @@ def compute_derivatives(y: Tuple[float, float],
 
 
 def solve_system():
-    poloidal_mode = 3
-    toroidal_mode = 2
+    poloidal_mode = 2
+    toroidal_mode = 1
     axis_q = 1.0
 
     initial_psi = 0.0
-    initial_dpsi_dr = 0.0
+    initial_dpsi_dr = 2.0
 
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
-    r_s_thickness = 0.01
+    r_s_thickness = 0.0001
 
     print(f"Rational surface located at r={r_s:.4f}")
 
@@ -135,6 +127,14 @@ def solve_system():
     )
     #print(psi_backwards)
     #print(dpsi_dr_backwards)
+    
+    # Rescale the forwards solution such that its value at the resonant
+    # surface matches the psi of the backwards solution. This is equivalent
+    # to fixing the initial values of the derivatives such that the above
+    # relation is satisfied
+    fwd_res_surface = psi_forwards[-1]
+    bkwd_res_surface = psi_backwards[-1]
+    psi_forwards = psi_forwards * bkwd_res_surface/fwd_res_surface
 
     fig, axs = plt.subplots(3, figsize=(6,10), sharex=True)
     ax, ax2, ax3 = axs
