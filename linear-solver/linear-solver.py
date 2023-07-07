@@ -141,11 +141,11 @@ def solve_system():
 
     ax.plot(r_range_fwd, psi_forwards, label='Solution below $\hat{r}_s$')
     ax.plot(r_range_bkwd, psi_backwards, label='Solution above $\hat{r}_s$')
-    # rs_line = ax.vlines(
-    #     r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
-    #     linestyle='--', color='red', 
-    #     label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
-    # )
+    rs_line = ax.vlines(
+         r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
+         linestyle='--', color='red', 
+         label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
+    )
 
     ax3.set_xlabel("Normalised minor radial co-ordinate (r/a)")
     ax.set_ylabel("Normalised perturbed flux ($\delta \psi / a^2 J_\phi$)")
@@ -171,7 +171,7 @@ def solve_system():
         color='red'    
     )
     #ax3.set_yscale('log')
-    ax.legend()
+    ax.legend(prop={'size': 8})
     
 
 
