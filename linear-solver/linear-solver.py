@@ -3,6 +3,7 @@ from scipy.optimize import minimize_scalar
 from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
+from dataclasses import dataclass
 
 def dj_dr(radial_coordinate: float,
           shaping_exponent: float = 2.0) -> float:
@@ -143,12 +144,71 @@ def compute_derivatives(y: Tuple[float, float],
 
     return dpsi_dr, d2psi_dr2
 
+def delta_prime(psi_forwards: np.array,
+                dpsi_dr_forwards: np.array,
+                psi_backwards: np.array,
+                dpsi_dr_backwards: np.array,
+                epsilon: float = 1e-10):
+    psi_plus = psi_backwards[-1]
+    psi_minus = psi_forwards[-1]
+    
+    if abs(psi_plus - psi_minus) > epsilon:
+        raise ValueError(
+            f"""Forwards and backward solutions 
+            should be equal at resonant surface.
+            (psi_plus={psi_plus}, psi_minus={psi_minus})."""
+        )
+    
+    dpsi_dr_plus = dpsi_dr_backwards[-1]
+    dpsi_dr_minus = dpsi_dr_forwards[-1]
+    
+    return (dpsi_dr_plus - dpsi_dr_minus)/psi_plus
 
-def solve_system():
-    poloidal_mode = 2
-    toroidal_mode = 1
-    axis_q = 1.0
 
+@dataclass
+class TearingModeSolution():
+    # All quantities in this class are normalised
+    
+    # Perturbed flux and derivative starting from the poloidal axis
+    psi_forwards: np.array
+    dpsi_dr_forwards: np.array
+    
+    # Radial domain for the forward solution
+    r_range_fwd: np.array
+    
+    # Perturbed flux and derivative starting from the edge of the plasma
+    # going inwards
+    psi_backwards: np.array
+    dpsi_dr_backwards: np.array
+    
+    # Radial domain for the backward solution
+    r_range_bkwd: np.array
+    
+    # Location of the resonant surface
+    r_s: float
+
+def solve_system(poloidal_mode: int, 
+                 toroidal_mode: int, 
+                 axis_q: float = 1.0) -> TearingModeSolution:
+    """
+    Generate solution for peturbed flux over the minor radius of a cylindrical
+    plasma given the mode numbers of the tearing mode.
+
+    Parameters
+    ----------
+    poloidal_mode : int
+        Poloidal mode number.
+    toroidal_mode : int
+        Toroidal mode number.
+    axis_q : float, optional
+        Value of the safety factor on-axis. The default is 1.0.
+
+    Returns
+    -------
+    TearingModeSolution:
+        Quantities relating to the tearing mode solution.
+
+    """
     initial_psi = 0.0
     initial_dpsi_dr = 1.0
 
@@ -158,7 +218,7 @@ def solve_system():
     print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
-    r_range_fwd = np.linspace(0.01, r_s-r_s_thickness, 10000)
+    r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, 10000)
 
     results_forwards = odeint(
         compute_derivatives,
@@ -195,14 +255,56 @@ def solve_system():
     fwd_res_surface = psi_forwards[-1]
     bkwd_res_surface = psi_backwards[-1]
     psi_forwards = psi_forwards * bkwd_res_surface/fwd_res_surface
+    dpsi_dr_forwards = dpsi_dr_forwards * bkwd_res_surface/fwd_res_surface
+    
+    print(dpsi_dr_forwards)
+    print(r_range_fwd)
+    
+    # Recover original derivatives as the compute_derivatives function returns
+    # r^2 * f' for r>0. For r=0, the compute_derivatives function returns f'
+    # so no need to divide by r^2.
+    dpsi_dr_forwards[1:] = dpsi_dr_forwards[1:]/(r_range_fwd[1:]**2)
+    dpsi_dr_backwards = dpsi_dr_backwards/(r_range_bkwd**2)
+    
+    print(dpsi_dr_forwards)
+    
+    return TearingModeSolution(
+        psi_forwards, dpsi_dr_forwards, r_range_fwd,
+        psi_backwards, dpsi_dr_backwards, r_range_bkwd,
+        r_s
+    )
+    
+    # return psi_forwards, dpsi_dr_forwards, r_range_fwd, \
+    #     psi_backwards, dpsi_dr_backwards, r_range_bkwd , r_s
+
+def solve_and_plot_system():
+    poloidal_mode = 2
+    toroidal_mode = 1
+    axis_q = 1.0
+    
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
+    
+    delta_p = delta_prime(
+        tm.psi_forwards, tm.dpsi_dr_forwards, 
+        tm.psi_backwards, tm.dpsi_dr_backwards
+    )
+    
+    print(f"Delta prime = {delta_p}")
 
     fig, axs = plt.subplots(3, figsize=(6,10), sharex=True)
     ax, ax2, ax3 = axs
+    
+    #ax4.plot(r_range_fwd, dpsi_dr_forwards)
+    #ax4.plot(r_range_bkwd, dpsi_dr_backwards)
 
-    ax.plot(r_range_fwd, psi_forwards, label='Solution below $\hat{r}_s$')
-    ax.plot(r_range_bkwd, psi_backwards, label='Solution above $\hat{r}_s$')
+    ax.plot(
+        tm.r_range_fwd, tm.psi_forwards, label='Solution below $\hat{r}_s$'
+    )
+    ax.plot(
+        tm.r_range_bkwd, tm.psi_backwards, label='Solution above $\hat{r}_s$'
+    )
     rs_line = ax.vlines(
-         r_s, ymin=0.0, ymax=np.max([psi_forwards, psi_backwards]),
+         tm.r_s, ymin=0.0, ymax=np.max([tm.psi_forwards, tm.psi_backwards]),
          linestyle='--', color='red', 
          label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
     )
@@ -214,7 +316,7 @@ def solve_system():
     ax2.plot(r, dj_dr(r))
     ax2.set_ylabel("Normalised current gradient $[d\hat{J}_\phi/d\hat{r}]$")
     ax2.vlines(
-        r_s, 
+        tm.r_s, 
         ymin=np.min(dj_dr(r)), 
         ymax=np.max(dj_dr(r)), 
         linestyle='--', 
@@ -224,7 +326,7 @@ def solve_system():
     ax3.plot(r, np.vectorize(q)(r))
     ax3.set_ylabel("Normalised q-profile $[\hat{q}(\hat{r})]$")
     ax3.vlines(
-        r_s, 
+        tm.r_s, 
         ymin=np.min(q(r)), 
         ymax=np.max(q(r)), 
         linestyle='--', 
@@ -232,11 +334,11 @@ def solve_system():
     )
     #ax3.set_yscale('log')
     ax.legend(prop={'size': 8})
-    
+
 
 
 if __name__=='__main__':
-    solve_system()
+    solve_and_plot_system()
     plt.tight_layout()
     plt.savefig("tm-with-q-djdr.png", dpi=300)
     plt.show()
