@@ -329,8 +329,8 @@ def delta_prime_non_linear(tm: TearingModeSolution,
     return delta_p
 
 def solve_and_plot_system():
-    poloidal_mode = 2
-    toroidal_mode = 1
+    poloidal_mode = 16
+    toroidal_mode = 8
     axis_q = 1.0
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
@@ -411,16 +411,80 @@ def island_saturation():
     ax.plot(island_widths, delta_ps)
     
     ax.set_xlabel("Normalised island width")
-    ax.set_ylabel("$\Delta ' (w)$")
+    ax.set_ylabel("$\hat{\Delta} ' (\hat{w})$")
     
     ax.hlines(0.0, xmin=0.0, xmax=1.0, color='red', linestyle='--')
 
+
+def growth_rate(poloidal_mode: int,
+                toroidal_mode: int,
+                lundquist_number: float,
+                axis_q: float = 1.0):
+    
+    # Equivalent to 2*pi*Gamma(3/4)/Gamma(1/4)
+    gamma_scale_factor = 2.1236482729819393256107565
+    
+    m = poloidal_mode
+    n = toroidal_mode
+    S = lundquist_number
+    
+    tm = solve_system(m, n, axis_q)
+    
+    delta_p = delta_prime(
+        tm.psi_forwards, tm.dpsi_dr_forwards, 
+        tm.psi_backwards, tm.dpsi_dr_backwards
+    )
+    
+    r = np.linspace(0, 1, 100)
+    dr = r[1]-r[0]
+    q_values = q(r)
+    dq_dr = np.gradient(q_values, dr)
+    rs_id = np.abs(tm.r_s - r).argmin()
+    
+    s = (m/n)*tm.r_s*dq_dr[rs_id]
+    
+    growth_rate = gamma_scale_factor**(-4/5)*complex(delta_p)**(4/5) * tm.r_s**(4/5) \
+        * (n*s)**(2/5) / S**(3/5)
+
+    return delta_p, growth_rate.real
+
+def growth_rate_vs_mode_number():
+    modes = [
+        (2,1),
+        (3,2),
+        (4,2),
+        (4,3),
+        (5,2),
+        (5,3),
+        (5,4),
+        (6,3),
+        (6,4),
+        (6,5)
+    ]
+    lundquist_number = 1e8
+    
+    fig, ax = plt.subplots(1)
+    
+    results = []
+    
+    for m,n in modes:
+        results.append(growth_rate(m,n,lundquist_number))
+        
+    for i,mode in enumerate(modes): 
+        delta_p, growth = results[i]
+        print(f"{mode}: {delta_p:.2f} ,{growth:.2e}")
+
+    
 
 if __name__=='__main__':
     solve_and_plot_system()
     plt.tight_layout()
     plt.savefig("tm-with-q-djdr.png", dpi=300)
+
+    # island_saturation()
+    # plt.savefig("island-saturation.png", dpi=300)
+    # plt.show()
     
-    island_saturation()
-    plt.savefig("island-saturation.png", dpi=300)
-    plt.show()
+    #print(growth_rate(4,2,1e8))
+    growth_rate_vs_mode_number()
+    #plt.show()
