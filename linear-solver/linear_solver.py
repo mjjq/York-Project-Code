@@ -168,7 +168,8 @@ class TearingModeSolution():
 
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 
-                 axis_q: float = 1.0) -> TearingModeSolution:
+                 axis_q: float = 1.0,
+                 n: int = 10000) -> TearingModeSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
     plasma given the mode numbers of the tearing mode.
@@ -181,6 +182,9 @@ def solve_system(poloidal_mode: int,
         Toroidal mode number.
     axis_q : float, optional
         Value of the safety factor on-axis. The default is 1.0.
+    n: int, optional
+        Number of elements in the integrand each for the forwards and 
+        backwards solutions. The default is 10000.
 
     Returns
     -------
@@ -197,7 +201,7 @@ def solve_system(poloidal_mode: int,
     print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
-    r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, 10000)
+    r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, n)
 
     results_forwards = odeint(
         compute_derivatives,
@@ -212,7 +216,7 @@ def solve_system(poloidal_mode: int,
     )
 
     # Solve from minor radius moving inwards towards rational surface
-    r_range_bkwd = np.linspace(1.0, r_s+r_s_thickness, 10000)
+    r_range_bkwd = np.linspace(1.0, r_s+r_s_thickness, n)
 
     results_backwards = odeint(
         compute_derivatives,

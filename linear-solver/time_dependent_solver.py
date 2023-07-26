@@ -40,7 +40,9 @@ def flux_time_derivative(psi: np.array,
     dpsi_dt_forwards = (K*psi_f*(delta_prime)**(4/5)).real
     dpsi_dt_backwards = (K*psi_b*(delta_prime)**(4/5)).real
     
-    return np.concatenate((dpsi_dt_forwards, dpsi_dt_backwards))
+    ret = np.concatenate((dpsi_dt_forwards, dpsi_dt_backwards))
+    
+    return ret
 
 
 def solve_time_dependent_system(poloidal_mode: int, 
@@ -48,12 +50,12 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 lundquist_number: float,
                                 axis_q: float = 1.0):
     
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=100)
     grs = growth_rate_scale(
         lundquist_number, tm.r_s, poloidal_mode, toroidal_mode
     )
     
-    t_range = np.linspace(0.0, 0.1, 3)
+    t_range = np.linspace(0.0, 1e5, 3)
     print(t_range)
 
     y0 = np.concatenate((tm.psi_forwards, tm.psi_backwards))
@@ -75,11 +77,22 @@ def solve_time_dependent_system(poloidal_mode: int,
     
     print(results.shape)
     
-    results_forward, results_backward = results.reshape(
-        2, len(t_range), len(y0)//2
-    )
+    for r in results:
+        plt.plot(r)
     
-    return results_forward, results_backward, tm
+    results_forwards = []
+    results_backwards = []
+    
+    # Due to a weird numpy reshape bug, the rows of results_forward contains
+    # results_backwards data every odd row and vice versa.
+    # We work around this by manually iterating through each timestamp and
+    # appending forwards and backwards solutions to the relevant variables.
+    for psi_t in results:
+        psi_t_fwd, psi_t_bkwd = psi_t.reshape(2, len(y0)//2)
+        results_forwards.append(psi_t_fwd)
+        results_backwards.append(psi_t_bkwd)
+        
+    return results_forwards, results_backwards, tm
     
     
 if __name__=='__main__':
@@ -88,10 +101,18 @@ if __name__=='__main__':
     lundquist_number = 1e8
     
     res_f, res_b, tm = solve_time_dependent_system(m, n, lundquist_number)
-    
+
     fig, ax = plt.subplots(1)
     
-    for r_f in res_f:
-        ax.plot(tm.r_range_fwd, r_f)
-    for r_b in res_b:
-        ax.plot(tm.r_range_bkwd, r_b)
+    for i, psi_f in enumerate(res_f):
+        psi_b = res_b[i]
+        
+        psi = np.concatenate((psi_f, psi_b[::-1]))
+        r = np.concatenate((tm.r_range_fwd, tm.r_range_bkwd[::-1]))
+        
+        max_num = np.max((psi_b, psi_f))
+        print(max_num)
+        
+        ax.plot(r, psi)
+        
+        
