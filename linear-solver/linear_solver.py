@@ -257,13 +257,10 @@ def solve_system(poloidal_mode: int,
     #     psi_backwards, dpsi_dr_backwards, r_range_bkwd , r_s
     
     
-def delta_prime(psi_forwards: np.array,
-                dpsi_dr_forwards: np.array,
-                psi_backwards: np.array,
-                dpsi_dr_backwards: np.array,
+def delta_prime(tm_sol: TearingModeSolution,
                 epsilon: float = 1e-10):
-    psi_plus = psi_backwards[-1]
-    psi_minus = psi_forwards[-1]
+    psi_plus = tm_sol.psi_backwards[-1]
+    psi_minus = tm_sol.psi_forwards[-1]
     
     if abs(psi_plus - psi_minus) > epsilon:
         raise ValueError(
@@ -272,8 +269,8 @@ def delta_prime(psi_forwards: np.array,
             (psi_plus={psi_plus}, psi_minus={psi_minus})."""
         )
     
-    dpsi_dr_plus = dpsi_dr_backwards[-1]
-    dpsi_dr_minus = dpsi_dr_forwards[-1]
+    dpsi_dr_plus = tm_sol.dpsi_dr_backwards[-1]
+    dpsi_dr_minus = tm_sol.dpsi_dr_forwards[-1]
     
     return (dpsi_dr_plus - dpsi_dr_minus)/psi_plus
 
@@ -335,10 +332,7 @@ def solve_and_plot_system():
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     
-    delta_p = delta_prime(
-        tm.psi_forwards, tm.dpsi_dr_forwards, 
-        tm.psi_backwards, tm.dpsi_dr_backwards
-    )
+    delta_p = delta_prime(tm)
     
     print(f"Delta prime = {delta_p}")
 
@@ -430,10 +424,7 @@ def growth_rate(poloidal_mode: int,
     
     tm = solve_system(m, n, axis_q)
     
-    delta_p = delta_prime(
-        tm.psi_forwards, tm.dpsi_dr_forwards, 
-        tm.psi_backwards, tm.dpsi_dr_backwards
-    )
+    delta_p = delta_prime(tm)
     
     r = np.linspace(0, 1, 100)
     dr = r[1]-r[0]
