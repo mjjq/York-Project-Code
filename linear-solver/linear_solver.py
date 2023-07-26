@@ -326,8 +326,8 @@ def delta_prime_non_linear(tm: TearingModeSolution,
     return delta_p
 
 def solve_and_plot_system():
-    poloidal_mode = 16
-    toroidal_mode = 8
+    poloidal_mode = 2
+    toroidal_mode = 1
     axis_q = 1.0
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
@@ -410,13 +410,36 @@ def island_saturation():
     ax.hlines(0.0, xmin=0.0, xmax=1.0, color='red', linestyle='--')
 
 
+def growth_rate_scale(lundquist_number: float,
+                      r_s: float,
+                      poloidal_mode: float,
+                      toroidal_mode: float):
+   
+    # Equivalent to 2*pi*Gamma(3/4)/Gamma(1/4)
+    gamma_scale_factor = 2.1236482729819393256107565
+    
+    m = poloidal_mode
+    n = toroidal_mode
+    S = lundquist_number
+    
+    r = np.linspace(0, 1, 100)
+    dr = r[1]-r[0]
+    q_values = q(r)
+    dq_dr = np.gradient(q_values, dr)
+    rs_id = np.abs(r_s - r).argmin()
+    
+    s = (m/n)*r_s*dq_dr[rs_id]
+    
+    grs = gamma_scale_factor**(-4/5)* r_s**(4/5) \
+        * (n*s)**(2/5) / S**(3/5)
+        
+    return grs
+    
+
 def growth_rate(poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
                 axis_q: float = 1.0):
-    
-    # Equivalent to 2*pi*Gamma(3/4)/Gamma(1/4)
-    gamma_scale_factor = 2.1236482729819393256107565
     
     m = poloidal_mode
     n = toroidal_mode
@@ -426,16 +449,9 @@ def growth_rate(poloidal_mode: int,
     
     delta_p = delta_prime(tm)
     
-    r = np.linspace(0, 1, 100)
-    dr = r[1]-r[0]
-    q_values = q(r)
-    dq_dr = np.gradient(q_values, dr)
-    rs_id = np.abs(tm.r_s - r).argmin()
-    
-    s = (m/n)*tm.r_s*dq_dr[rs_id]
-    
-    growth_rate = gamma_scale_factor**(-4/5)*complex(delta_p)**(4/5) * tm.r_s**(4/5) \
-        * (n*s)**(2/5) / S**(3/5)
+    grs = growth_rate_scale(S, tm.r_s, m, n)
+
+    growth_rate = grs*complex(delta_p)**(4/5)
 
     return delta_p, growth_rate.real
 
