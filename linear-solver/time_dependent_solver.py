@@ -9,6 +9,7 @@ import numpy as np
 from typing import Tuple
 from scipy.integrate import odeint
 from matplotlib import pyplot as plt
+from scipy.stats import sem
 
 from linear_solver import (
     TearingModeSolution, solve_system, growth_rate_scale
@@ -24,10 +25,10 @@ def flux_time_derivative(psi: np.array,
     psi_f, psi_b = psi.reshape(2, len(psi)//2)
     
     dr_fwd = r_range_fwd[-1] - r_range_fwd[-2]
-    dpsi_dr_forwards = np.gradient(psi_f, dr_fwd)[-1]
+    dpsi_dr_forwards = np.gradient(psi_f, dr_fwd, edge_order=2)[-1]
     
     dr_bkwd = r_range_bkwd[-1] - r_range_bkwd[-2]
-    dpsi_dr_backwards = np.gradient(psi_b, dr_bkwd)[-1]
+    dpsi_dr_backwards = np.gradient(psi_b, dr_bkwd, edge_order=2)[-1]
 
     psi_rs_f = psi_f[-1]
     psi_rs_b = psi_b[-1]
@@ -96,7 +97,7 @@ def linear_tm_growth_plots():
     n=2
     lundquist_number = 1e8
     
-    times = np.linspace(0.0, 1e5, 3)
+    times = np.linspace(0.0, 1e4, 3)
     
     res_f, res_b, tm, t_range = solve_time_dependent_system(
         m, n, lundquist_number,1.0, times
@@ -129,7 +130,7 @@ def linear_tm_growth_plots():
     
     
 def linear_tm_amplitude_vs_time():
-    m=3
+    m=4
     n=2
     lundquist_number = 1e8
     
@@ -154,7 +155,21 @@ def linear_tm_amplitude_vs_time():
         
     plt.savefig(f"res_amplitude_vs_time_(m,n)={m},{n}.png", dpi=300)
         
+    dt = t_range[-1] - t_range[-2]
+    dpsi_dt = np.gradient(res_amplitudes, dt)
+    growth_rate = dpsi_dt/res_amplitudes
 
+    growth_rate_clipped = growth_rate[1:-2]
+    print(f"""Average growth_rate = {np.mean(growth_rate_clipped)} 
+          +/- {sem(growth_rate_clipped)}""")
+    
+    fig2, ax2 = plt.subplots(1, figsize=(4,3))
+    ax2.plot(t_range, growth_rate)
+    
+    ax2.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+    ax2.set_ylabel(r"Normalised growth rate ($\gamma/\bar{\omega}_A$)")
+    
+    fig2.tight_layout()
     
 if __name__=='__main__':
     linear_tm_growth_plots()
