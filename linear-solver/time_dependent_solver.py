@@ -24,10 +24,10 @@ def flux_time_derivative(psi: np.array,
     psi_f, psi_b = psi.reshape(2, len(psi)//2)
     
     dr_fwd = r_range_fwd[-1] - r_range_fwd[-2]
-    dpsi_dr_forwards = (psi_f[-1] - psi_f[-2]) / dr_fwd
+    dpsi_dr_forwards = np.gradient(psi_f, dr_fwd)[-1]
     
     dr_bkwd = r_range_bkwd[-1] - r_range_bkwd[-2]
-    dpsi_dr_backwards = (psi_b[-1] - psi_b[-2]) / dr_bkwd
+    dpsi_dr_backwards = np.gradient(psi_b, dr_bkwd)[-1]
 
     psi_rs_f = psi_f[-1]
     psi_rs_b = psi_b[-1]
@@ -51,13 +51,14 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 axis_q: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10)):
     
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=1000)
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=10000)
     grs = growth_rate_scale(
         lundquist_number, tm.r_s, poloidal_mode, toroidal_mode
     )
 
 
     y0 = np.concatenate((tm.psi_forwards, tm.psi_backwards))
+    
     
     flux_time_derivative(
         y0,
@@ -95,7 +96,7 @@ def linear_tm_growth_plots():
     n=2
     lundquist_number = 1e8
     
-    times = np.linspace(0.0, 1e4, 3)
+    times = np.linspace(0.0, 1e5, 3)
     
     res_f, res_b, tm, t_range = solve_time_dependent_system(
         m, n, lundquist_number,1.0, times
@@ -110,7 +111,7 @@ def linear_tm_growth_plots():
         r = np.concatenate((tm.r_range_fwd, tm.r_range_bkwd[::-1]))
         
         max_num = np.max((psi_b, psi_f))
-        print(max_num)
+        #print(max_num)
         
         ax.plot(r, psi, label=r'$\bar{\omega}_A t$='+f'{times[i]:.1e}')
         

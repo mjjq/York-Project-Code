@@ -169,7 +169,7 @@ class TearingModeSolution():
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 
                  axis_q: float = 1.0,
-                 n: int = 10000) -> TearingModeSolution:
+                 n: int = 100000) -> TearingModeSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
     plasma given the mode numbers of the tearing mode.
@@ -461,16 +461,7 @@ def growth_rate(poloidal_mode: int,
 
 def growth_rate_vs_mode_number():
     modes = [
-        (2,1),
-        (3,2),
-        (4,2),
-        (4,3),
-        (5,2),
-        (5,3),
-        (5,4),
-        (6,3),
-        (6,4),
-        (6,5)
+        (3,2)
     ]
     lundquist_number = 1e8
     
@@ -485,17 +476,46 @@ def growth_rate_vs_mode_number():
         delta_p, growth = results[i]
         print(f"{mode}: {delta_p:.2f} ,{growth:.2e}")
 
+def test_gradient():
+    m=3
+    n=2
+    lundquist_number = 1e8
+    axis_q = 1.0
     
+    tm = solve_system(m, n, axis_q)
+    
+    dr_fwd = tm.r_range_fwd[-1] - tm.r_range_fwd[-2]
+    dpsi_dr_fwd = np.gradient(tm.psi_forwards, dr_fwd)
+    
+    dr_bkwd = tm.r_range_bkwd[-1] - tm.r_range_bkwd[-2]
+    dpsi_dr_bkwd = np.gradient(tm.psi_backwards, dr_bkwd)
+    
+    print(dpsi_dr_fwd[-1], tm.dpsi_dr_forwards[-1])
+    print(dpsi_dr_bkwd[-1], tm.dpsi_dr_backwards[-1])
+    
+    fig, axs = plt.subplots(2)
+    
+    ax, ax2 = axs
+    
+    ax.plot(tm.r_range_fwd, dpsi_dr_fwd, label='Manual fwd gradient')
+    ax.plot(tm.r_range_fwd, tm.dpsi_dr_forwards, label='odeint fwd gradient')
+    
+    ax2.plot(tm.r_range_bkwd, dpsi_dr_bkwd, label='Manual bkwd gradient')
+    ax2.plot(tm.r_range_bkwd, tm.dpsi_dr_backwards, label='odeint bkwd gradient')
+
+    ax.legend()
 
 if __name__=='__main__':
-    solve_and_plot_system()
-    plt.tight_layout()
-    plt.savefig("tm-with-q-djdr.png", dpi=300)
+    #solve_and_plot_system()
+    #plt.tight_layout()
+    #plt.savefig("tm-with-q-djdr.png", dpi=300)
 
     # island_saturation()
     # plt.savefig("island-saturation.png", dpi=300)
     # plt.show()
     
     #print(growth_rate(4,2,1e8))
-    growth_rate_vs_mode_number()
+    #growth_rate_vs_mode_number()
     #plt.show()
+
+    test_gradient()
