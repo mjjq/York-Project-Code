@@ -48,15 +48,14 @@ def flux_time_derivative(psi: np.array,
 def solve_time_dependent_system(poloidal_mode: int, 
                                 toroidal_mode: int, 
                                 lundquist_number: float,
-                                axis_q: float = 1.0):
+                                axis_q: float = 1.0,
+                                t_range: np.array = np.linspace(0.0, 1e5, 10)):
     
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=100)
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=1000)
     grs = growth_rate_scale(
         lundquist_number, tm.r_s, poloidal_mode, toroidal_mode
     )
-    
-    t_range = np.linspace(0.0, 1e5, 3)
-    print(t_range)
+
 
     y0 = np.concatenate((tm.psi_forwards, tm.psi_backwards))
     
@@ -75,10 +74,6 @@ def solve_time_dependent_system(poloidal_mode: int,
         args = (tm.r_range_fwd, tm.r_range_bkwd, grs)
     )
     
-    print(results.shape)
-    
-    for r in results:
-        plt.plot(r)
     
     results_forwards = []
     results_backwards = []
@@ -92,17 +87,21 @@ def solve_time_dependent_system(poloidal_mode: int,
         results_forwards.append(psi_t_fwd)
         results_backwards.append(psi_t_bkwd)
         
-    return results_forwards, results_backwards, tm
+    return results_forwards, results_backwards, tm, t_range
     
-    
-if __name__=='__main__':
+
+def linear_tm_growth_plots():
     m=3
     n=2
     lundquist_number = 1e8
     
-    res_f, res_b, tm = solve_time_dependent_system(m, n, lundquist_number)
+    times = np.linspace(0.0, 1e4, 3)
+    
+    res_f, res_b, tm, t_range = solve_time_dependent_system(
+        m, n, lundquist_number,1.0, times
+    )
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4,3))
     
     for i, psi_f in enumerate(res_f):
         psi_b = res_b[i]
@@ -113,6 +112,51 @@ if __name__=='__main__':
         max_num = np.max((psi_b, psi_f))
         print(max_num)
         
-        ax.plot(r, psi)
+        ax.plot(r, psi, label=r'$\bar{\omega}_A t$='+f'{times[i]:.1e}')
+        
+    ax.vlines(
+        tm.r_s, 0.0, np.max((res_f, res_b)), color='red', linestyle='--',
+        label='$\hat{r}_s$='+f'{tm.r_s:.2f}'
+    )
+    
+    ax.set_xlabel("Normalised minor radial co-ordinate $\hat{r}$")  
+    ax.set_ylabel("Normalised perturbed flux $\delta \hat{\psi}^{(1)}$")
+    ax.legend()
+    fig.tight_layout()
+    
+    plt.savefig("linear_tm_time_evo_(m,n)=({m},{n}).png", dpi=300)
+    
+    
+def linear_tm_amplitude_vs_time():
+    m=3
+    n=2
+    lundquist_number = 1e8
+    
+    res_f, res_b, tm, t_range = solve_time_dependent_system(
+        m, n, lundquist_number, 1.0, np.linspace(0.0, 1e5, 100)
+    )
+
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    
+    res_amplitudes = [psi_f[-1] for psi_f in res_f]
+    
+    ax.set_yscale('log')
+    ax.scatter(t_range, res_amplitudes, s=1)
+    
+    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+    ax.set_ylabel(
+        """Normalised perturbed flux at 
+        resonant surface [$\delta \hat{\psi}^{(1)}(r_s)$]"""
+    )
+    
+    fig.tight_layout()
+        
+    plt.savefig(f"res_amplitude_vs_time_(m,n)={m},{n}.png", dpi=300)
+        
+
+    
+if __name__=='__main__':
+    linear_tm_growth_plots()
+    linear_tm_amplitude_vs_time()
         
         
