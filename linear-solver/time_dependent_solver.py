@@ -121,10 +121,10 @@ def linear_tm_growth_plots():
     
     ax.set_xlabel("Normalised minor radial co-ordinate $\hat{r}$")  
     ax.set_ylabel("Normalised perturbed flux $\delta \hat{\psi}^{(1)}$")
-    ax.legend()
+    ax.legend(prop={'size':8})
     fig.tight_layout()
     
-    plt.savefig("linear_tm_time_evo_(m,n)=({m},{n}).png", dpi=300)
+    plt.savefig(f"linear_tm_time_evo_(m,n)={m},{n}.png", dpi=300)
     
     
 def linear_tm_amplitude_vs_time():
