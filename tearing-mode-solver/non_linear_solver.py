@@ -75,6 +75,8 @@ def island_saturation():
     """
     poloidal_mode = 2
     toroidal_mode = 1
+    m = poloidal_mode
+    n = toroidal_mode
     axis_q = 1.0
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
@@ -83,11 +85,24 @@ def island_saturation():
     
     delta_ps = [delta_prime_non_linear(tm, w) for w in island_widths]
     
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4,3))
     
-    ax.plot(island_widths, delta_ps)
+    ax.plot(island_widths, delta_ps, label=f"(m,n)=({m},{n})")
     
-    ax.set_xlabel("Normalised island width")
-    ax.set_ylabel("$\hat{\Delta} ' (\hat{w})$")
+    ax.set_xlabel("Normalised island width ($\hat{w}$)")
+    ax.set_ylabel("$a\Delta ' (\hat{w})$")
     
-    ax.hlines(0.0, xmin=0.0, xmax=1.0, color='red', linestyle='--')
+    ax.hlines(
+        0.0, xmin=0.0, xmax=1.0, color='red',
+        linestyle='--', label=r"$a\Delta' = 0 $"
+    )
+    fig.tight_layout()
+
+    ax.legend()
+
+    #plt.show()
+    plt.savefig(f"./output/island_saturation_(m,n)=({m},{n}).png", dpi=300)
+
+    
+if __name__=='__main__':
+    island_saturation()

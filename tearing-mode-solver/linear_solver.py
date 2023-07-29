@@ -470,7 +470,7 @@ def test_gradient():
     
 
 if __name__=='__main__':
-    #solve_and_plot_system()
+    solve_and_plot_system()
     #plt.tight_layout()
     #plt.savefig("tm-with-q-djdr.png", dpi=300)
 

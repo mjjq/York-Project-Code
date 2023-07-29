@@ -11,6 +11,9 @@ from scipy.integrate import odeint
 from matplotlib import pyplot as plt
 from scipy.stats import sem
 
+# import warnings
+# warnings.filterwarnings("error")
+
 from linear_solver import (
     TearingModeSolution, solve_system, growth_rate_scale, magnetic_shear
 )
@@ -27,12 +30,19 @@ def flux_time_derivative(psi: float,
 
     m = poloidal_mode
     n = toroidal_mode
-
-    s = magnetic_shear(tm.r_s, m, n)
-    w = island_width(psi, tm.r_s, s)
-    delta_prime = delta_prime_non_linear(tm, w)
     
-    dpsi_dt = 0.25*resistivity*np.sqrt(s*psi/tm.r_s) * delta_prime
+    if psi[0]<0.0:
+        print("Warning, negative flux. Setting to zero.")
+        # psi[0]=0.0
+    
+    try:  
+        s = magnetic_shear(tm.r_s, m, n)
+        w = island_width(psi, tm.r_s, s)
+        delta_prime = delta_prime_non_linear(tm, w)
+        dpsi_dt = 0.25*resistivity*np.sqrt(s*psi/tm.r_s) * delta_prime
+    except RuntimeWarning:
+        print(f"Invalid sqrt value: s={s}, psi={psi}, r_s={tm.r_s}")
+        dpsi_dt = 0.0
     
     return dpsi_dt
 
@@ -47,39 +57,47 @@ def solve_time_dependent_system(poloidal_mode: int,
 
     psi_t0 = tm.psi_forwards[-1]
     
-    results = odeint(
+    psi_t = odeint(
         flux_time_derivative,
         psi_t0,
         t_range,
         args = (tm, poloidal_mode, toroidal_mode, resistivity)
     )
+
+    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
+    w_t = island_width(psi_t, tm.r_s, s)
     
-    return results
+    return psi_t, w_t
     
 
 def nl_tm_vs_time():
-    m=3
-    n=2
-    resistivity = 1.0
+    m=2
+    n=1
+    resistivity = 0.0001
     axis_q = 1.0
 
-    times = np.linspace(0.0, 1e3, 100)
+    times = np.linspace(0.0, 1e4, 1000)
     
-    psi_t = solve_time_dependent_system(
+    psi_t, w_t = solve_time_dependent_system(
         m, n, resistivity, axis_q, times
     )
 
     fig, ax = plt.subplots(1, figsize=(4,3))
+    ax2 = ax.twinx()
     
-    ax.plot(times, psi_t, label='Normalised perturbed flux')
-    
-    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")  
+    ax.plot(times, psi_t, label='Normalised perturbed flux', color='black')
+
+    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
     ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
-    ax.legend(prop={'size':8})
+
+    ax2.plot(times, w_t, label='Normalised island width', color='red')
+    ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
+    ax2.yaxis.label.set_color('red')
+
     fig.tight_layout()
-    
-    #plt.savefig(f"linear_tm_time_evo_(m,n)={m},{n}.png", dpi=300)
-    
+    #plt.show()
+    plt.savefig(f"./output/nl_tm_time_evo_(m,n)={m},{n}.png", dpi=300)
+    plt.show()
 
     
 if __name__=='__main__':
