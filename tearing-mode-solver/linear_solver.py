@@ -278,56 +278,7 @@ def delta_prime(tm_sol: TearingModeSolution,
     
     return (dpsi_dr_plus - dpsi_dr_minus)/psi_plus
 
-def delta_prime_non_linear(tm: TearingModeSolution,
-                           island_width: float,
-                           epsilon: float = 1e-10) -> float:
-    """
-    Non-linear rutherford equation calculation using the solution of the
-    perturbed flux.
 
-    Parameters
-    ----------
-    tm : TearingModeSolution
-        Solution to the reduced MHD equation obtained from solve_system.
-    island_width : float
-        Width of the magnetic island.
-    epsilon : float, optional
-        The tolerance needed for the lower and upper tearing mode solutions to
-        match. The default is 1e-10.
-
-    Raises
-    ------
-    ValueError
-        Raised if upper and lower TM solutions don't match.
-
-    Returns
-    -------
-    float
-        Linear delta' value.
-
-    """
-    psi_plus = tm.psi_backwards[-1]
-    psi_minus = tm.psi_forwards[-1]
-    
-    if abs(psi_plus - psi_minus) > epsilon:
-        raise ValueError(
-            f"""Forwards and backward solutions 
-            should be equal at resonant surface.
-            (psi_plus={psi_plus}, psi_minus={psi_minus})."""
-        )
-    
-    
-    r_min = tm.r_s - island_width/2.0
-    id_min = np.abs(tm.r_range_fwd - r_min).argmin()
-    dpsi_dr_min = tm.dpsi_dr_forwards[id_min]
-    
-    r_max = tm.r_s + island_width/2.0
-    id_max = np.abs(tm.r_range_bkwd - r_max).argmin()
-    dpsi_dr_max = tm.dpsi_dr_backwards[id_max]
-
-    delta_p = (dpsi_dr_max - dpsi_dr_min)/psi_plus
-
-    return delta_p
 
 def solve_and_plot_system():
     poloidal_mode = 2
@@ -384,35 +335,24 @@ def solve_and_plot_system():
     #ax3.set_yscale('log')
     ax.legend(prop={'size': 8})
 
-def island_saturation():
-    """
-    Plot delta' as a function of the magnetic island width using the non-linear
-    rutherford equation.
 
-    Returns
-    -------
-    None.
 
-    """
-    poloidal_mode = 2
-    toroidal_mode = 1
-    axis_q = 1.0
-    
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
-    
-    island_widths = np.linspace(0.0, 1.0, 100)
-    
-    delta_ps = [delta_prime_non_linear(tm, w) for w in island_widths]
-    
-    fig, ax = plt.subplots(1)
-    
-    ax.plot(island_widths, delta_ps)
-    
-    ax.set_xlabel("Normalised island width")
-    ax.set_ylabel("$\hat{\Delta} ' (\hat{w})$")
-    
-    ax.hlines(0.0, xmin=0.0, xmax=1.0, color='red', linestyle='--')
 
+def magnetic_shear(resonant_surface: float,
+                   poloidal_mode: int,
+                   toroidal_mode: int) -> float:
+    r_s = resonant_surface
+    
+    r = np.linspace(0, 1, 1000)
+    dr = r[1]-r[0]
+    q_values = q(r)
+    dq_dr = np.gradient(q_values, dr)
+    rs_id = np.abs(r_s - r).argmin()
+    
+    m = poloidal_mode
+    n = toroidal_mode
+    
+    return (m/n)*r_s*dq_dr[rs_id]
 
 def growth_rate_scale(lundquist_number: float,
                       r_s: float,
@@ -426,13 +366,7 @@ def growth_rate_scale(lundquist_number: float,
     n = toroidal_mode
     S = lundquist_number
     
-    r = np.linspace(0, 1, 100)
-    dr = r[1]-r[0]
-    q_values = q(r)
-    dq_dr = np.gradient(q_values, dr)
-    rs_id = np.abs(r_s - r).argmin()
-    
-    s = (m/n)*r_s*dq_dr[rs_id]
+    s = magnetic_shear(r_s, m, n)
     
     grs = gamma_scale_factor**(-4/5)* r_s**(4/5) \
         * (n*s)**(2/5) / S**(3/5)
