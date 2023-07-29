@@ -1,0 +1,3 @@
+*.png
+.spyproject
+*__pycache__*
