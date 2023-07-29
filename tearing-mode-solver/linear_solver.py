@@ -165,6 +165,18 @@ class TearingModeSolution():
     
     # Location of the resonant surface
     r_s: float
+    
+def scale_tm_solution(tm: TearingModeSolution, scale_factor: float)\
+    -> TearingModeSolution:
+    return TearingModeSolution(
+        tm.psi_forwards*scale_factor, 
+        tm.dpsi_dr_forwards*scale_factor, 
+        tm.r_range_fwd, 
+        tm.psi_backwards*scale_factor, 
+        tm.dpsi_dr_backwards*scale_factor, 
+        tm.r_range_bkwd, 
+        tm.r_s
+    )
 
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 

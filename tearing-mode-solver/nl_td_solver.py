@@ -15,7 +15,8 @@ from scipy.stats import sem
 # warnings.filterwarnings("error")
 
 from linear_solver import (
-    TearingModeSolution, solve_system, growth_rate_scale, magnetic_shear
+    TearingModeSolution, solve_system, magnetic_shear,
+    scale_tm_solution
 )
 from non_linear_solver import delta_prime_non_linear, island_width
 
@@ -26,6 +27,7 @@ def flux_time_derivative(psi: float,
                          poloidal_mode: int,
                          toroidal_mode: int,
                          resistivity: float,
+                         mag_shear: float,
                          epsilon: float = 1e-5):
 
     m = poloidal_mode
@@ -36,7 +38,7 @@ def flux_time_derivative(psi: float,
         # psi[0]=0.0
     
     try:  
-        s = magnetic_shear(tm.r_s, m, n)
+        s = mag_shear
         w = island_width(psi, tm.r_s, s)
         delta_prime = delta_prime_non_linear(tm, w)
         dpsi_dt = 0.25*resistivity*np.sqrt(s*psi/tm.r_s) * delta_prime
@@ -51,20 +53,23 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 toroidal_mode: int, 
                                 resistivity: float,
                                 axis_q: float,
+                                initial_scale_factor: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10)):
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=10000)
+    tm = scale_tm_solution(tm, initial_scale_factor)
 
     psi_t0 = tm.psi_forwards[-1]
+    
+    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
     
     psi_t = odeint(
         flux_time_derivative,
         psi_t0,
         t_range,
-        args = (tm, poloidal_mode, toroidal_mode, resistivity)
+        args = (tm, poloidal_mode, toroidal_mode, resistivity, s)
     )
 
-    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
     w_t = island_width(psi_t, tm.r_s, s)
     
     return psi_t, w_t
@@ -75,11 +80,12 @@ def nl_tm_vs_time():
     n=1
     resistivity = 0.0001
     axis_q = 1.0
+    solution_scale_factor = 0.01
 
     times = np.linspace(0.0, 1e4, 1000)
     
     psi_t, w_t = solve_time_dependent_system(
-        m, n, resistivity, axis_q, times
+        m, n, resistivity, axis_q, solution_scale_factor, times
     )
 
     fig, ax = plt.subplots(1, figsize=(4,3))
@@ -96,7 +102,10 @@ def nl_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
-    plt.savefig(f"./output/nl_tm_time_evo_(m,n)={m},{n}.png", dpi=300)
+    plt.savefig(
+        f"./output/nl_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor}).png", 
+        dpi=300
+    )
     plt.show()
 
     
