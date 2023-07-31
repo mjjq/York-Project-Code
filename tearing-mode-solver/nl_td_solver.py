@@ -19,6 +19,7 @@ from linear_solver import (
     scale_tm_solution
 )
 from non_linear_solver import delta_prime_non_linear, island_width
+from pyplot_helper import savefig
 
 
 def flux_time_derivative(psi: float,
@@ -62,6 +63,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     psi_t0 = tm.psi_forwards[-1]
     
     s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
+    print("magnetic shear (s): ", s)
     
     psi_t = odeint(
         flux_time_derivative,
@@ -108,8 +110,53 @@ def nl_tm_vs_time():
     )
     plt.show()
 
-    
+def nl_tm_small_w():
+    m=2
+    n=1
+    resistivity = 0.0001
+    axis_q = 1.0
+    solution_scale_factor = 1e-10
+
+    times = np.linspace(0.0, 1e1, 100)
+
+    psi_t, w_t = solve_time_dependent_system(
+        m, n, resistivity, axis_q, solution_scale_factor, times
+    )
+    print("Initial psi: ", psi_t[0])
+
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    ax2 = ax.twinx()
+
+    ax.plot(times, psi_t, label='Numerical solution', color='black')
+
+    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+    ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
+
+    ax2.plot(times, w_t, label='Normalised island width', color='red')
+    ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
+    ax2.yaxis.label.set_color('red')
+
+    # Returns highest power coefficients first
+    fit, cov = np.polyfit(times, np.squeeze(psi_t), 2, cov=True)
+    perr = np.sqrt(np.diag(cov))
+    print("Coefs: ", fit)
+    print("Errors: ", perr)
+    print(times.shape, psi_t.shape)
+    print(fit)
+    poly = np.poly1d(fit)
+
+    ax.plot(
+        times, poly(times), label='Order 2 poly fit', linestyle='dashed',
+        color='darkturquoise'
+    )
+    ax.legend(prop={'size': 7})
+
+    fig.tight_layout()
+    #plt.show()
+    savefig(f"nl_small_w_(m,n,A)=({m},{n},{solution_scale_factor})")
+    plt.show()
+
 if __name__=='__main__':
-    nl_tm_vs_time()
-        
+    #nl_tm_vs_time()
+    nl_tm_small_w()
         
