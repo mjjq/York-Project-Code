@@ -16,7 +16,7 @@ from scipy.stats import sem
 
 from linear_solver import (
     TearingModeSolution, solve_system, magnetic_shear,
-    scale_tm_solution
+    scale_tm_solution, delta_prime
 )
 from non_linear_solver import delta_prime_non_linear, island_width
 from pyplot_helper import savefig
@@ -63,7 +63,6 @@ def solve_time_dependent_system(poloidal_mode: int,
     psi_t0 = tm.psi_forwards[-1]
     
     s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
-    print("magnetic shear (s): ", s)
     
     psi_t = odeint(
         flux_time_derivative,
@@ -74,7 +73,7 @@ def solve_time_dependent_system(poloidal_mode: int,
 
     w_t = island_width(psi_t, tm.r_s, s)
     
-    return psi_t, w_t
+    return np.squeeze(psi_t), w_t, tm
     
 
 def nl_tm_vs_time():
@@ -86,7 +85,7 @@ def nl_tm_vs_time():
 
     times = np.linspace(0.0, 1e4, 1000)
     
-    psi_t, w_t = solve_time_dependent_system(
+    psi_t, w_t, tm0 = solve_time_dependent_system(
         m, n, resistivity, axis_q, solution_scale_factor, times
     )
 
@@ -110,6 +109,7 @@ def nl_tm_vs_time():
     )
     plt.show()
 
+
 def nl_tm_small_w():
     m=2
     n=1
@@ -119,36 +119,55 @@ def nl_tm_small_w():
 
     times = np.linspace(0.0, 1e1, 100)
 
-    psi_t, w_t = solve_time_dependent_system(
+    psi_t, w_t, tm0 = solve_time_dependent_system(
         m, n, resistivity, axis_q, solution_scale_factor, times
     )
-    print("Initial psi: ", psi_t[0])
+
+    psi0 = psi_t[0]
+    dp = delta_prime(tm0)
+    s = magnetic_shear(tm0.r_s, m, n)
+
+    a_theory = (resistivity/8)**2 * (s/tm0.r_s) * dp**2
+    b_theory = np.sqrt(psi0) * (resistivity/4) * np.sqrt(s/tm0.r_s) * dp
+    c_theory = psi0
+
+    print(
+        f"""Theoretical fit at^2 + bt + c:
+            a={a_theory}, b={b_theory}, c={c_theory}"""
+    )
 
     fig, ax = plt.subplots(1, figsize=(4,3))
-    ax2 = ax.twinx()
+    #ax2 = ax.twinx()
 
     ax.plot(times, psi_t, label='Numerical solution', color='black')
 
     ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
     ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
 
-    ax2.plot(times, w_t, label='Normalised island width', color='red')
-    ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
-    ax2.yaxis.label.set_color('red')
+    #ax2.plot(times, w_t, label='Normalised island width', color='red')
+    #ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
+    #ax2.yaxis.label.set_color('red')
 
     # Returns highest power coefficients first
     fit, cov = np.polyfit(times, np.squeeze(psi_t), 2, cov=True)
     perr = np.sqrt(np.diag(cov))
     print("Coefs: ", fit)
     print("Errors: ", perr)
-    print(times.shape, psi_t.shape)
-    print(fit)
     poly = np.poly1d(fit)
 
     ax.plot(
         times, poly(times), label='Order 2 poly fit', linestyle='dashed',
         color='darkturquoise'
     )
+
+    poly_t = np.poly1d((a_theory, b_theory, c_theory))
+    ax.plot(
+        times, poly_t(times), label='Theoretical poly', linestyle='dashed',
+        color='green'
+    )
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
     ax.legend(prop={'size': 7})
 
     fig.tight_layout()
