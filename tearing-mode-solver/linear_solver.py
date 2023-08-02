@@ -293,9 +293,9 @@ def delta_prime(tm_sol: TearingModeSolution,
 
 
 def solve_and_plot_system():
-    poloidal_mode = 2
+    poloidal_mode = 3
     toroidal_mode = 1
-    axis_q = 1.0
+    axis_q = 2.0
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     
@@ -405,22 +405,57 @@ def growth_rate(poloidal_mode: int,
 
     return delta_p, growth_rate.real
 
+def alfven_frequency_STEP():
+    # 1.35e6 Hz for STEP, see lab book "STEP parameters" log
+    return 1.35e6
+
+def ps_correction(alfven_freq: float,
+                  poloidal_mode: int,
+                  toroidal_mode: int):
+    """
+    Pfirsch schluter correction to the alfven frequency at
+    resonant surface.
+    """
+
+    return alfven_freq / (1+2*poloidal_mode/toroidal_mode)
+
 def growth_rate_vs_mode_number():
     modes = [
-        (3,2)
+        (2,1),
+        (3,2),
+        (4,2),
+        (4,3),
+        (5,2),
+        (5,3),
+        (5,4),
+        (6,3),
+        (6,4),
+        (6,5)
     ]
     lundquist_number = 1e8
     
     fig, ax = plt.subplots(1)
     
     results = []
+
+    alfven_frequency = alfven_frequency_STEP()
     
     for m,n in modes:
-        results.append(growth_rate(m,n,lundquist_number))
+        delta_p, gr = growth_rate(m,n,lundquist_number)
+
+        alfven_corrected = ps_correction(alfven_frequency, m, n)
+
+        abs_growth = gr*alfven_corrected
+
+        results.append((delta_p, gr, alfven_corrected, abs_growth))
         
-    for i,mode in enumerate(modes): 
-        delta_p, growth = results[i]
-        print(f"{mode}: {delta_p:.2f} ,{growth:.2e}")
+    print(f"mode & delta_p & gamma/omega & omega_bar & gamma")
+    for i,mode in enumerate(modes):
+        m, n = mode
+        delta_p, growth, af_corrected, abs_growth = results[i]
+        print(
+            f"{m} & {n} & {delta_p:.2f} & ${growth:.2e}$ & "
+            f"${af_corrected:.2e}$ & ${abs_growth:.2e}$"+r"\\")
 
 def test_gradient():
     m=3
@@ -482,7 +517,8 @@ def test_gradient():
     
 
 if __name__=='__main__':
-    solve_and_plot_system()
+    #solve_and_plot_system()
+    #plt.show()
     #plt.tight_layout()
     #plt.savefig("tm-with-q-djdr.png", dpi=300)
 
@@ -491,7 +527,7 @@ if __name__=='__main__':
     # plt.show()
     
     #print(growth_rate(4,2,1e8))
-    #growth_rate_vs_mode_number()
+    growth_rate_vs_mode_number()
     #plt.show()
 
-    test_gradient()
+    #test_gradient()
