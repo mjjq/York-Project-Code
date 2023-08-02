@@ -58,7 +58,7 @@ def compute_derivatives(y: Tuple[float, float],
                         toroidal_mode: int,
                         j_profile_derivative,
                         q_profile,
-                        axis_q: float = 1.0,
+                        axis_q: float,
                         epsilon: float = 1e-5) -> Tuple[float, float]:
     """
     Compute derivatives for the perturbed flux outside of the resonant region
@@ -180,7 +180,7 @@ def scale_tm_solution(tm: TearingModeSolution, scale_factor: float)\
 
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 
-                 axis_q: float = 1.0,
+                 axis_q: float,
                  n: int = 100000) -> TearingModeSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
@@ -219,7 +219,7 @@ def solve_system(poloidal_mode: int,
         compute_derivatives,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, q),
+        args = (poloidal_mode, toroidal_mode, dj_dr, q, axis_q),
         tcrit=(0.0)
     )
 
@@ -234,7 +234,7 @@ def solve_system(poloidal_mode: int,
         compute_derivatives,
         (initial_psi, -initial_dpsi_dr),
         r_range_bkwd,
-        args = (poloidal_mode, toroidal_mode, dj_dr, q)
+        args = (poloidal_mode, toroidal_mode, dj_dr, q, axis_q)
     )
 
     psi_backwards, dpsi_dr_backwards = (
@@ -294,8 +294,8 @@ def delta_prime(tm_sol: TearingModeSolution,
 
 def solve_and_plot_system():
     poloidal_mode = 3
-    toroidal_mode = 1
-    axis_q = 2.0
+    toroidal_mode = 2
+    axis_q = 1.0
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     
@@ -517,8 +517,8 @@ def test_gradient():
     
 
 if __name__=='__main__':
-    #solve_and_plot_system()
-    #plt.show()
+    solve_and_plot_system()
+    plt.show()
     #plt.tight_layout()
     #plt.savefig("tm-with-q-djdr.png", dpi=300)
 
@@ -527,7 +527,7 @@ if __name__=='__main__':
     # plt.show()
     
     #print(growth_rate(4,2,1e8))
-    growth_rate_vs_mode_number()
+    #growth_rate_vs_mode_number()
     #plt.show()
 
     #test_gradient()
