@@ -207,7 +207,12 @@ def solve_system(poloidal_mode: int,
     initial_psi = 0.0
     initial_dpsi_dr = 1.0
 
+    q_rs = poloidal_mode/(toroidal_mode*axis_q)
+    if q_rs > q(1.0) or q_rs < q(0.0):
+        raise ValueError("Rational surface located outside bounds")
+
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
+
     r_s_thickness = 0.0001
 
     print(f"Rational surface located at r={r_s:.4f}")
@@ -395,7 +400,10 @@ def growth_rate(poloidal_mode: int,
     n = toroidal_mode
     S = lundquist_number
     
-    tm = solve_system(m, n, axis_q)
+    try:
+        tm = solve_system(m, n, axis_q)
+    except ValueError:
+        return np.nan, np.nan
     
     delta_p = delta_prime(tm)
     
@@ -515,10 +523,39 @@ def test_gradient():
     
     plt.savefig("gradient_test.png", dpi=300)
     
+def q_sweep():
+    modes = [
+        (2,1),
+        (3,1),
+        (3,2),
+        (3,3),
+        (4,1),
+        (4,2),
+        (4,3)
+    ]
+
+    axis_q = np.linspace(0.0, 10.0, 200)
+
+    lundquist_number = 1e8
+
+    fig, ax = plt.subplots(1)
+
+    for m,n in modes:
+        results = [growth_rate(m,n,lundquist_number, q) for q in axis_q]
+        delta_ps, growth_rates = zip(*results)
+
+        ax.plot(axis_q, growth_rates, label=f"(m, n)=({m}, {n})")
+
+    ax.set_xlabel("On-axis safety factor")
+    ax.set_ylabel(r"Normalised growth rate ($\gamma/\bar{\omega}_A$)")
+
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
 
 if __name__=='__main__':
-    solve_and_plot_system()
-    plt.show()
+    #solve_and_plot_system()
+    #plt.show()
     #plt.tight_layout()
     #plt.savefig("tm-with-q-djdr.png", dpi=300)
 
@@ -531,3 +568,5 @@ if __name__=='__main__':
     #plt.show()
 
     #test_gradient()
+
+    q_sweep()
