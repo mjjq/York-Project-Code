@@ -4,6 +4,7 @@ from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
+from pyplot_helper import savefig
 
 def dj_dr(radial_coordinate: float,
           shaping_exponent: float = 2.0) -> float:
@@ -208,14 +209,14 @@ def solve_system(poloidal_mode: int,
     initial_dpsi_dr = 1.0
 
     q_rs = poloidal_mode/(toroidal_mode*axis_q)
-    if q_rs > q(1.0) or q_rs < q(0.0):
+    if q_rs >= q(1.0) or q_rs <= q(0.0):
         raise ValueError("Rational surface located outside bounds")
 
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
 
     r_s_thickness = 0.0001
 
-    print(f"Rational surface located at r={r_s:.4f}")
+    #print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
     r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, n)
@@ -257,8 +258,8 @@ def solve_system(poloidal_mode: int,
     psi_forwards = psi_forwards * bkwd_res_surface/fwd_res_surface
     dpsi_dr_forwards = dpsi_dr_forwards * bkwd_res_surface/fwd_res_surface
     
-    print(dpsi_dr_forwards)
-    print(r_range_fwd)
+    #print(dpsi_dr_forwards)
+    #print(r_range_fwd)
     
     # Recover original derivatives as the compute_derivatives function returns
     # r^2 * f' for r>0. For r=0, the compute_derivatives function returns f'
@@ -266,7 +267,7 @@ def solve_system(poloidal_mode: int,
     dpsi_dr_forwards[1:] = dpsi_dr_forwards[1:]/(r_range_fwd[1:]**2)
     dpsi_dr_backwards = dpsi_dr_backwards/(r_range_bkwd**2)
     
-    print(dpsi_dr_forwards)
+    #print(dpsi_dr_forwards)
     
     return TearingModeSolution(
         psi_forwards, dpsi_dr_forwards, r_range_fwd,
@@ -525,32 +526,53 @@ def test_gradient():
     
 def q_sweep():
     modes = [
-        (2,1),
-        (3,1),
-        (3,2),
-        (3,3),
-        (4,1),
-        (4,2),
-        (4,3)
+        (2,10),
+        (3,10),
+        (4,10),
+        (5,10),
+        (6,10),
+        (7,10),
+        (8,10)
     ]
 
-    axis_q = np.linspace(0.0, 10.0, 200)
+    axis_q_plt = np.linspace(0.0, 100.0, 200)
 
     lundquist_number = 1e8
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4.5,3))
+    ax.hlines(
+        0.0, min(axis_q_plt), max(axis_q_plt), color='black', linestyle='--',
+        label='Marginal stability'
+    )
+
+    min_q, max_q = 1000000.0, -1000000.0
 
     for m,n in modes:
+        print(m, n)
+        q_rs = m/n
+        axis_q = np.linspace(q_rs/q(0.0), q_rs/q(1.0), 50)
         results = [growth_rate(m,n,lundquist_number, q) for q in axis_q]
         delta_ps, growth_rates = zip(*results)
 
+        min_q = min(min_q, min(axis_q))
+        max_q = max(max_q, max(axis_q))
+
         ax.plot(axis_q, growth_rates, label=f"(m, n)=({m}, {n})")
+
+    bottom, top = ax.get_ylim()
+    ax.set_ylim(bottom=-top)
+    ax.set_xlim(left=min_q, right=max_q)
 
     ax.set_xlabel("On-axis safety factor")
     ax.set_ylabel(r"Normalised growth rate ($\gamma/\bar{\omega}_A$)")
 
-    ax.legend()
+    ax.legend(prop={'size': 7}, ncol=2)
     fig.tight_layout()
+    ax.grid(which='both')
+    ms, ns = zip(*modes)
+    savefig(
+        f"q_vs_growth_rate_(m,n)_{min(ms)}-{max(ms)}_{min(ns)}-{max(ns)}"
+    )
     plt.show()
 
 if __name__=='__main__':
