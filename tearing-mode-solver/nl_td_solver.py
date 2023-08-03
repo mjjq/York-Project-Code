@@ -28,7 +28,7 @@ def flux_time_derivative(psi: float,
                          tm: TearingModeSolution,
                          poloidal_mode: int,
                          toroidal_mode: int,
-                         resistivity: float,
+                         lundquist_number: float,
                          mag_shear: float,
                          epsilon: float = 1e-5):
 
@@ -43,7 +43,8 @@ def flux_time_derivative(psi: float,
         s = mag_shear
         w = island_width(psi, tm.r_s, s)
         delta_prime = delta_prime_non_linear(tm, w)
-        dpsi_dt = 0.25*resistivity*np.sqrt(s*psi/tm.r_s) * delta_prime
+        dpsi_dt = (0.25/lundquist_number)*\
+            (np.sqrt((tm.r_s**3)*s*psi) * delta_prime)
     except RuntimeWarning:
         print(f"Invalid sqrt value: s={s}, psi={psi}, r_s={tm.r_s}")
         dpsi_dt = 0.0
@@ -53,7 +54,7 @@ def flux_time_derivative(psi: float,
 
 def solve_time_dependent_system(poloidal_mode: int, 
                                 toroidal_mode: int, 
-                                resistivity: float,
+                                lundquist_number: float,
                                 axis_q: float,
                                 initial_scale_factor: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10)):
@@ -69,7 +70,7 @@ def solve_time_dependent_system(poloidal_mode: int,
         flux_time_derivative,
         psi_t0,
         t_range,
-        args = (tm, poloidal_mode, toroidal_mode, resistivity, s)
+        args = (tm, poloidal_mode, toroidal_mode, lundquist_number, s)
     )
 
     w_t = island_width(psi_t, tm.r_s, s)
@@ -80,14 +81,14 @@ def solve_time_dependent_system(poloidal_mode: int,
 def nl_tm_vs_time():
     m=2
     n=1
-    resistivity = 0.0001
+    lundquist_number = 1e8
     axis_q = 1.0
     solution_scale_factor = 0.01
 
-    times = np.linspace(0.0, 1e4, 1000)
+    times = np.linspace(0.0, 1e8, 1000)
     
     psi_t, w_t, tm0 = solve_time_dependent_system(
-        m, n, resistivity, axis_q, solution_scale_factor, times
+        m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
 
     fig, ax = plt.subplots(1, figsize=(4,3))
@@ -195,5 +196,5 @@ def nl_tm_small_w():
 
 if __name__=='__main__':
     #nl_tm_vs_time()
-    nl_tm_small_w()
-        
+    #nl_tm_small_w()
+    nl_tm_vs_time()
