@@ -13,6 +13,7 @@ from scipy.stats import sem
 from scipy.optimize import curve_fit
 
 
+
 from linear_solver import (
     TearingModeSolution, solve_system, magnetic_shear,
     scale_tm_solution, delta_prime, q
@@ -30,23 +31,31 @@ def flux_time_derivative(psi: float,
                          mag_shear: float,
                          epsilon: float = 1e-5):
 
+    
     m = poloidal_mode
     n = toroidal_mode
     
-    if psi[0]<0.0:
-        print(f"Warning, negative flux at {time}. Setting to zero.")
-        # psi[0]=0.0
+    #if psi[0]<0.0:
+    #    print(f"Warning, negative flux at {time}. Setting to zero.")
+    #    psi[0]=0.0
+    # if psi[0]>1e-5:
+    #     print("Warning, weirdly high psi value")
+    # if np.isnan(psi[0]):
+    #     print("Warning, psi is nan")
       
     s = mag_shear
     w = island_width(psi, tm.r_s, s)
     delta_prime = delta_prime_non_linear(tm, w)
     sqrt_factor = (tm.r_s**3)*s*psi
     
+    
     if sqrt_factor >= 0.0:
         dpsi_dt = (0.25/lundquist_number)*\
             (np.sqrt(sqrt_factor) * delta_prime)
+
     else:
         dpsi_dt = 0.0
+        
     
     return dpsi_dt
 
@@ -71,6 +80,11 @@ def solve_time_dependent_system(poloidal_mode: int,
         t_range,
         args = (tm, poloidal_mode, toroidal_mode, lundquist_number, s)
     )
+    
+    # We get weird numerical bugs sometimes returning large or nan values.
+    # Set these to zero.
+    psi_t[np.abs(psi_t) > 1e10] = 0.0
+    psi_t[np.argwhere(np.isnan(psi_t))] = 0.0
 
     w_t = island_width(psi_t, tm.r_s, s)
     
@@ -81,14 +95,16 @@ def nl_tm_vs_time():
     m=3
     n=2
     lundquist_number = 1e8
-    axis_q = 0.55
+    axis_q = 0.6188889
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 1000)
+    times = np.linspace(0.0, 1e8, 200)
     
     psi_t, w_t, tm0 = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
+    
+    print(psi_t)
 
     fig, ax = plt.subplots(1, figsize=(4,3))
     ax2 = ax.twinx()
@@ -196,14 +212,14 @@ def marginal_stability():
     final island width as a function of q(0)
     """
     m=3
-    n=2
+    n=3
     lundquist_number = 1e8
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 1000)
+    times = np.linspace(0.0, 1e8, 200)
 
     q_rs = m/n
-    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 10)
+    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 100)
 
     final_widths = []
 
@@ -217,21 +233,29 @@ def marginal_stability():
         saturation_width_sem = sem(w_t[-20:])
         final_widths.append((saturation_width, saturation_width_sem))
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4,3))
 
     means, sems = zip(*final_widths)
     means = np.array(means)
     sems = np.squeeze(np.array(sems))
     print(means)
     print(sems)
-    ax.plot(axis_qs, means)
-    ax.fill_between(axis_qs, means-sems, means+sems, alpha=0.3)
+    ax.plot(axis_qs, means, color='black')
+    #ax.fill_between(axis_qs, means-sems, means+sems, alpha=0.3)
+
+    ax.set_xlabel("On-axis safety factor")
+    ax.set_ylabel("Saturated island width $(w/a)$")
+
+    ax.grid(which='both')
+    fig.tight_layout()
+
+    savefig(f"q_sweep_nl_(m,n,A)=({m},{n},{solution_scale_factor})")
     
     plt.show()
 
 
 
 if __name__=='__main__':
-    nl_tm_vs_time()
+    #nl_tm_vs_time()
     #nl_tm_small_w()
-    #marginal_stability()
+    marginal_stability()
