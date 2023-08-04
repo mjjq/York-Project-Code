@@ -5,11 +5,15 @@ from matplotlib import pyplot as plt
 
 from linear_solver import TearingModeSolution, solve_system
 
-
+@np.vectorize
 def island_width(psi_rs: float,
                  r_s: float,
                  magnetic_shear: float) -> float:
-    return 4.0*np.sqrt(psi_rs*r_s/magnetic_shear)
+    pre_factor = psi_rs*r_s/magnetic_shear
+    if pre_factor >= 0.0:
+        return 4.0*np.sqrt(pre_factor)
+    
+    return 0.0
 
 def delta_prime_non_linear(tm: TearingModeSolution,
                            island_width: float,
@@ -89,8 +93,8 @@ def island_saturation():
     
     ax.plot(island_widths, delta_ps, label=f"(m,n)=({m},{n})")
     
-    ax.set_xlabel("Normalised island width ($\hat{w}$)")
-    ax.set_ylabel("$a\Delta ' (\hat{w})$")
+    ax.set_xlabel(r"Normalised island width ($\hat{w}$)")
+    ax.set_ylabel(r"$a\Delta ' (\hat{w})$")
     
     ax.hlines(
         0.0, xmin=0.0, xmax=1.0, color='red',

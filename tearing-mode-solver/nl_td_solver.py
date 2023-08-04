@@ -12,12 +12,10 @@ from matplotlib import pyplot as plt
 from scipy.stats import sem
 from scipy.optimize import curve_fit
 
-# import warnings
-# warnings.filterwarnings("error")
 
 from linear_solver import (
     TearingModeSolution, solve_system, magnetic_shear,
-    scale_tm_solution, delta_prime
+    scale_tm_solution, delta_prime, q
 )
 from non_linear_solver import delta_prime_non_linear, island_width
 from pyplot_helper import savefig
@@ -36,17 +34,18 @@ def flux_time_derivative(psi: float,
     n = toroidal_mode
     
     if psi[0]<0.0:
-        print("Warning, negative flux. Setting to zero.")
+        print(f"Warning, negative flux at {time}. Setting to zero.")
         # psi[0]=0.0
+      
+    s = mag_shear
+    w = island_width(psi, tm.r_s, s)
+    delta_prime = delta_prime_non_linear(tm, w)
+    sqrt_factor = (tm.r_s**3)*s*psi
     
-    try:  
-        s = mag_shear
-        w = island_width(psi, tm.r_s, s)
-        delta_prime = delta_prime_non_linear(tm, w)
+    if sqrt_factor >= 0.0:
         dpsi_dt = (0.25/lundquist_number)*\
-            (np.sqrt((tm.r_s**3)*s*psi) * delta_prime)
-    except RuntimeWarning:
-        print(f"Invalid sqrt value: s={s}, psi={psi}, r_s={tm.r_s}")
+            (np.sqrt(sqrt_factor) * delta_prime)
+    else:
         dpsi_dt = 0.0
     
     return dpsi_dt
@@ -79,11 +78,11 @@ def solve_time_dependent_system(poloidal_mode: int,
     
 
 def nl_tm_vs_time():
-    m=2
-    n=1
+    m=3
+    n=2
     lundquist_number = 1e8
-    axis_q = 1.0
-    solution_scale_factor = 0.01
+    axis_q = 0.55
+    solution_scale_factor = 1e-10
 
     times = np.linspace(0.0, 1e8, 1000)
     
@@ -105,9 +104,8 @@ def nl_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
-    plt.savefig(
-        f"./output/nl_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor}).png", 
-        dpi=300
+    savefig(
+        f"nl_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
     )
     plt.show()
 
@@ -118,7 +116,7 @@ def nl_tm_small_w():
     m=2
     n=1
     resistivity = 0.0001
-    axis_q = 1.0
+    axis_q = 0.5
     solution_scale_factor = 1e-10
 
     times = np.linspace(0.0, 1e1, 100000)
@@ -192,9 +190,48 @@ def nl_tm_small_w():
     savefig(f"nl_small_w_(m,n,A)=({m},{n},{solution_scale_factor})")
     plt.show()
 
+def marginal_stability():
+    """
+    Solve time dependent NL equation for multiple q-values. Plot
+    final island width as a function of q(0)
+    """
+    m=3
+    n=2
+    lundquist_number = 1e8
+    solution_scale_factor = 1e-10
+
+    times = np.linspace(0.0, 1e8, 1000)
+
+    q_rs = m/n
+    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 10)
+
+    final_widths = []
+
+    for axis_q in axis_qs:
+        psi_t, w_t, tm0 = solve_time_dependent_system(
+            m, n, lundquist_number, axis_q, solution_scale_factor, times
+        )
+        w_t = np.squeeze(w_t)
+
+        saturation_width = np.mean(w_t[-20:])
+        saturation_width_sem = sem(w_t[-20:])
+        final_widths.append((saturation_width, saturation_width_sem))
+
+    fig, ax = plt.subplots(1)
+
+    means, sems = zip(*final_widths)
+    means = np.array(means)
+    sems = np.squeeze(np.array(sems))
+    print(means)
+    print(sems)
+    ax.plot(axis_qs, means)
+    ax.fill_between(axis_qs, means-sems, means+sems, alpha=0.3)
+    
+    plt.show()
+
 
 
 if __name__=='__main__':
-    #nl_tm_vs_time()
-    #nl_tm_small_w()
     nl_tm_vs_time()
+    #nl_tm_small_w()
+    #marginal_stability()
