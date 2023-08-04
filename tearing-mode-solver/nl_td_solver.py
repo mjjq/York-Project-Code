@@ -86,9 +86,11 @@ def solve_time_dependent_system(poloidal_mode: int,
     psi_t[np.abs(psi_t) > 1e10] = 0.0
     psi_t[np.argwhere(np.isnan(psi_t))] = 0.0
 
-    w_t = island_width(psi_t, tm.r_s, s)
+    w_t = np.squeeze(island_width(psi_t, tm.r_s, s))
+
+    dps = [delta_prime_non_linear(tm, w) for w in w_t]
     
-    return np.squeeze(psi_t), w_t, tm
+    return np.squeeze(psi_t), w_t, tm, dps
     
 
 def nl_tm_vs_time():
@@ -211,7 +213,7 @@ def marginal_stability():
     Solve time dependent NL equation for multiple q-values. Plot
     final island width as a function of q(0)
     """
-    m=3
+    m=2
     n=3
     lundquist_number = 1e8
     solution_scale_factor = 1e-10
@@ -219,28 +221,36 @@ def marginal_stability():
     times = np.linspace(0.0, 1e8, 200)
 
     q_rs = m/n
-    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 100)
+    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 200)
 
     final_widths = []
 
     for axis_q in axis_qs:
-        psi_t, w_t, tm0 = solve_time_dependent_system(
+        psi_t, w_t, tm0, delta_primes = solve_time_dependent_system(
             m, n, lundquist_number, axis_q, solution_scale_factor, times
         )
         w_t = np.squeeze(w_t)
 
         saturation_width = np.mean(w_t[-20:])
         saturation_width_sem = sem(w_t[-20:])
-        final_widths.append((saturation_width, saturation_width_sem))
+        final_widths.append(
+            (saturation_width, saturation_width_sem, delta_primes[0])
+        )
 
     fig, ax = plt.subplots(1, figsize=(4,3))
+    ax2 = ax.twinx()
 
-    means, sems = zip(*final_widths)
+    means, sems, delta_primes = zip(*final_widths)
     means = np.array(means)
     sems = np.squeeze(np.array(sems))
     print(means)
     print(sems)
     ax.plot(axis_qs, means, color='black')
+    ax2.plot(axis_qs, delta_primes, color='red')
+    ax2.set_ylabel(r"$a\Delta'$", color='red')
+    ax2.hlines(
+        0.0, min(axis_qs), max(axis_qs), color='red', linestyle='--'
+    )
     #ax.fill_between(axis_qs, means-sems, means+sems, alpha=0.3)
 
     ax.set_xlabel("On-axis safety factor")
