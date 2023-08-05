@@ -208,13 +208,13 @@ def nl_tm_small_w():
     savefig(f"nl_small_w_(m,n,A)=({m},{n},{solution_scale_factor})")
     plt.show()
 
-def marginal_stability():
+def marginal_stability(poloidal_mode: int = 2, toroidal_mode: int = 2):
     """
     Solve time dependent NL equation for multiple q-values. Plot
     final island width as a function of q(0)
     """
-    m=3
-    n=3
+    m=poloidal_mode
+    n=toroidal_mode
     lundquist_number = 1e8
     solution_scale_factor = 1e-10
 
@@ -244,6 +244,8 @@ def marginal_stability():
     means = np.array(means)
     sems = np.squeeze(np.array(sems))
 
+    ax.set_title(f"(m, n)=({m}, {n})")
+
     ax2.plot(axis_qs, delta_primes, color='red', alpha=0.5)
     ax.plot(axis_qs, means, color='black')
     ax2.set_ylabel(r"$a\Delta'$ at $t=0$", color='red')
@@ -269,9 +271,19 @@ def marginal_stability():
     
     plt.show()
 
-
+def marg_stability_multi_mode():
+    modes = [
+        (2,1),
+        (2,2),
+        (2,3),
+        (3,1),
+        (3,2),
+        (3,3)
+    ]
+    for m,n in modes:
+        marginal_stability(m, n)
 
 if __name__=='__main__':
     #nl_tm_vs_time()
     #nl_tm_small_w()
-    marginal_stability()
+    marg_stability_multi_mode()
