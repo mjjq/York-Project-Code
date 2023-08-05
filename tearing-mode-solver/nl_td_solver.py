@@ -213,15 +213,15 @@ def marginal_stability():
     Solve time dependent NL equation for multiple q-values. Plot
     final island width as a function of q(0)
     """
-    m=2
+    m=3
     n=3
     lundquist_number = 1e8
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 200)
+    times = np.linspace(0.0, 1e8, 100)
 
     q_rs = m/n
-    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 200)
+    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 100)
 
     final_widths = []
 
@@ -243,15 +243,21 @@ def marginal_stability():
     means, sems, delta_primes = zip(*final_widths)
     means = np.array(means)
     sems = np.squeeze(np.array(sems))
-    print(means)
-    print(sems)
+
+    ax2.plot(axis_qs, delta_primes, color='red', alpha=0.5)
     ax.plot(axis_qs, means, color='black')
-    ax2.plot(axis_qs, delta_primes, color='red')
-    ax2.set_ylabel(r"$a\Delta'$", color='red')
-    ax2.hlines(
-        0.0, min(axis_qs), max(axis_qs), color='red', linestyle='--'
-    )
+    ax2.set_ylabel(r"$a\Delta'$ at $t=0$", color='red')
+    #ax2.hlines(
+        #0.0, min(axis_qs), max(axis_qs), color='red', linestyle='--'
+    #)
     #ax.fill_between(axis_qs, means-sems, means+sems, alpha=0.3)
+
+    # Set ylim for delta' plot so that zeros align
+    ax.set_ylim(bottom=-0.01)
+    ax_bottom, ax_top = ax.get_ylim()
+    ax2_bottom, ax2_top = ax2.get_ylim()
+    ax2_bottom_new = ax2_top * (ax_bottom/ax_top)
+    ax2.set_ylim(bottom=ax2_bottom_new)
 
     ax.set_xlabel("On-axis safety factor")
     ax.set_ylabel("Saturated island width $(w/a)$")
