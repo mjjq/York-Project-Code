@@ -296,12 +296,47 @@ def delta_prime(tm_sol: TearingModeSolution,
     
     return (dpsi_dr_plus - dpsi_dr_minus)/psi_plus
 
+def solve_and_plot_system_simple():
+    poloidal_mode = 3
+    toroidal_mode = 3
+    axis_q = 0.999
+
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
+
+    delta_p = delta_prime(tm)
+
+    print(f"Delta prime = {delta_p}")
+
+    fig, ax = plt.subplots(1, figsize=(4,3), sharex=True)
+
+    #ax4.plot(r_range_fwd, dpsi_dr_forwards)
+    #ax4.plot(r_range_bkwd, dpsi_dr_backwards)
+
+    ax.plot(
+        tm.r_range_fwd, tm.psi_forwards, label='Solution below $\hat{r}_s$'
+    )
+    ax.plot(
+        tm.r_range_bkwd, tm.psi_backwards, label='Solution above $\hat{r}_s$'
+    )
+    rs_line = ax.vlines(
+         tm.r_s, ymin=0.0, ymax=np.max([tm.psi_forwards, tm.psi_backwards]),
+         linestyle='--', color='red',
+         label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
+    )
+
+    ax.set_xlabel("Normalised minor radial co-ordinate (r/a)")
+    ax.set_ylabel(r"Normalised perturbed flux $\hat{\delta \psi}^{(1)}$")
+
+
+    fig.tight_layout()
+
+    plt.show()
 
 
 def solve_and_plot_system():
     poloidal_mode = 3
-    toroidal_mode = 2
-    axis_q = 1.0
+    toroidal_mode = 3
+    axis_q = 0.999
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     
@@ -352,6 +387,8 @@ def solve_and_plot_system():
     )
     #ax3.set_yscale('log')
     ax.legend(prop={'size': 8})
+
+    plt.show()
 
 
 
@@ -414,6 +451,25 @@ def growth_rate(poloidal_mode: int,
 
     return delta_p, growth_rate.real
 
+def layer_width(poloidal_mode: int,
+                toroidal_mode: int,
+                lundquist_number: float,
+                axis_q: float = 1.0):
+    m = poloidal_mode
+    n = toroidal_mode
+    S = lundquist_number
+
+    try:
+        tm = solve_system(m, n, axis_q)
+    except ValueError:
+        return np.nan
+
+    delta_p, gr = growth_rate(m, n, S, axis_q)
+
+    s = magnetic_shear(tm.r_s, m, n)
+
+    return tm.r_s*(gr/(S*(n*s)**2))**(1/4)
+
 def alfven_frequency_STEP():
     # 1.35e6 Hz for STEP, see lab book "STEP parameters" log
     return 1.35e6
@@ -456,15 +512,21 @@ def growth_rate_vs_mode_number():
 
         abs_growth = gr*alfven_corrected
 
-        results.append((delta_p, gr, alfven_corrected, abs_growth))
+        linear_layer_width = layer_width(m,n,lundquist_number)
+
+        results.append(
+            (delta_p, gr, alfven_corrected, abs_growth, linear_layer_width)
+        )
         
-    print(f"mode & delta_p & gamma/omega & omega_bar & gamma")
+    print(f"mode & delta_p & gamma/omega & omega_bar & gamma & lin_growth")
     for i,mode in enumerate(modes):
         m, n = mode
-        delta_p, growth, af_corrected, abs_growth = results[i]
+        (delta_p, growth, af_corrected,
+         abs_growth, linear_layer_width) = results[i]
         print(
             f"{m} & {n} & {delta_p:.2f} & ${growth:.2e}$ & "
-            f"${af_corrected:.2e}$ & ${abs_growth:.2e}$"+r"\\")
+            f"${af_corrected:.2e}$ & ${abs_growth:.2e}$ & "
+            f"${linear_layer_width:.2e}$"+r"\\")
 
 def test_gradient():
     m=3
@@ -571,7 +633,7 @@ def q_sweep():
     plt.show()
 
 if __name__=='__main__':
-    #solve_and_plot_system()
+    solve_and_plot_system_simple()
     #plt.show()
     #plt.tight_layout()
     #plt.savefig("tm-with-q-djdr.png", dpi=300)
@@ -581,9 +643,9 @@ if __name__=='__main__':
     # plt.show()
     
     #print(growth_rate(4,2,1e8))
-    #growth_rate_vs_mode_number()
+    growth_rate_vs_mode_number()
     #plt.show()
 
     #test_gradient()
 
-    q_sweep()
+    #q_sweep()
