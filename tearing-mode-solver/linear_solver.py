@@ -182,7 +182,8 @@ def scale_tm_solution(tm: TearingModeSolution, scale_factor: float)\
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 
                  axis_q: float,
-                 n: int = 100000) -> TearingModeSolution:
+                 resolution: float = 1e-4,
+                 r_s_thickness: float = 1e-4) -> TearingModeSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
     plasma given the mode numbers of the tearing mode.
@@ -214,12 +215,12 @@ def solve_system(poloidal_mode: int,
 
     r_s = rational_surface(poloidal_mode/(toroidal_mode*axis_q))
 
-    r_s_thickness = 0.0001
+    #r_s_thickness = 0.0001
 
     #print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
-    r_range_fwd = np.linspace(0.0, r_s-r_s_thickness, n)
+    r_range_fwd = np.arange(0.0, r_s-r_s_thickness, resolution)
 
     results_forwards = odeint(
         compute_derivatives,
@@ -234,7 +235,7 @@ def solve_system(poloidal_mode: int,
     )
 
     # Solve from minor radius moving inwards towards rational surface
-    r_range_bkwd = np.linspace(1.0, r_s+r_s_thickness, n)
+    r_range_bkwd = np.arange(1.0, r_s+r_s_thickness, -resolution)
 
     results_backwards = odeint(
         compute_derivatives,
@@ -319,7 +320,8 @@ def solve_and_plot_system_simple():
         tm.r_range_bkwd, tm.psi_backwards, label='Solution above $\hat{r}_s$'
     )
     rs_line = ax.vlines(
-         tm.r_s, ymin=0.0, ymax=np.max([tm.psi_forwards, tm.psi_backwards]),
+         tm.r_s, ymin=0.0, 
+         ymax=np.max(np.concatenate((tm.psi_forwards, tm.psi_backwards))),
          linestyle='--', color='red',
          label=f'Rational surface $\hat{{q}}(\hat{{r}}_s) = {poloidal_mode}/{toroidal_mode}$'
     )
@@ -632,8 +634,39 @@ def q_sweep():
     )
     plt.show()
 
+def test_accuracy_vs_layer_width():
+    m=4
+    n=3
+    lundquist_number = 1e8
+
+    resolution = 1e-5
+    layer_widths = np.logspace(-7, -2, 500)
+
+    delta_ps = []
+
+    for width in layer_widths:
+        tm = solve_system(m, n, 1.0, resolution, width)
+        delta_p = delta_prime(tm)
+
+        delta_ps.append(delta_p)
+
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    print(layer_widths)
+    print(delta_ps)
+    ax.plot(layer_widths, delta_ps, color='black')
+    ax.grid(which='major')
+
+    ax.set_xscale('log')
+
+    ax.set_xlabel(r"Normalised layer width $\hat{r}_s \delta$")
+    ax.set_ylabel(r"$a\Delta'$")
+    fig.tight_layout()
+
+    savefig(f"accuracy_vs_layer_width_(m,n)={m},{n}_res={resolution:.2e}")
+    plt.show()
+
 if __name__=='__main__':
-    solve_and_plot_system_simple()
+    #solve_and_plot_system_simple()
     #plt.show()
     #plt.tight_layout()
     #plt.savefig("tm-with-q-djdr.png", dpi=300)
@@ -643,9 +676,11 @@ if __name__=='__main__':
     # plt.show()
     
     #print(growth_rate(4,2,1e8))
-    growth_rate_vs_mode_number()
+    #growth_rate_vs_mode_number()
     #plt.show()
 
     #test_gradient()
 
     #q_sweep()
+
+    test_accuracy_vs_layer_width()
