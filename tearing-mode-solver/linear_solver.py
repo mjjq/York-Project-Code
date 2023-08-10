@@ -182,7 +182,7 @@ def scale_tm_solution(tm: TearingModeSolution, scale_factor: float)\
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 
                  axis_q: float,
-                 resolution: float = 1e-4,
+                 resolution: float = 1e-6,
                  r_s_thickness: float = 1e-4) -> TearingModeSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
@@ -434,14 +434,15 @@ def growth_rate_scale(lundquist_number: float,
 def growth_rate(poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
-                axis_q: float = 1.0):
+                axis_q: float = 1.0,
+                resolution: float = 1e-6):
     
     m = poloidal_mode
     n = toroidal_mode
     S = lundquist_number
     
     try:
-        tm = solve_system(m, n, axis_q)
+        tm = solve_system(m, n, axis_q, resolution)
     except ValueError:
         return np.nan, np.nan
     
@@ -665,6 +666,60 @@ def test_accuracy_vs_layer_width():
     savefig(f"accuracy_vs_layer_width_(m,n)={m},{n}_res={resolution:.2e}")
     plt.show()
 
+def q_sweep_diff_res():
+    m,n = (3,2)
+    resolutions = [1e-5, 1e-6, 1e-7]
+
+    axis_q_plt = np.linspace(0.0, 100.0, 200)
+
+    lundquist_number = 1e8
+
+    fig, ax = plt.subplots(1, figsize=(4.5,3))
+    ax.hlines(
+        0.0, min(axis_q_plt), max(axis_q_plt), color='black', linestyle='--',
+        label='Marginal stability'
+    )
+
+    min_q, max_q = 1000000.0, -1000000.0
+
+    for res in resolutions:
+        print(m, n)
+        q_rs = m/n
+        axis_q = np.linspace(q_rs/q(0.0), q_rs/q(1.0), 200)
+        results = [
+            growth_rate(m,n,lundquist_number, q, res) for q in axis_q
+        ]
+        delta_ps, growth_rates = zip(*results)
+
+        min_q = min(min_q, min(axis_q))
+        max_q = max(max_q, max(axis_q))
+
+        growth_min = 0.9*np.array(growth_rates)
+        growth_max = 1.1*np.array(growth_rates)
+
+        ax.plot(
+            axis_q,
+            growth_rates,
+            label=r"$\delta \hat{r}$"+f"={res}"
+        )
+
+        ax.fill_between(axis_q, growth_min, growth_max, alpha=0.4)
+
+    bottom, top = ax.get_ylim()
+    ax.set_ylim(bottom=-top)
+    ax.set_xlim(left=min_q, right=max_q)
+
+    ax.set_xlabel("On-axis safety factor")
+    ax.set_ylabel(r"Normalised growth rate ($\gamma/\bar{\omega}_A$)")
+
+    ax.legend(prop={'size': 7}, ncol=2)
+    fig.tight_layout()
+    ax.grid(which='both')
+    savefig(
+        f"q_sweep_res_test_(m,n)_{m},{n}"
+    )
+    plt.show()
+
 if __name__=='__main__':
     #solve_and_plot_system_simple()
     #plt.show()
@@ -683,4 +738,6 @@ if __name__=='__main__':
 
     #q_sweep()
 
-    test_accuracy_vs_layer_width()
+    #test_accuracy_vs_layer_width()
+
+    q_sweep_diff_res()
