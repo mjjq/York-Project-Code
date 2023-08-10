@@ -299,8 +299,8 @@ def delta_prime(tm_sol: TearingModeSolution,
 
 def solve_and_plot_system_simple():
     poloidal_mode = 3
-    toroidal_mode = 3
-    axis_q = 0.999
+    toroidal_mode = 2
+    axis_q = 1.0
 
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
 
@@ -411,13 +411,16 @@ def magnetic_shear(resonant_surface: float,
     
     return (m/n)*r_s*dq_dr[rs_id]
 
+def gamma_constant():
+    return 2.1236482729819393256107565
+
 def growth_rate_scale(lundquist_number: float,
                       r_s: float,
                       poloidal_mode: float,
                       toroidal_mode: float):
    
     # Equivalent to 2*pi*Gamma(3/4)/Gamma(1/4)
-    gamma_scale_factor = 2.1236482729819393256107565
+    gamma_scale_factor = gamma_constant()
     
     m = poloidal_mode
     n = toroidal_mode
@@ -636,11 +639,11 @@ def q_sweep():
     plt.show()
 
 def test_accuracy_vs_layer_width():
-    m=4
-    n=3
+    m=3
+    n=2
     lundquist_number = 1e8
 
-    resolution = 1e-5
+    resolution = 1e-6
     layer_widths = np.logspace(-7, -2, 500)
 
     delta_ps = []
@@ -738,6 +741,6 @@ if __name__=='__main__':
 
     #q_sweep()
 
-    #test_accuracy_vs_layer_width()
+    test_accuracy_vs_layer_width()
 
-    q_sweep_diff_res()
+    #q_sweep_diff_res()

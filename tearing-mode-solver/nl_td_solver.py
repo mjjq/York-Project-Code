@@ -67,7 +67,7 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 initial_scale_factor: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10)):
     
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=10000)
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     tm = scale_tm_solution(tm, initial_scale_factor)
 
     psi_t0 = tm.psi_forwards[-1]
@@ -97,12 +97,12 @@ def nl_tm_vs_time():
     m=3
     n=2
     lundquist_number = 1e8
-    axis_q = 0.6188889
+    axis_q = 1.0
     solution_scale_factor = 1e-10
 
     times = np.linspace(0.0, 1e8, 200)
     
-    psi_t, w_t, tm0 = solve_time_dependent_system(
+    psi_t, w_t, tm0, delta_primes = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
     
@@ -286,4 +286,4 @@ def marg_stability_multi_mode():
 if __name__=='__main__':
     #nl_tm_vs_time()
     #nl_tm_small_w()
-    marg_stability_multi_mode()
+    nl_tm_vs_time()
