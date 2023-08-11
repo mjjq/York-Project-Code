@@ -84,7 +84,7 @@ def flux_time_derivative(psi: float,
     
     # print(psi)
     # print(w)
-    print(dpsi_dt/psi)
+    #print(dpsi_dt/psi)
     # print()
 
     return dpsi_dt
@@ -149,8 +149,44 @@ def solve_time_dependent_system(poloidal_mode: int,
         lin_delta_prime
     )
 
-    return np.squeeze(psi_t), w_t, tm, dps, ql_threshold
+    return np.squeeze(psi_t), w_t, tm, dps, ql_threshold, s
 
+def time_from_flux(psi: np.array,
+                   times: np.array,
+                   target_psi: float):
+    min_index = np.abs(psi - target_psi).argmin()
+    return times[min_index]
+
+def nl_parabola_coefficients(tm: TearingModeSolution,
+                             mag_shear: float,
+                             lundquist_number: float,
+                             delta_prime_linear: float,
+                             psi_0: float):
+    c_0 = (tm.r_s**3 / (64*lundquist_number**2))\
+        *mag_shear*delta_prime_linear**2
+    c_1 = np.sqrt(psi_0) * (tm.r_s**3 * mag_shear)**0.5\
+        * delta_prime_linear/(4*lundquist_number)
+    c_2 = psi_0
+
+    return c_0, c_1, c_2
+
+def nl_parabola(tm: TearingModeSolution,
+                mag_shear: float,
+                lundquist_number: float,
+                delta_prime_linear: float,
+                psi_0: float,
+                times: np.array):
+    c_0, c_1, c_2 = nl_parabola_coefficients(
+        tm,
+        mag_shear,
+        lundquist_number,
+        delta_prime_linear,
+        psi_0
+    )
+
+    new_times = times - times[0]
+
+    return c_0*(new_times**2) + c_1*new_times + c_2
 
 def ql_tm_vs_time():
     m=3
@@ -159,9 +195,9 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e6, 100)
+    times = np.linspace(0.0, 1e8, 300)
 
-    psi_t, w_t, tm0, dps, ql_threshold = solve_time_dependent_system(
+    psi_t, w_t, tm0, dps, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
     
@@ -172,26 +208,51 @@ def ql_tm_vs_time():
         axis_q
     )
 
-    print("lgr: ", lin_growth_rate)
-    print("Threshold: ", ql_threshold)
+    #print("lgr: ", lin_growth_rate)
+    #print("Threshold: ", ql_threshold)
     #print(psi_t)
 
     fig, ax = plt.subplots(1, figsize=(4,3))
     ax2 = ax.twinx()
 
-    # ax.plot(
-    #     times, 
-    #     psi_t[0]*np.exp(lin_growth_rate*times),
-    #     label='Linear growth'
-    # )
-    ax.hlines(
-        0.1*ql_threshold, 
-        min(times), max(times), 
-        label='Linear flux threshold',
-        linestyle='--'
+    ql_time_min = time_from_flux(psi_t, times, 0.1*ql_threshold)
+    ql_time_max = time_from_flux(psi_t, times, 10.0*ql_threshold)
+
+    ax.fill_between(
+        [ql_time_min, ql_time_max],
+        2*[min(psi_t)],
+        2*[max(psi_t)],
+        alpha=0.3,
+        label='Quasi-linear region'
     )
 
     ax.plot(times, psi_t, label='Flux', color='black')
+
+    lin_times = times[np.where(times < ql_time_max)]
+    ax.plot(
+        lin_times,
+        psi_t[0]*np.exp(lin_growth_rate*lin_times),
+        label='Exponential time dependence (linear regime)'
+    )
+
+    nl_times = times[np.where(times >= ql_time_max)]
+    psi_t0_nl = psi_t[np.abs(times-ql_time_max).argmin()]
+    dp_nl = dps[np.abs(times-ql_time_max).argmin()]
+    print(psi_t0_nl)
+    ax.plot(
+        nl_times,
+        nl_parabola(
+            tm0,
+            s,
+            lundquist_number,
+            dp_nl,
+            psi_t0_nl,
+            nl_times
+        ),
+        label="Quadratic time dependence (non-linear regime)"
+    )
+
+
 
     ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
     ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
@@ -200,12 +261,12 @@ def ql_tm_vs_time():
     ax2.set_ylabel(r"Normalised layer width ($\hat{\delta}$)")
     ax2.yaxis.label.set_color('red')
     
-    ax.legend(prop={'size': 7}, loc='upper left')
+    ax.legend(prop={'size': 7})
     
     # ax.set_yscale('log')
     # ax2.set_yscale('log')
-    # ax.set_xscale('log')
-    # ax2.set_xscale('log')
+    ax.set_xscale('log')
+    ax2.set_xscale('log')
     ax.set_yscale('log')
     ax2.set_yscale('log')
 

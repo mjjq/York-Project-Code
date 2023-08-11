@@ -100,7 +100,7 @@ def nl_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 200)
+    times = np.linspace(0.0, 1e6, 100)
     
     psi_t, w_t, tm0, delta_primes = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
@@ -119,6 +119,9 @@ def nl_tm_vs_time():
     ax2.plot(times, w_t, label='Normalised island width', color='red')
     ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
     ax2.yaxis.label.set_color('red')
+    
+    ax.set_yscale('log')
+    ax2.set_yscale('log')
 
     fig.tight_layout()
     #plt.show()
@@ -284,6 +287,6 @@ def marg_stability_multi_mode():
         marginal_stability(m, n)
 
 if __name__=='__main__':
-    #nl_tm_vs_time()
-    #nl_tm_small_w()
     nl_tm_vs_time()
+    #nl_tm_small_w()
+    #nl_tm_vs_time()
