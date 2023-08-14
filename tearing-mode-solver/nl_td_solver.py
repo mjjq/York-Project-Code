@@ -68,9 +68,9 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10)):
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
-    tm = scale_tm_solution(tm, initial_scale_factor)
+    #tm = scale_tm_solution(tm, initial_scale_factor)
 
-    psi_t0 = tm.psi_forwards[-1]
+    psi_t0 = initial_scale_factor#tm.psi_forwards[-1]
     
     s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
     
@@ -133,26 +133,61 @@ def nl_tm_vs_time():
 def parabola(x, a, b, c):
     return a*x**2 + b*x + c
 
+def nl_parabola_coefficients(tm: TearingModeSolution,
+                             mag_shear: float,
+                             lundquist_number: float,
+                             delta_prime_linear: float,
+                             psi_0: float):
+    c_0 = (tm.r_s**3 / (64*lundquist_number**2))\
+        *mag_shear*delta_prime_linear**2
+    c_1 = np.sqrt(psi_0) * (tm.r_s**3 * mag_shear)**0.5\
+        * delta_prime_linear/(4*lundquist_number)
+    c_2 = psi_0
+
+    return c_0, c_1, c_2
+
+def nl_parabola(tm: TearingModeSolution,
+                mag_shear: float,
+                lundquist_number: float,
+                delta_prime_linear: float,
+                psi_0: float,
+                times: np.array):
+    c_0, c_1, c_2 = nl_parabola_coefficients(
+        tm,
+        mag_shear,
+        lundquist_number,
+        delta_prime_linear,
+        psi_0
+    )
+
+    new_times = times - times[0]
+
+    return c_0*(new_times**2) + c_1*new_times + c_2
+
 def nl_tm_small_w():
-    m=2
-    n=1
-    resistivity = 0.0001
-    axis_q = 0.5
+    m=3
+    n=2
+    lundquist_number = 1e8
+    axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e1, 100000)
+    times = np.linspace(0.0, 1e7, 10000)
 
-    psi_t, w_t, tm0 = solve_time_dependent_system(
-        m, n, resistivity, axis_q, solution_scale_factor, times
+    psi_t, w_t, tm0, dps = solve_time_dependent_system(
+        m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
 
     psi0 = psi_t[0]
     dp = delta_prime(tm0)
     s = magnetic_shear(tm0.r_s, m, n)
 
-    a_theory = (resistivity/8)**2 * (s/tm0.r_s) * dp**2
-    b_theory = np.sqrt(psi0) * (resistivity/4) * np.sqrt(s/tm0.r_s) * dp
-    c_theory = psi0
+    a_theory, b_theory, c_theory = nl_parabola_coefficients(
+        tm0,
+        s,
+        lundquist_number,
+        dp,
+        psi0
+    )
 
     print(
         f"""Theoretical fit at^2 + bt + c:
@@ -186,10 +221,10 @@ def nl_tm_small_w():
     print("Errors: ", perr)
     poly = np.poly1d(fit)
 
-    ax.plot(
-        times, parabola(times, *fit), label='Order 2 poly fit', linestyle='dashed',
-        color='darkturquoise'
-    )
+    #ax.plot(
+        #times, parabola(times, *fit), label='Order 2 poly fit', linestyle='dashed',
+        #color='darkturquoise'
+    #)
 
     t_fit = (a_theory, b_theory, c_theory)
     ax.plot(
@@ -209,6 +244,105 @@ def nl_tm_small_w():
     fig.tight_layout()
     #plt.show()
     savefig(f"nl_small_w_(m,n,A)=({m},{n},{solution_scale_factor})")
+    plt.show()
+
+def algebraic_departure():
+    m=3
+    n=2
+    lundquist_number = 1e8
+    axis_q = 1.0
+    solution_scale_factor = 1e-10
+
+    times = np.linspace(0.0, 5e7, 10000)
+
+    psi_t, w_t, tm0, dps = solve_time_dependent_system(
+        m, n, lundquist_number, axis_q, solution_scale_factor, times
+    )
+
+    psi0 = psi_t[0]
+    dp = delta_prime(tm0)
+    s = magnetic_shear(tm0.r_s, m, n)
+
+    a_theory, b_theory, c_theory = nl_parabola_coefficients(
+        tm0,
+        s,
+        lundquist_number,
+        dp,
+        psi0
+    )
+
+    print(
+        f"""Theoretical fit at^2 + bt + c:
+            a={a_theory}, b={b_theory}, c={c_theory}"""
+    )
+
+    fig, ax = plt.subplots(1, figsize=(4,3.5))
+    #ax2 = ax.twinx()
+
+    #ax.plot(times, psi_t, label='Numerical solution', color='black')
+
+    #ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+    ax.set_xlabel(r"Numerical flux solution ($\delta \hat{\psi}^{(1)}$)")
+    ax.set_ylabel(r"Fractional error in algebraic solution")
+
+    #ax2.plot(times, w_t, label='Normalised island width', color='red')
+    #ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
+    #ax2.yaxis.label.set_color('red')
+
+    # Returns highest power coefficients first
+    fit, cov = curve_fit(
+        parabola,
+        times,
+        psi_t,
+        p0=(a_theory, b_theory, c_theory),
+        bounds = ([0.0, 0.0, 0.0], [np.inf, np.inf, np.inf]),
+        x_scale = (1.0/psi0, 1.0/psi0, 1.0/psi0),
+        method='trf'
+    )
+    perr = np.sqrt(np.diag(cov))
+    print("Coefs: ", fit)
+    print("Errors: ", perr)
+    poly = np.poly1d(fit)
+
+    #ax.plot(
+        #times, parabola(times, *fit), label='Order 2 poly fit', linestyle='dashed',
+        #color='darkturquoise'
+    #)
+
+    t_fit = (a_theory, b_theory, c_theory)
+    theoretical_psi = parabola(times, *t_fit)
+    fractional_change = np.sqrt(((psi_t-theoretical_psi)/theoretical_psi)**2)
+
+    print(fractional_change.shape)
+    print(times.shape)
+    print(max(times))
+    #ax.plot(psi_t, fractional_change)
+    ax.plot(psi_t, fractional_change)
+    print(min(psi_t), max(psi_t))
+
+    #ax2 = ax.twiny()
+    #ax2.plot(psi_t, psi_t)
+    #ax2.cla()
+
+    #ax.plot(
+        #times, parabola(times, *t_fit), label='Theoretical poly', linestyle='dotted',
+        #color='red'
+    #)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    #ax.legend(prop={'size': 7})
+
+    ls_data = np.sum((parabola(times, *fit) - psi_t)**2)
+    ls_theory = np.sum((parabola(times, *t_fit) - psi_t)**2)
+
+    print(ls_data, ls_theory)
+
+    fig.tight_layout()
+    #plt.show()
+    savefig(
+        f"error_algebraic_sol_(m,n,A)=({m},{n},{solution_scale_factor})"
+    )
     plt.show()
 
 def marginal_stability(poloidal_mode: int = 2, toroidal_mode: int = 2):
@@ -287,6 +421,7 @@ def marg_stability_multi_mode():
         marginal_stability(m, n)
 
 if __name__=='__main__':
-    nl_tm_vs_time()
+    #nl_tm_vs_time()
     #nl_tm_small_w()
     #nl_tm_vs_time()
+    algebraic_departure()

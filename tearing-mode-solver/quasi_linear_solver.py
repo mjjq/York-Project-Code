@@ -157,36 +157,7 @@ def time_from_flux(psi: np.array,
     min_index = np.abs(psi - target_psi).argmin()
     return times[min_index]
 
-def nl_parabola_coefficients(tm: TearingModeSolution,
-                             mag_shear: float,
-                             lundquist_number: float,
-                             delta_prime_linear: float,
-                             psi_0: float):
-    c_0 = (tm.r_s**3 / (64*lundquist_number**2))\
-        *mag_shear*delta_prime_linear**2
-    c_1 = np.sqrt(psi_0) * (tm.r_s**3 * mag_shear)**0.5\
-        * delta_prime_linear/(4*lundquist_number)
-    c_2 = psi_0
 
-    return c_0, c_1, c_2
-
-def nl_parabola(tm: TearingModeSolution,
-                mag_shear: float,
-                lundquist_number: float,
-                delta_prime_linear: float,
-                psi_0: float,
-                times: np.array):
-    c_0, c_1, c_2 = nl_parabola_coefficients(
-        tm,
-        mag_shear,
-        lundquist_number,
-        delta_prime_linear,
-        psi_0
-    )
-
-    new_times = times - times[0]
-
-    return c_0*(new_times**2) + c_1*new_times + c_2
 
 def ql_tm_vs_time():
     m=2
