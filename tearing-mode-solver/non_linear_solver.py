@@ -55,12 +55,14 @@ def delta_prime_non_linear(tm: TearingModeSolution,
     
     
     r_min = tm.r_s - island_width/2.0
-    id_min = np.abs(tm.r_range_fwd - r_min).argmin()
-    dpsi_dr_min = tm.dpsi_dr_forwards[id_min]
-    
+    #id_min = np.abs(tm.r_range_fwd - r_min).argmin()
+    #dpsi_dr_min = tm.dpsi_dr_forwards[id_min]
+    dpsi_dr_min = tm.dpsi_dr_f_func(r_min)
+
     r_max = tm.r_s + island_width/2.0
-    id_max = np.abs(tm.r_range_bkwd - r_max).argmin()
-    dpsi_dr_max = tm.dpsi_dr_backwards[id_max]
+    #id_max = np.abs(tm.r_range_bkwd - r_max).argmin()
+    #dpsi_dr_max = tm.dpsi_dr_backwards[id_max]
+    dpsi_dr_max = tm.dpsi_dr_b_func(r_max)
 
     delta_p = (dpsi_dr_max - dpsi_dr_min)/psi_plus
 

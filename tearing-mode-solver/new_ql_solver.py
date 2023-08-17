@@ -39,10 +39,10 @@ def island_width(psi_rs: float,
 
     linear_term = d2psi_dt2/dpsi_dt
 
-    pre_factor = non_linear_term + linear_term
+    pre_factor = (non_linear_term + linear_term)/denominator
 
     if pre_factor >= 0.0:
-        return (pre_factor/denominator)**(1/4)
+        return (pre_factor)**(1/4)
 
     return 0.0
 
@@ -147,7 +147,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     t0 = t_range[0]
     tf = t_range[-1]
     dt = t_range[1]-t_range[0]
-    r = ode(flux_time_derivative).set_integrator('zvode', method='bdf')
+    r = ode(flux_time_derivative).set_integrator('vode', method='bdf')
     r.set_initial_value((psi_t0, dpsi_dt_t0), t0)
     r.set_f_params(
         tm,
@@ -226,6 +226,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     #dps = [delta_prime_non_linear(tm, w) for w in w_t]
 
     return (
+        np.squeeze(t_range[0:len(psi)]),
         np.squeeze(psi),
         np.squeeze(dpsi_dt),
         np.squeeze(w_t)
@@ -246,13 +247,13 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e3, 100)
+    times = np.linspace(0.0, 1e6, 1000)
 
-    psi_t, dpsi_t, w_t = solve_time_dependent_system(
+    times, psi_t, dpsi_t, w_t = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
 
-    plt.plot(w_t)
+    #plt.plot(w_t)
     #plt.show()
 
     #print("lgr: ", lin_growth_rate)
@@ -268,7 +269,7 @@ def ql_tm_vs_time():
     ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
     ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
 
-    #ax2.plot(times, w_t, label='Normalised island width', color='red')
+    ax2.plot(times, w_t, label='Normalised island width', color='red')
     ax2.set_ylabel(r"Normalised layer width ($\hat{\delta}$)")
     ax2.yaxis.label.set_color('red')
 

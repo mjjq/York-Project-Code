@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
 from pyplot_helper import savefig
+from scipy.interpolate import interp1d
 
 def dj_dr(radial_coordinate: float,
           shaping_exponent: float = 2.0) -> float:
@@ -152,6 +153,7 @@ class TearingModeSolution():
     # Perturbed flux and derivative starting from the poloidal axis
     psi_forwards: np.array
     dpsi_dr_forwards: np.array
+    dpsi_dr_f_func: callable
     
     # Radial domain for the forward solution
     r_range_fwd: np.array
@@ -160,6 +162,7 @@ class TearingModeSolution():
     # going inwards
     psi_backwards: np.array
     dpsi_dr_backwards: np.array
+    dpsi_dr_b_func: callable
     
     # Radial domain for the backward solution
     r_range_bkwd: np.array
@@ -268,11 +271,13 @@ def solve_system(poloidal_mode: int,
     dpsi_dr_forwards[1:] = dpsi_dr_forwards[1:]/(r_range_fwd[1:]**2)
     dpsi_dr_backwards = dpsi_dr_backwards/(r_range_bkwd**2)
     
+    dpsi_dr_f_func = interp1d(r_range_fwd, dpsi_dr_forwards)
+    dpsi_dr_b_func = interp1d(r_range_bkwd, dpsi_dr_backwards)
     #print(dpsi_dr_forwards)
     
     return TearingModeSolution(
-        psi_forwards, dpsi_dr_forwards, r_range_fwd,
-        psi_backwards, dpsi_dr_backwards, r_range_bkwd,
+        psi_forwards, dpsi_dr_forwards, dpsi_dr_f_func, r_range_fwd,
+        psi_backwards, dpsi_dr_backwards, dpsi_dr_b_func, r_range_bkwd,
         r_s
     )
     
