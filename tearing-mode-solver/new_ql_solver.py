@@ -2,6 +2,8 @@ import numpy as np
 from scipy.integrate import odeint, ode
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+import pandas as pd
+from dataclasses import dataclass
 
 from linear_solver import (
     TearingModeSolution,
@@ -112,14 +114,21 @@ def flux_time_derivative(time: float,
 
     return [dpsi_dt, d2psi_dt2]
 
-
+@dataclass
+class QuasiLinearSolution():
+    times: np.array
+    psi_t: np.array
+    dpsi_dt: np.array
+    d2psi_dt2: np.array
+    w_t: np.array
 
 def solve_time_dependent_system(poloidal_mode: int,
                                 toroidal_mode: int,
                                 lundquist_number: float,
                                 axis_q: float,
                                 initial_scale_factor: float = 1.0,
-                                t_range: np.array = np.linspace(0.0, 1e5, 10)):
+                                t_range: np.array = np.linspace(0.0, 1e5, 10))\
+                                    -> QuasiLinearSolution:
 
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
@@ -161,6 +170,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     w_t = [init_island_width]
     psi = [psi_t0]
     dpsi_dt = [dpsi_dt_t0]
+    d2psi_dt2 = [0.0]
 
     for i in tqdm(range(len(t_range)-1)):
         if not r.successful():
@@ -185,6 +195,7 @@ def solve_time_dependent_system(poloidal_mode: int,
         psi.append(psi_now)
         dpsi_dt.append(dpsi_dt_now)
         w_t.append(init_island_width)
+        d2psi_dt2.append(d2psi_dt2_now)
 
         init_island_width = island_width(
             psi_now,
@@ -230,10 +241,11 @@ def solve_time_dependent_system(poloidal_mode: int,
 
     #dps = [delta_prime_non_linear(tm, w) for w in w_t]
 
-    return (
+    return QuasiLinearSolution(
         np.squeeze(t_range[0:len(psi)]),
         np.squeeze(psi),
         np.squeeze(dpsi_dt),
+        np.squeeze(d2psi_dt2),
         np.squeeze(w_t)
     )
 
@@ -252,12 +264,15 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 100000)
+    times = np.linspace(0.0, 1e11, 1000)
 
-    times, psi_t, dpsi_t, w_t = solve_time_dependent_system(
+    ql_solution = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
-
+    times = ql_solution.times
+    psi_t = ql_solution.psi_t
+    dpsi_t = ql_solution.dpsi_dt
+    w_t = ql_solution.w_t
     #plt.plot(w_t)
     #plt.show()
 
