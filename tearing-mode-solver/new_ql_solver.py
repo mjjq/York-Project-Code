@@ -70,8 +70,8 @@ def flux_time_derivative(time: float,
                          lundquist_number: float,
                          mag_shear: float,
                          init_island_width: float,
+                         delta_prime: float,
                          epsilon: float = 1e-5):
-
     psi, dpsi_dt = var
 
     #global ode_island_width
@@ -83,7 +83,6 @@ def flux_time_derivative(time: float,
     s = mag_shear
     S = lundquist_number
 
-    delta_prime = delta_prime_non_linear(tm, w)
     gamma = gamma_constant()
 
     linear_term = S*(n*s)**2 * (
@@ -126,7 +125,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
     psi_t0 = initial_scale_factor#tm.psi_forwards[-1]
-    lin_delta_prime, linear_growth_rate = growth_rate(
+    delta_prime, linear_growth_rate = growth_rate(
         poloidal_mode,
         toroidal_mode,
         lundquist_number,
@@ -147,7 +146,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     t0 = t_range[0]
     tf = t_range[-1]
     dt = t_range[1]-t_range[0]
-    r = ode(flux_time_derivative).set_integrator('vode', method='bdf')
+    r = ode(flux_time_derivative).set_integrator('vode', method='bdf', nsteps=100)
     r.set_initial_value((psi_t0, dpsi_dt_t0), t0)
     r.set_f_params(
         tm,
@@ -155,7 +154,8 @@ def solve_time_dependent_system(poloidal_mode: int,
         toroidal_mode,
         lundquist_number,
         s,
-        init_island_width
+        init_island_width,
+        delta_prime
     )
 
     w_t = [init_island_width]
@@ -164,8 +164,9 @@ def solve_time_dependent_system(poloidal_mode: int,
 
     for i in tqdm(range(len(t_range)-1)):
         if not r.successful():
-            print("Unsuccessful. Breaking")
-            break
+            #print("Unsuccessful. Breaking")
+            #break
+            pass
 
         psi_now, dpsi_dt_now = r.integrate(r.t+dt)
 
@@ -177,7 +178,8 @@ def solve_time_dependent_system(poloidal_mode: int,
             toroidal_mode,
             lundquist_number,
             s,
-            init_island_width
+            init_island_width,
+            delta_prime
         )
 
         psi.append(psi_now)
@@ -194,6 +196,8 @@ def solve_time_dependent_system(poloidal_mode: int,
             s,
             lundquist_number
         )
+        
+        delta_prime = delta_prime_non_linear(tm, init_island_width)
 
         r.set_f_params(
             tm,
@@ -201,7 +205,8 @@ def solve_time_dependent_system(poloidal_mode: int,
             toroidal_mode,
             lundquist_number,
             s,
-            init_island_width
+            init_island_width,
+            delta_prime
         )
 
     #result = odeint(
@@ -247,7 +252,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e6, 1000)
+    times = np.linspace(0.0, 1e8, 100000)
 
     times, psi_t, dpsi_t, w_t = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
