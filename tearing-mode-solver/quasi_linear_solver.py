@@ -78,7 +78,7 @@ def flux_time_derivative(psi: float,
 
     delta_prime = delta_prime_non_linear(tm, w)
 
-    gamma = gamma_constant()
+    gamma = 4.0*gamma_constant()
 
     dpsi_dt = tm.r_s * psi * delta_prime / (gamma*w*lundquist_number)
     
@@ -166,7 +166,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 10000)
+    times = np.linspace(0.0, 1e9, 1000)
 
     psi_t, w_t, tm0, dps, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
