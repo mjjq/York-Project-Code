@@ -15,6 +15,7 @@ def Y(x):
 
     return -0.5 * x * int_result
 
+
 if __name__=='__main__':
     xs = np.linspace(-100.0, 100.0, 10000)
     ys = Y(xs)
