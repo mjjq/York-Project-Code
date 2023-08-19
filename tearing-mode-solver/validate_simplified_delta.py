@@ -7,11 +7,11 @@ from scipy.integrate import quad, simpson
 from tqdm import tqdm, trange
 
 from y_sol import Y
-from new_ql_solver import QuasiLinearSolution, nu, layer_width
+from new_ql_solver import QuasiLinearSolution, nu, island_width
 
 def del_ql_full(sol: QuasiLinearSolution,
-                toroidal_mode: int,
                 poloidal_mode: int,
+                toroidal_mode: int,
                 lundquist_number: float,
                 mag_shear: float,
                 r_s: float):
@@ -20,8 +20,8 @@ def del_ql_full(sol: QuasiLinearSolution,
     w_t_func = UnivariateSpline(times, sol.w_t, s=0)
     dw_dt_func = w_t_func.derivative()
 
-    dpsi_dt_func = UnivariateSpline(times, sol.dpsi_dt, s=0)
-    d2psi_dt2_func = UnivariateSpline(times, sol.d2psi_dt2,s=0)#dpsi_dt_func.derivative()
+    #dpsi_dt_func = UnivariateSpline(times, sol.dpsi_dt, s=0)
+    #d2psi_dt2_func = UnivariateSpline(times, sol.d2psi_dt2,s=0)#dpsi_dt_func.derivative()
 
     xs = np.linspace(-20.0, 20.0, 1000)
     ys = Y(xs)
@@ -30,18 +30,22 @@ def del_ql_full(sol: QuasiLinearSolution,
     d3ydx3 = d2ydx2.derivative()
 
     del_dot_term = dw_dt_func(times)/w_t_func(times)
-    psi_dot_term = d2psi_dt2_func(times)/dpsi_dt_func(times)
+    #psi_dot_term = d2psi_dt2_func(times)/dpsi_dt_func(times)
+    psi_dot_term = sol.d2psi_dt2/sol.dpsi_dt
     nu_value = nu(sol.psi_t, poloidal_mode, lundquist_number, r_s)
 
     pre_factor = 1.0/( lundquist_number * (toroidal_mode*mag_shear)**2)
 
     deltas = []
 
+    #print(psi_dot_term)
+    print(sol.psi_t)
+
     tqdm_range = trange(len(xs), leave=True)
     for i in tqdm_range:
         x = xs[i]
         M = x*d3ydx3(x)/d2ydx2(x)
-        del_dot = - del_dot_term * (3.0+M)
+        del_dot = - del_dot_term * (3.0+M) * 0.0
         psi_dot = psi_dot_term
 
         delta_pow_4 = pre_factor*(nu_value + psi_dot + del_dot)
@@ -112,6 +116,17 @@ if __name__=='__main__':
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(QuasiLinearSolution, df)
 
+    delta_ql_orig = island_width(
+        ql_sol.psi_t,
+        ql_sol.dpsi_dt,
+        ql_sol.d2psi_dt2,
+        r_s,
+        m,
+        n,
+        s,
+        S
+    )
+
     simple_integration()
 
     delqls, times, xs = del_ql_full(ql_sol, m, n, S, s, r_s)
@@ -141,6 +156,7 @@ if __name__=='__main__':
     
     fig2, ax2 = plt.subplots(1, figsize=(4,3))
     
+    ax2.plot(times, delta_ql_orig, label=f'Recreated approximate soln')
     ax2.plot(times, ql_sol.w_t, label=f'Approximate solution') 
     ax2.plot(times, delqls[-1,:], label=f'x={xs[-1]:.2f}')
     ax2.set_xscale('log')
