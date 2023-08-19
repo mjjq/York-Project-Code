@@ -20,8 +20,6 @@ def del_ql_full(sol: QuasiLinearSolution,
     w_t_func = UnivariateSpline(times, sol.w_t, s=0)
     dw_dt_func = w_t_func.derivative()
 
-    #dpsi_dt_func = UnivariateSpline(times, sol.dpsi_dt, s=0)
-    #d2psi_dt2_func = UnivariateSpline(times, sol.d2psi_dt2,s=0)#dpsi_dt_func.derivative()
 
     xs = np.linspace(-20.0, 20.0, 1000)
     ys = Y(xs)
@@ -30,7 +28,6 @@ def del_ql_full(sol: QuasiLinearSolution,
     d3ydx3 = d2ydx2.derivative()
 
     del_dot_term = dw_dt_func(times)/w_t_func(times)
-    #psi_dot_term = d2psi_dt2_func(times)/dpsi_dt_func(times)
     psi_dot_term = sol.d2psi_dt2/sol.dpsi_dt
     nu_value = nu(sol.psi_t, poloidal_mode, lundquist_number, r_s)
 
@@ -38,14 +35,11 @@ def del_ql_full(sol: QuasiLinearSolution,
 
     deltas = []
 
-    #print(psi_dot_term)
-    print(sol.psi_t)
-
     tqdm_range = trange(len(xs), leave=True)
     for i in tqdm_range:
         x = xs[i]
         M = x*d3ydx3(x)/d2ydx2(x)
-        del_dot = - del_dot_term * (3.0+M) * 0.0
+        del_dot = - del_dot_term * (3.0+M)
         psi_dot = psi_dot_term
 
         delta_pow_4 = pre_factor*(nu_value + psi_dot + del_dot)
