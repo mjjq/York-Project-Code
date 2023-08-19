@@ -10,7 +10,7 @@ import os
 
 from y_sol import Y
 from new_ql_solver import QuasiLinearSolution, nu, island_width
-from pyplot_helper import savefig
+from pyplot_helper import savefig, classFromArgs
 
 def del_ql_full(sol: QuasiLinearSolution,
                 poloidal_mode: int,
@@ -97,12 +97,6 @@ def delta_prime_full(delta_qls: np.ndarray,
         delta_primes.append(lundquist_number*dpsi*int_result/(psi*r_s))
     
     return delta_primes
-
-def classFromArgs(className, df):
-    fieldSet = {f.name for f in fields(className) if f.init}
-    filteredArgDict = {col : np.array(df[col]) for col in df.columns 
-                       if col in fieldSet}
-    return className(**filteredArgDict)
 
 def convergence_of_delta_prime():
     m=2
