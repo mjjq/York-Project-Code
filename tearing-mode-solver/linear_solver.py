@@ -271,8 +271,18 @@ def solve_system(poloidal_mode: int,
     dpsi_dr_forwards[1:] = dpsi_dr_forwards[1:]/(r_range_fwd[1:]**2)
     dpsi_dr_backwards = dpsi_dr_backwards/(r_range_bkwd**2)
     
-    dpsi_dr_f_func = interp1d(r_range_fwd, dpsi_dr_forwards)
-    dpsi_dr_b_func = interp1d(r_range_bkwd, dpsi_dr_backwards)
+    dpsi_dr_f_func = interp1d(
+        r_range_fwd, 
+        dpsi_dr_forwards, 
+        fill_value=(dpsi_dr_forwards[0], dpsi_dr_forwards[-1]),
+        bounds_error=False
+    )
+    dpsi_dr_b_func = interp1d(
+        r_range_bkwd, 
+        dpsi_dr_backwards,
+        fill_value=(dpsi_dr_backwards[-1], dpsi_dr_backwards[0]),
+        bounds_error=False
+    )
     #print(dpsi_dr_forwards)
     
     return TearingModeSolution(

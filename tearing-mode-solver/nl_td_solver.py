@@ -19,7 +19,7 @@ from linear_solver import (
     scale_tm_solution, delta_prime, q
 )
 from non_linear_solver import delta_prime_non_linear, island_width
-from helpers import savefig
+from helpers import savefig, TimeDependentSolution
 
 
 def flux_time_derivative(psi: float,
@@ -90,22 +90,32 @@ def solve_time_dependent_system(poloidal_mode: int,
 
     dps = [delta_prime_non_linear(tm, w) for w in w_t]
     
-    return np.squeeze(psi_t), w_t, tm, dps
+
+    return TimeDependentSolution(
+        t_range,
+        np.squeeze(psi_t),
+        np.array([]),
+        np.array([]),
+        w_t,
+        dps
+    ), tm
     
 
 def nl_tm_vs_time():
-    m=3
-    n=2
+    m=2
+    n=1
     lundquist_number = 1e8
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e6, 100)
+    times = np.linspace(0.0, 1e8, 10000)
     
-    psi_t, w_t, tm0, delta_primes = solve_time_dependent_system(
+    td_sol, tm0 = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
     
+    psi_t, w_t, delta_primes = td_sol.psi_t, td_sol.w_t, td_sol.delta_primes
+
     print(psi_t)
 
     fig, ax = plt.subplots(1, figsize=(4,3))
@@ -423,5 +433,5 @@ def marg_stability_multi_mode():
 if __name__=='__main__':
     #nl_tm_vs_time()
     #nl_tm_small_w()
-    #nl_tm_vs_time()
-    algebraic_departure()
+    nl_tm_vs_time()
+    #algebraic_departure()
