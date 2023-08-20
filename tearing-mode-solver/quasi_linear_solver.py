@@ -15,7 +15,7 @@ from non_linear_solver import (
     delta_prime_non_linear
 )
 
-from pyplot_helper import savefig
+from helpers import savefig
 
 @np.vectorize
 def island_width(psi_rs: float,

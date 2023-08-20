@@ -19,7 +19,7 @@ from non_linear_solver import (
     delta_prime_non_linear
 )
 
-from pyplot_helper import savefig, savecsv
+from helpers import savefig, savecsv, TimeDependentSolution
 
 @np.vectorize
 def nu(psi_rs: float,
@@ -126,14 +126,7 @@ def flux_time_derivative(time: float,
 
     return [dpsi_dt, d2psi_dt2]
 
-@dataclass
-class QuasiLinearSolution():
-    times: np.array
-    psi_t: np.array
-    dpsi_dt: np.array
-    d2psi_dt2: np.array
-    w_t: np.array
-    delta_primes: np.array
+
 
 def solve_time_dependent_system(poloidal_mode: int,
                                 toroidal_mode: int,
@@ -141,7 +134,7 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 axis_q: float,
                                 initial_scale_factor: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10))\
-                                    -> QuasiLinearSolution:
+                                    -> TimeDependentSolution:
 
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
@@ -265,7 +258,7 @@ def solve_time_dependent_system(poloidal_mode: int,
 
     #dps = [delta_prime_non_linear(tm, w) for w in w_t]
 
-    return QuasiLinearSolution(
+    return TimeDependentSolution(
         np.squeeze(times),
         np.squeeze(psi),
         np.squeeze(dpsi_dt),

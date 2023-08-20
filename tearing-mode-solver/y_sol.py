@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.interpolate import UnivariateSpline
 
-from pyplot_helper import savefig
+from helpers import savefig
 
 @np.vectorize
 def Y(x):

@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
-from pyplot_helper import savefig
+from helpers import savefig
 from scipy.interpolate import interp1d
 
 def dj_dr(radial_coordinate: float,

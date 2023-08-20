@@ -19,7 +19,7 @@ from linear_solver import (
     scale_tm_solution, delta_prime, q
 )
 from non_linear_solver import delta_prime_non_linear, island_width
-from pyplot_helper import savefig
+from helpers import savefig
 
 
 def flux_time_derivative(psi: float,

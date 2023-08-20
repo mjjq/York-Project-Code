@@ -2,17 +2,17 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from new_ql_solver import QuasiLinearSolution
+from helpers import TimeDependentSolution
 from y_sol import Y
-from pyplot_helper import classFromArgs
+from helpers import classFromArgs
 
-def F(ql_sol: QuasiLinearSolution,
+def F(ql_sol: TimeDependentSolution,
       toroidal_mode: int,
       mag_shear: float):
     return -ql_sol.dpsi_dt / (toroidal_mode*mag_shear*ql_sol.w_t)
 
 
-def potential(ql_sol: QuasiLinearSolution,
+def potential(ql_sol: TimeDependentSolution,
               toroidal_mode: int,
               mag_shear: float,
               xs: np.array):
@@ -37,10 +37,19 @@ def check_solution_is_valid(phi: np.ndarray,
     dphi_dx = np.gradient(phi, xs, axis=0, edge_order=2)
     d2phi_dx2 = np.gradient(dphi_dx, xs, axis=0, edge_order=2)
 
-    d4_x2 = np.outer(1.0/xs**2, delta_t**4)
-    psi_term = np.outer(1.0/(n*s*xs), dpsi_dt)
+    #TODO: Multiply everything by x^2 to avoid singularity
 
-    diff = (d4_x2*d2phi_dx2/phi - 1 + psi_term/phi)**2
+    d2phi_term = np.outer(d2phi_dx2, delta_t**4)
+    psi_term = np.outer(xs/(n*s), dpsi_dt)    
+    phi_term = phi*(xs**2)
+
+    #d4_x2 = np.outer(1.0/xs**2, delta_t**4)
+    #psi_term = np.outer(1.0/(n*s*xs), dpsi_dt)
+
+    #print(d4_x2.shape)
+    #print(psi_term.shape)
+
+    diff = (d2phi_term - phi_term + psi_term)**2
 
     fig, ax = plt.subplots(1)
     ax.imshow(
@@ -58,9 +67,9 @@ def potential_from_data():
 
     fname = "./output/19-08-2023_14:29_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df = pd.read_csv(fname)
-    ql_sol = classFromArgs(QuasiLinearSolution, df)
+    ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    xs = np.arange(-0.025, 0.025, 0.001)
+    xs = np.arange(-0.025, 0.025, 0.005)
     phi = potential(ql_sol, n, s, xs)
 
     fig, ax = plt.subplots(1)

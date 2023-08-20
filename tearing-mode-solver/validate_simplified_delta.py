@@ -9,10 +9,10 @@ from typing import Tuple
 import os
 
 from y_sol import Y
-from new_ql_solver import QuasiLinearSolution, nu, island_width
-from pyplot_helper import savefig, classFromArgs
+from helpers import TimeDependentSolution, nu, island_width
+from helpers import savefig, classFromArgs
 
-def del_ql_full(sol: QuasiLinearSolution,
+def del_ql_full(sol: TimeDependentSolution,
                 poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
@@ -107,7 +107,7 @@ def convergence_of_delta_prime():
 
     fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df = pd.read_csv(fname)
-    ql_sol = classFromArgs(QuasiLinearSolution, df)
+    ql_sol = classFromArgs(TimeDependentSolution, df)
 
     delta_ql_orig = island_width(
         ql_sol.psi_t,
@@ -169,6 +169,74 @@ def convergence_of_delta_prime():
     savefig(f"{orig_fname}_delta_prime_convergence")
 
 
+def constant_psi_approx():
+    m=2
+    n=1
+    S=1e8
+    s=5.84863459819362
+    r_s=0.7962252761034401
+
+    fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    df = pd.read_csv(fname)
+    ql_sol = classFromArgs(TimeDependentSolution, df)
+
+    delta_ql_orig = island_width(
+        ql_sol.psi_t,
+        ql_sol.dpsi_dt,
+        ql_sol.d2psi_dt2,
+        r_s,
+        m,
+        n,
+        s,
+        S
+    )
+
+    simple_integration()
+
+    x_lims = [20.0]
+
+
+    fig_dp, ax_dp = plt.subplots(1, figsize=(4,4))
+
+    ax_dp.set_xscale('log')
+
+    for xlim in x_lims:
+        delqls, times, xs = del_ql_full(
+            ql_sol, m, n, S, s, r_s,
+            (-xlim, xlim),
+            0.1
+        )
+        #delqls = delqls[:,::1000]
+
+        delta_primes = delta_prime_full(
+            delqls,
+            xs,
+            times,
+            ql_sol.psi_t,
+            ql_sol.dpsi_dt,
+            r_s,
+            S
+        )
+
+        d_delta_primes = delqls[-1]*delta_primes
+
+        times_f = times[times>1e3]
+        d_delta_primes_f = d_delta_primes[-len(times_f):]
+        ax_dp.plot(
+            times_f, d_delta_primes_f, label=r"Exact $a\Delta'$"+f"(X={xlim})",
+            color='black'
+        )
+
+    #ax_dp.legend()
+    ax_dp.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax_dp.set_ylabel(r"$\delta \Delta'$")
+    ax_dp.set_xlim(left=1e3)
+    #ax_dp.set_ylim(bottom=1.0)
+    fig_dp.tight_layout()
+
+    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    savefig(f"{orig_fname}_const_psi_approx")
+
 def convergence_of_growth_rate():
     m=2
     n=1
@@ -178,7 +246,7 @@ def convergence_of_growth_rate():
 
     fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df = pd.read_csv(fname)
-    ql_sol = classFromArgs(QuasiLinearSolution, df)
+    ql_sol = classFromArgs(TimeDependentSolution, df)
 
     delta_ql_orig = island_width(
         ql_sol.psi_t,
@@ -246,6 +314,6 @@ def convergence_of_growth_rate():
     ax_w.set_yscale('log')
 
 if __name__=='__main__':
-    convergence_of_delta_prime()
+    constant_psi_approx()
         
     plt.show()

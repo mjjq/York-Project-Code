@@ -1,4 +1,4 @@
-from dataclasses import fields
+from dataclasses import fields, dataclass
 from datetime import datetime
 import numpy as np
 
@@ -24,6 +24,15 @@ def classFromArgs(className, df):
     filteredArgDict = {col : np.array(df[col]) for col in df.columns
                        if col in fieldSet}
     return className(**filteredArgDict)
+
+@dataclass
+class TimeDependentSolution():
+    times: np.array
+    psi_t: np.array
+    dpsi_dt: np.array
+    d2psi_dt2: np.array
+    w_t: np.array
+    delta_primes: np.array
 
 if __name__=='__main__':
     savefig("this_is_a_test")
