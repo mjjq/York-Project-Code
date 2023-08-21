@@ -9,8 +9,9 @@ from typing import Tuple
 import os
 
 from y_sol import Y
-from helpers import TimeDependentSolution, nu, island_width
-from helpers import savefig, classFromArgs
+from new_ql_solver import nu, island_width
+from helpers import savefig, classFromArgs, TimeDependentSolution
+from linear_solver import magnetic_shear, rational_surface
 
 def del_ql_full(sol: TimeDependentSolution,
                 poloidal_mode: int,
@@ -19,7 +20,7 @@ def del_ql_full(sol: TimeDependentSolution,
                 mag_shear: float,
                 r_s: float,
                 x_range: Tuple[float, float],
-                dx: float = 0.1):
+                dx: float = 0.01):
 
     times = sol.times
     w_t_func = UnivariateSpline(times, sol.w_t, s=0)
@@ -75,6 +76,7 @@ def delta_prime_full(delta_qls: np.ndarray,
                      times: np.array,
                      psi_t: np.array,
                      dpsi_dt: np.array,
+                     w_t: np.array,
                      r_s: float,
                      lundquist_number: float):
     
@@ -86,17 +88,18 @@ def delta_prime_full(delta_qls: np.ndarray,
     for i in tqdm_range:
         t= times[i]
         delta_ql_x = delta_qls[:,i]
+        delta_orig = w_t[i]
         
         int_result = simpson(
-            (1.0+xs*ys)*delta_ql_x, x=xs
+            (1.0+(delta_orig/delta_ql_x)*xs*ys), x=xs
         )
 
         psi = psi_t[i]
         dpsi = dpsi_dt[i]
         
-        delta_primes.append(lundquist_number*dpsi*int_result/(psi*r_s))
+        delta_primes.append(lundquist_number*dpsi*delta_orig*int_result/(psi*r_s))
     
-    return delta_primes
+    return np.array(delta_primes)
 
 def convergence_of_delta_prime():
     m=2
@@ -122,7 +125,7 @@ def convergence_of_delta_prime():
 
     simple_integration()
 
-    x_lims = [1.0, 1.5, 20.0]
+    x_lims = [1.0, 1.5, 5.0]
 
 
     fig_dp, ax_dp = plt.subplots(1, figsize=(4,4))
@@ -148,12 +151,15 @@ def convergence_of_delta_prime():
             times,
             ql_sol.psi_t,
             ql_sol.dpsi_dt,
+            delta_ql_orig,
             r_s,
             S
         )
 
         times_f = times[times>1e3]
         delta_primes_f = delta_primes[-len(times_f):]
+        print(times_f.shape)
+        print(delta_primes_f.shape)
         ax_dp.plot(
             times_f, delta_primes_f, label=r"Exact $a\Delta'$"+f"(X={xlim})"
         )
@@ -173,10 +179,11 @@ def constant_psi_approx():
     m=2
     n=1
     S=1e8
-    s=5.84863459819362
-    r_s=0.7962252761034401
+    axis_q=1.2
+    r_s=rational_surface(m/n)
+    s=magnetic_shear(r_s, m, n)
 
-    fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname = "./output/20-08-2023_17:12_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.2).csv"
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
@@ -198,7 +205,10 @@ def constant_psi_approx():
 
     fig_dp, ax_dp = plt.subplots(1, figsize=(4,4))
 
-    ax_dp.set_xscale('log')
+    #ax_dp.set_xscale('log')
+
+    fig_time, ax_time = plt.subplots(1, figsize=(4,4))
+    ax_time.set_xscale('log')
 
     for xlim in x_lims:
         delqls, times, xs = del_ql_full(
@@ -214,25 +224,35 @@ def constant_psi_approx():
             times,
             ql_sol.psi_t,
             ql_sol.dpsi_dt,
+            delta_ql_orig,
             r_s,
             S
         )
 
-        d_delta_primes = delqls[-1]*delta_primes
+        widths = delqls[-1]
+        d_delta_primes = widths*delta_primes
 
         times_f = times[times>1e3]
+        widths_f = widths[-len(times_f):]
         d_delta_primes_f = d_delta_primes[-len(times_f):]
-        ax_dp.plot(
+        #ax_dp.plot(
+            #widths_f, d_delta_primes_f, label=r"Exact $a\Delta'$"+f"(X={xlim})",
+            #color='black'
+        #)
+        ax_time.plot(
             times_f, d_delta_primes_f, label=r"Exact $a\Delta'$"+f"(X={xlim})",
             color='black'
         )
 
     #ax_dp.legend()
-    ax_dp.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax_dp.set_xlabel(r"Layer width")
     ax_dp.set_ylabel(r"$\delta \Delta'$")
-    ax_dp.set_xlim(left=1e3)
+    ax_time.set_xlabel(r"Normalised time $\bar{\omega} t$")
+    ax_time.set_ylabel(r"$\delta \Delta'$")
+    #ax_dp.set_xlim(left=1e3)
     #ax_dp.set_ylim(bottom=1.0)
     fig_dp.tight_layout()
+    fig_time.tight_layout()
 
     orig_fname, ext = os.path.splitext(os.path.basename(fname))
     savefig(f"{orig_fname}_const_psi_approx")
@@ -315,5 +335,6 @@ def convergence_of_growth_rate():
 
 if __name__=='__main__':
     constant_psi_approx()
-        
+    #convergence_of_delta_prime()
+
     plt.show()

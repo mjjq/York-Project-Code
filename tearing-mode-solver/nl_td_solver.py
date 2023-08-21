@@ -140,6 +140,71 @@ def nl_tm_vs_time():
     )
     plt.show()
 
+def const_psi_approximation():
+    m=2
+    n=1
+    lundquist_number = 1e8
+    axis_q = 1.2
+    solution_scale_factor = 1e-5
+
+    times = np.linspace(0.0, 1e8, 10000)
+
+    td_sol, tm0 = solve_time_dependent_system(
+        m, n, lundquist_number, axis_q, solution_scale_factor, times
+    )
+
+    d_delta = td_sol.delta_primes * td_sol.w_t
+    
+    fig, ax = plt.subplots(1)
+    
+    ax.plot(td_sol.w_t, d_delta, color='black')
+    
+    ax.set_xlabel(r"Layer width")
+    ax.set_ylabel(r"$\delta \Delta'$")
+    
+    fig.tight_layout()
+    #plt.show()
+    savefig(
+        f"nl_const_psi_approx_(m,n,A)=({m},{n},{solution_scale_factor})"
+    )
+    plt.show()
+
+def const_psi_q_sweep():
+    m=2
+    n=1
+    lundquist_number = 1e8
+    q_rs = m/n
+    axis_qs = np.linspace(q_rs/q(0.0)-1e-2, q_rs/q(1.0)+1e-2, 100)
+
+    solution_scale_factor = 1e-5
+
+    times = np.linspace(0.0, 1e8, 1000)
+
+    d_delta_maxs = []
+
+    for axis_q in axis_qs:
+        td_sol, tm0 = solve_time_dependent_system(
+            m, n, lundquist_number, axis_q, solution_scale_factor, times
+        )
+
+        d_delta = td_sol.delta_primes * td_sol.w_t
+
+        d_delta_maxs.append(max(d_delta))
+
+    fig, ax = plt.subplots(1)
+
+    ax.plot(axis_qs, d_delta_maxs, color='black')
+
+    ax.set_xlabel(r"On-axis safety factor")
+    ax.set_ylabel(r"Maximum $\delta \Delta'$")
+
+    fig.tight_layout()
+    #plt.show()
+    savefig(
+        f"nl_const_psi_approx_q_sweep_(m,n,A)=({m},{n},{solution_scale_factor})"
+    )
+    plt.show()
+
 def parabola(x, a, b, c):
     return a*x**2 + b*x + c
 
@@ -433,5 +498,7 @@ def marg_stability_multi_mode():
 if __name__=='__main__':
     #nl_tm_vs_time()
     #nl_tm_small_w()
-    nl_tm_vs_time()
+    #nl_tm_vs_time()
     #algebraic_departure()
+    #const_psi_approximation()
+    const_psi_q_sweep()

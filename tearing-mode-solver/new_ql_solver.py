@@ -279,7 +279,7 @@ def ql_tm_vs_time():
     m=2
     n=1
     lundquist_number = 1e8
-    axis_q = 1.0
+    axis_q = 1.2
     solution_scale_factor = 1e-10
 
     times = np.linspace(0.0, 3e5, 1000)
@@ -324,7 +324,7 @@ def ql_tm_vs_time():
     fig.tight_layout()
     #plt.show()
 
-    fname = f"new_ql_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
+    fname = f"new_ql_tm_time_evo_(m,n,A,q0)=({m},{n},{solution_scale_factor},{axis_q})"
     savefig(fname)
     savecsv(fname, pd.DataFrame(asdict(ql_solution)))
     plt.show()
