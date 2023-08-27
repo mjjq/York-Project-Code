@@ -8,16 +8,47 @@ from helpers import classFromArgs
 
 def F(ql_sol: TimeDependentSolution,
       toroidal_mode: int,
-      mag_shear: float):
+      mag_shear: float) -> np.array:
+    """
+    The time-dependent component of the separation of variables function.
+
+    I.e., for the potential phi(x,t) = Y(X)F(t), this function returns F(t)
+
+    Parameters
+        ql_sol: TimeDependentSolution
+            Quasi-linear time-dependent tearing mode solution (calculated
+            either from the gamma or delta models)
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        mag_shear: float
+            Magnetic shear at the resonant surface.
+    """
     return -ql_sol.dpsi_dt / (toroidal_mode*mag_shear*ql_sol.w_t)
 
 
 def potential(ql_sol: TimeDependentSolution,
               toroidal_mode: int,
               mag_shear: float,
-              xs: np.array):
+              xs: np.array) -> np.ndarray:
+    """
+    Re-construct the electric potential from the quasi-linear time-dependent
+    solution.
+
+    Parameters
+        ql_sol: TimeDependentSolution
+            Quasi-linear time-dependent tearing mode solution (calculated
+            either from the gamma or delta models)
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        mag_shear: float
+            Magnetic shear at the resonant surface.
+        xs: np.array
+            Spatial values over which the potential must be calculated.
+    """
     f =  F(ql_sol, toroidal_mode, mag_shear)
 
+    # Calculate outer product between the x-array and island widths. Equivalent
+    # to X = x/delta(t)
     Xs = np.outer(xs, 1.0/ql_sol.w_t)
     phi = Y(Xs) * f
 
@@ -31,6 +62,28 @@ def check_solution_is_valid(phi: np.ndarray,
                             delta_t: np.array,
                             toroidal_mode: int,
                             mag_shear: float):
+    """
+    Compute the differential equation governing the time-dependence of the
+    perturbed flux from a reconstructed electric potential. Use this to
+    determine if the electric potential satisfies the differential equation.
+
+    Parameters
+        phi: np.ndarray
+            The electric potential. (2D array, where first dimension corresponds
+            to time and second dimension to space).
+        xs: np.array:
+            Spatial values over which the potential has been calculated.
+        times: np.array:
+            Temporal values over which the potential has been calculated
+        dpsi_dt: np.array
+            The first time derivative in the perturbed flux. Must have same
+            dimension as times
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        mag_shear: float
+            Magnetic shear at the resonant surface.
+
+    """
     n = toroidal_mode
     s = mag_shear
 
@@ -59,6 +112,10 @@ def check_solution_is_valid(phi: np.ndarray,
     ax.set_aspect((max(times)-min(times))/(max(xs)-min(xs)))
 
 def potential_from_data():
+    """
+    Load pre-computed quasi-linear solution data, re-construct the electric
+    potential, then plot the function as a heatmap.
+    """
     m=2
     n=1
     S=1e8
