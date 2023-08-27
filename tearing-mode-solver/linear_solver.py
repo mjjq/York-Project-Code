@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from helpers import savefig
 from scipy.interpolate import interp1d
 
+from typing import Tuple
+
 def dj_dr(radial_coordinate: float,
           shaping_exponent: float = 2.0) -> float:
     """
@@ -148,6 +150,9 @@ def compute_derivatives(y: Tuple[float, float],
 
 @dataclass
 class TearingModeSolution():
+    # Contains numerical solution to the outer solution differential
+    # equation
+
     # All quantities in this class are normalised
     
     # Perturbed flux and derivative starting from the poloidal axis
@@ -297,6 +302,13 @@ def solve_system(poloidal_mode: int,
     
 def delta_prime(tm_sol: TearingModeSolution,
                 epsilon: float = 1e-10):
+    """
+    Calculate the discontinuity parameter close to the resonant surface for
+    a numerical outer solution.
+
+    Epsilon specifies the tolerance for the forward and backward solutions at
+    the resonannt surface to be within. ValueError is raised if this check fails
+    """
     psi_plus = tm_sol.psi_backwards[-1]
     psi_minus = tm_sol.psi_forwards[-1]
     
@@ -313,6 +325,10 @@ def delta_prime(tm_sol: TearingModeSolution,
     return (dpsi_dr_plus - dpsi_dr_minus)/psi_plus
 
 def solve_and_plot_system_simple():
+    """
+    Solve the perturbed flux in the outer region and plot it as a function
+    of the plasma minor radius.
+    """
     poloidal_mode = 3
     toroidal_mode = 2
     axis_q = 1.0
@@ -351,6 +367,10 @@ def solve_and_plot_system_simple():
 
 
 def solve_and_plot_system():
+    """
+    Generate set of plots for an outer perturbed flux solution in addition to
+    the q and current profiles of the plasma.
+    """
     poloidal_mode = 3
     toroidal_mode = 3
     axis_q = 0.999
@@ -413,6 +433,12 @@ def solve_and_plot_system():
 def magnetic_shear(resonant_surface: float,
                    poloidal_mode: int,
                    toroidal_mode: int) -> float:
+    """
+    Calculate the magnetic shear of the plasma at the resonant surface using
+    the globally defined q profile.
+
+    s(r_s) = q'(r_s)/q(r_s)
+    """
     r_s = resonant_surface
     
     r = np.linspace(0, 1, 1000)
@@ -426,13 +452,23 @@ def magnetic_shear(resonant_surface: float,
     
     return (m/n)*r_s*dq_dr[rs_id]
 
-def gamma_constant():
+def gamma_constant() -> float:
+    """
+    Numerical solution to the integral int_{-\infty}^{\infty} (1+XY(X)) dX,
+    where Y(X) = 0.5X\int_0^1 \exp(-0.5\mu X^2)/(1-\mu^2)^{1/4} d\mu
+    """
     return 2.1236482729819393256107565
 
 def growth_rate_scale(lundquist_number: float,
                       r_s: float,
                       poloidal_mode: float,
-                      toroidal_mode: float):
+                      toroidal_mode: float) -> float:
+    """
+    Given some of the plasma paramters, calculate the value that multiplies
+    by (Delta')^{4/5} to give the linear growth rate.
+
+    I.e. \gamma/\omega_A = growth_rate_scale(...)*(Delta')^{4/5}
+    """
    
     # Equivalent to 2*pi*Gamma(3/4)/Gamma(1/4)
     gamma_scale_factor = gamma_constant()
@@ -453,7 +489,13 @@ def growth_rate(poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
                 axis_q: float = 1.0,
-                resolution: float = 1e-6):
+                resolution: float = 1e-6) -> Tuple[float, float]:
+    """
+    Calculate growth rate of a tearing mode in the linear regime.
+
+    Returns a tuple containing the discontinuity parameter and the growth rate
+    normalised to the Alfven frequency of the plasma.
+    """
     
     m = poloidal_mode
     n = toroidal_mode
@@ -475,7 +517,10 @@ def growth_rate(poloidal_mode: int,
 def layer_width(poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
-                axis_q: float = 1.0):
+                axis_q: float = 1.0) -> float:
+    """
+    Calculate the thickness of the resistive layer in the linear regime.
+    """
     m = poloidal_mode
     n = toroidal_mode
     S = lundquist_number
@@ -492,6 +537,7 @@ def layer_width(poloidal_mode: int,
     return tm.r_s*(gr/(S*(n*s)**2))**(1/4)
 
 def alfven_frequency_STEP():
+    # Alfven frequency estimated for the STEP tokamak.
     # 1.35e6 Hz for STEP, see lab book "STEP parameters" log
     return 1.35e6
 
@@ -506,6 +552,13 @@ def ps_correction(alfven_freq: float,
     return alfven_freq / (1+2*poloidal_mode/toroidal_mode)
 
 def growth_rate_vs_mode_number():
+    """
+    Generate a table of data of the growth rate for different tearing modes
+    in the linear regime.
+
+    Normalised growth rates are calculated in addition to absolute growth rates
+    for STEP parameters.
+    """
     modes = [
         (2,1),
         (3,2),
@@ -550,6 +603,10 @@ def growth_rate_vs_mode_number():
             f"${linear_layer_width:.2e}$"+r"\\")
 
 def test_gradient():
+    """
+    Compare the derivative of the outer solution calculated by ODEINT against
+    that calculated manually from the perturbed flux using numpy.gradient.
+    """
     m=3
     n=2
     lundquist_number = 1e8
@@ -608,6 +665,10 @@ def test_gradient():
     plt.savefig("gradient_test.png", dpi=300)
     
 def q_sweep():
+    """
+    Calculate growth rates of different modes as a function of the on-axis
+    safety factor.
+    """
     modes = [
         (2,1),
         (3,2)
@@ -654,6 +715,16 @@ def q_sweep():
     plt.show()
 
 def test_accuracy_vs_layer_width():
+    """
+    Calculate the discontinuity parameter for a mode using outer tearing mode
+    solutions of different resolutions.
+
+    We then plot the discontinuity parameter (Delta') as a function of
+    resolution to understand how the error in Delta' changes.
+
+    We can use the output of this test to determine a reasonable resolution for
+    the precision we need.
+    """
     m=3
     n=2
     lundquist_number = 1e8
@@ -685,6 +756,10 @@ def test_accuracy_vs_layer_width():
     plt.show()
 
 def q_sweep_diff_res():
+    """
+    Calculate growth rates of a tearing mode as a function of the on-axis
+    safety factor for different tearing mode resolutions.
+    """
     m,n = (3,2)
     resolutions = [1e-5, 1e-6, 1e-7]
 
@@ -739,6 +814,10 @@ def q_sweep_diff_res():
     plt.show()
 
 def solution_near_res_surface():
+    """
+    Plot the perturbed flux of the outer solution as a function of plasma minor
+    radius near the resonant surface of the plasma.
+    """
     poloidal_mode = 3
     toroidal_mode = 2
     axis_q = 1.0
