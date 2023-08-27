@@ -1,3 +1,4 @@
 *.png
 .spyproject
 *__pycache__*
+output/
