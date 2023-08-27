@@ -9,6 +9,10 @@ from linear_solver import TearingModeSolution, solve_system
 def island_width(psi_rs: float,
                  r_s: float,
                  magnetic_shear: float) -> float:
+    """
+    Helical width of a magnetic island (maximum distance between separatrices
+    of the magnetic island).
+    """
     pre_factor = psi_rs*r_s/magnetic_shear
     if pre_factor >= 0.0:
         return 4.0*np.sqrt(pre_factor)
@@ -19,7 +23,7 @@ def delta_prime_non_linear(tm: TearingModeSolution,
                            island_width: float,
                            epsilon: float = 1e-10) -> float:
     """
-    Non-linear rutherford equation calculation using the solution of the
+    Non-linear discontinuity parameter calculation using the solution of the
     perturbed flux.
 
     Parameters
@@ -55,13 +59,9 @@ def delta_prime_non_linear(tm: TearingModeSolution,
     
     
     r_min = tm.r_s - island_width/2.0
-    #id_min = np.abs(tm.r_range_fwd - r_min).argmin()
-    #dpsi_dr_min = tm.dpsi_dr_forwards[id_min]
     dpsi_dr_min = tm.dpsi_dr_f_func(r_min)
 
     r_max = tm.r_s + island_width/2.0
-    #id_max = np.abs(tm.r_range_bkwd - r_max).argmin()
-    #dpsi_dr_max = tm.dpsi_dr_backwards[id_max]
     dpsi_dr_max = tm.dpsi_dr_b_func(r_max)
 
     delta_p = (dpsi_dr_max - dpsi_dr_min)/psi_plus
