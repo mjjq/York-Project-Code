@@ -1,3 +1,8 @@
+"""
+This file is deprecated. Please see constant_psi_approximation() in
+validate_simplified_delta.py.
+"""
+
 import pandas as pd
 
 from helpers import classFromArgs
