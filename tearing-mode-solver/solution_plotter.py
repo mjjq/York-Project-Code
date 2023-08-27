@@ -1,8 +1,11 @@
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.interpolate import UnivariateSpline
+import os
+
 from linear_solver import rational_surface, magnetic_shear
 from new_ql_solver import nu
+from helpers import classFromArgs, TimeDependentSolution, savefig
 
 def ql_tm_vs_time():
     fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
@@ -47,15 +50,45 @@ def ql_tm_vs_time():
     fig.tight_layout()
     #plt.show()
 
+    fig_growth, ax_growth = plt.subplots(1, figsize=(4.5,3))
+
+    ax_growth.plot(times, dpsi_t/psi_t, color='black')
+    ax_growth.set_ylabel(r'Growth rate $\delta\dot{\psi}^{(1)}/\delta\psi^{(1)}$')
+    ax_growth.set_xlabel(r'Normalised time $(\bar{\omega}_A t)$')
+
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+
+    fig_growth.tight_layout()
+
+    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    savefig(f"{orig_fname}_growth_rate")
+
+    ax_growth.set_xlim(left=0.0, right=1e5)
+    ax_growth.set_ylim(bottom=5.46e-5, top=5.50e-5)
+
+    fig_growth.tight_layout()
+
+    savefig(f"{orig_fname}_growth_rate_zoomed")
+
+
 
     fig_d2psi, ax_second = plt.subplots(4, sharex=True)
     ax_d2psi,  ax_nl, ax_l, ax_dwdt = ax_second
-    ax_d2psi.plot(times, d2psi_dt2/dpsi_t, color='black')
-    ax_d2psi.set_ylabel(r'$\left( \dot{\delta\psi} \right)^{-1} \ddot{\delta\psi}$')
+
+    fig_d2psi_actual, ax_d2psi = plt.subplots(1, figsize=(4,3))
+    ax_d2psi.set_xlabel(r'Normalised time $(\bar{\omega}_A t)$')
+    ax_d2psi.plot(times, d2psi_dt2, color='black')
+    ax_d2psi.set_ylabel(r'$\ddot{\delta\psi}$')
     ax_second[-1].set_xlabel(r'Normalised time $(\bar{\omega_A} t)$')
     ax_d2psi.set_xscale('log')
     ax_d2psi.set_yscale('log')
 
+    ax_d2psi.set_xscale('linear')
+    ax_d2psi.set_yscale('linear')
+    ax_d2psi.set_xlim(left=1e5, right=3e5)
+    ax_d2psi.set_ylim(bottom=0.0, top=2e-15)
+    fig_d2psi_actual.tight_layout()
+    savefig(f"{orig_fname}_d2psi_dt2")
 
 
     m=2
@@ -124,6 +157,210 @@ def ql_tm_vs_time():
 
     plt.show()
 
+def compare_ql_evolution():
+    m=2
+    n=1
+    S=1e8
+    s=5.84863459819362
+    r_s=0.7962252761034401
+
+    fname_new = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    df_new = pd.read_csv(fname_new)
+    ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
+
+    fname_approx = "./output/21-08-2023_16:55_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    df_approx = pd.read_csv(fname_approx)
+    ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
+
+    fig, ax = plt.subplots(1, figsize=(4,3))
+
+    ax.plot(
+        ql_sol_approx.times,
+        ql_sol_approx.psi_t,
+        label="Gamma model",
+        color='black'
+    )
+    ax.plot(
+        ql_sol_new.times,
+        ql_sol_new.psi_t,
+        label="Delta model",
+        color='red',
+        linestyle='--'
+    )
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax.set_ylabel(r"Perturbed flux")
+
+    ax.legend(prop={'size':7})
+    fig.tight_layout()
+
+    savefig("delta_vs_fast_approx_psi")
+
+    ax.set_xscale('linear')
+    ax.set_xlim(left=0.0, right=1e5)
+
+    savefig("delta_vs_fast_approx_psi_lin")
+
+    ax.set_xlim(left=8e4, right=2e5)
+
+    savefig("delta_vs_fast_approx_psi_lin_ql_region")
+
+
+    fig2, ax2 = plt.subplots(1, figsize=(4.5,3.5))
+
+
+    ax2.plot(
+        ql_sol_approx.times,
+        ql_sol_approx.dpsi_dt/ql_sol_approx.psi_t,
+        label="Gamma model",
+        color='black'
+    )
+    ax2.plot(
+        ql_sol_new.times,
+        ql_sol_new.dpsi_dt/ql_sol_new.psi_t,
+        label="Delta model",
+        color='red',
+        linestyle='--'
+    )
+
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+    ax2.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax2.set_ylabel(r"Growth rate $\delta\dot{\psi}^{(1)}/\delta\psi^{(1)}$")
+
+    ax2.legend(prop={'size':7})
+    fig2.tight_layout()
+
+    savefig("delta_vs_fast_approx_dpsi_dt")
+
+    ax2.set_xscale('linear')
+    ax2.set_yscale('linear')
+    ax2.set_xlim(left=0.0, right=1e5)
+    ax2.set_ylim(bottom=1e-5, top=7e-5)
+
+    fig2.tight_layout()
+
+    savefig("delta_vs_fast_approx_dpsi_dt_lin")
+
+    ax2.set_xlim(left=8e4, right=2e5)
+    ax2.set_ylim(bottom=1e-5, top=7e-5)
+
+    fig2.tight_layout()
+
+    savefig("delta_vs_fast_approx_dpsi_dt_lin_ql_region")
+
+
+
+    fig5, ax5 = plt.subplots(1, figsize=(4.5,3.5))
+
+
+    ax5.plot(
+        ql_sol_approx.times,
+        ql_sol_approx.d2psi_dt2/ql_sol_approx.dpsi_dt,
+        label="Gamma model",
+        color='black'
+    )
+    ax5.plot(
+        ql_sol_new.times,
+        ql_sol_new.d2psi_dt2/ql_sol_new.dpsi_dt,
+        label="Delta model",
+        color='red',
+        linestyle='--'
+    )
+
+    ax5.set_xscale('log')
+    ax5.set_yscale('log')
+    ax5.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax5.set_ylabel(r"Growth rate $\delta\ddot{\psi}^{(1)}/\delta\dot{\psi}^{(1)}$")
+
+    ax5.legend(prop={'size':7})
+    fig5.tight_layout()
+
+    savefig("delta_vs_fast_approx_d2psi_dt2")
+
+    ax5.set_xscale('linear')
+    ax5.set_yscale('linear')
+    ax5.set_xlim(left=0.0, right=3e5)
+    ax5.set_ylim(bottom=0e-5, top=10e-5)
+
+    fig5.tight_layout()
+
+    savefig("delta_vs_fast_approx_d2psi_dt2_lin")
+
+
+
+    #fig3, ax3 = plt.subplots(1, figsize=(4,3))
+
+    #ax3.plot(ql_sol_new.times, ql_sol_new.delta_primes, label="Delta model")
+    #ax3.plot(ql_sol_approx.times, ql_sol_approx.delta_primes, label="Gamma model")
+
+    ##ax3.set_xscale('log')
+    ##ax3.set_yscale('log')
+    #ax3.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    #ax3.set_ylabel(r"$a\Delta'$")
+    #ax3.legend()
+
+
+
+    #fig4, ax4 = plt.subplots(1, figsize=(4,3))
+
+    #ax4.plot(ql_sol_new.times, ql_sol_new.w_t, label="Delta model")
+    #ax4.plot(ql_sol_approx.times, ql_sol_approx.w_t, label="Gamma model")
+
+    #ax4.set_xlim(left=0.0, right=1e5)
+    #ax4.set_ylim(bottom=0.0, top=1e-3)
+    ##ax3.set_xscale('log')
+    ##ax3.set_yscale('log')
+    #ax4.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    #ax4.set_ylabel(r"Layer width")
+    #ax4.legend()
+
+    plt.show()
+
+def difference_in_flux_models():
+    m=2
+    n=1
+    S=1e8
+    s=5.84863459819362
+    r_s=0.7962252761034401
+
+    fname_new = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    df_new = pd.read_csv(fname_new)
+    ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
+
+    fname_approx = "./output/21-08-2023_16:55_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    df_approx = pd.read_csv(fname_approx)
+    ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
+
+    psi_t_new_func = UnivariateSpline(
+        ql_sol_new.times, ql_sol_new.psi_t, s=0
+    )
+    psi_t_approx_func = UnivariateSpline(
+        ql_sol_approx.times, ql_sol_approx.psi_t, s=0
+    )
+
+    times = ql_sol_new.times
+    pc_delta = 100.0*(psi_t_approx_func(times)/psi_t_new_func(times) - 1.0)
+
+    fig, ax = plt.subplots(figsize=(4,4))
+    ax.plot(times, pc_delta, color='black')
+    ax.set_xscale('log')
+    ax.set_xlabel(r'Normalised time $\bar{\omega}_A t$')
+    ax.set_ylabel(r'Flux change from gamma to delta model (%)')
+    fig.tight_layout()
+    savefig("flux_delta")
+
+    fig2, ax2 = plt.subplots(1)
+    ax2.plot(times, psi_t_new_func(times))
+    ax2.plot(times, psi_t_approx_func(times))
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+
+    plt.show()
 
 if __name__=='__main__':
     ql_tm_vs_time()
+    #compare_ql_evolution()
+    #difference_in_flux_models()

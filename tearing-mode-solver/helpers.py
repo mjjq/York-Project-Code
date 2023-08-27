@@ -1,9 +1,11 @@
-from dataclasses import fields, dataclass
+from dataclasses import fields, dataclass, asdict
 from datetime import datetime
 import numpy as np
+import pandas as pd
 
 from matplotlib import pyplot as plt
 import pandas as pd
+
 
 def savecsv(name: str, df: pd.DataFrame):
     date_time = datetime.now().strftime("%d-%m-%Y_%H:%M")
@@ -33,6 +35,10 @@ class TimeDependentSolution():
     d2psi_dt2: np.array
     w_t: np.array
     delta_primes: np.array
+
+
+def dataclass_to_disk(name: str, cls):
+    savecsv(name, pd.DataFrame(asdict(cls)))
 
 if __name__=='__main__':
     savefig("this_is_a_test")

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint
 from matplotlib import pyplot as plt
+from scipy.interpolate import UnivariateSpline
 
 from linear_solver import (
     TearingModeSolution,
@@ -15,7 +16,8 @@ from non_linear_solver import (
     delta_prime_non_linear
 )
 
-from helpers import savefig
+from helpers import savefig, TimeDependentSolution, dataclass_to_disk
+from nl_td_solver import nl_parabola
 
 @np.vectorize
 def island_width(psi_rs: float,
@@ -78,7 +80,7 @@ def flux_time_derivative(psi: float,
 
     delta_prime = delta_prime_non_linear(tm, w)
 
-    gamma = 4.0*gamma_constant()
+    gamma = gamma_constant()
 
     dpsi_dt = tm.r_s * psi * delta_prime / (gamma*w*lundquist_number)
     
@@ -110,6 +112,7 @@ def solve_time_dependent_system(poloidal_mode: int,
         lundquist_number,
         axis_q
     )
+    print(lin_growth_rate)
 
     psi_t = odeint(
         flux_time_derivative,
@@ -149,7 +152,20 @@ def solve_time_dependent_system(poloidal_mode: int,
         lin_delta_prime
     )
 
-    return np.squeeze(psi_t), w_t, tm, dps, ql_threshold, s
+    psi_spline = UnivariateSpline(t_range, psi_t, s=0)
+    dpsi_dt = psi_spline.derivative()(t_range)
+    d2psi_dt2 = psi_spline.derivative().derivative()(t_range)
+
+    sol = TimeDependentSolution(
+        t_range,
+        np.squeeze(psi_t),
+        np.squeeze(dpsi_dt),
+        np.squeeze(d2psi_dt2),
+        np.squeeze(w_t),
+        np.array(dps)
+    )
+
+    return sol, tm, ql_threshold, s
 
 def time_from_flux(psi: np.array,
                    times: np.array,
@@ -166,12 +182,14 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e9, 1000)
+    times = np.linspace(0.0, 3e5, 100000)
 
-    psi_t, w_t, tm0, dps, ql_threshold, s = solve_time_dependent_system(
+    sol, tm0, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
     
+    psi_t, w_t, dps = sol.psi_t, sol.w_t, sol.delta_primes
+
     lin_delta_prime, lin_growth_rate = growth_rate(
         m,
         n,
@@ -217,23 +235,25 @@ def ql_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
-    savefig(
-        f"ql_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
-    )
+    fname = f"ql_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
+    savefig(fname)
+    dataclass_to_disk(fname, sol)
     plt.show()
 
 def ql_with_fit_plots():
-    m=4
-    n=3
+    m=2
+    n=1
     lundquist_number = 1e8
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
     times = np.linspace(0.0, 1e8, 10000)
 
-    psi_t, w_t, tm0, dps, ql_threshold, s = solve_time_dependent_system(
+    sol, tm0, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
+
+    psi_t, w_t, dps = sol.psi_t, sol.w_t, sol.delta_primes
 
     lin_delta_prime, lin_growth_rate = growth_rate(
         m,
@@ -304,6 +324,90 @@ def ql_with_fit_plots():
     )
     plt.show()
 
+from lmfit.models import ExponentialModel
+
+def check_exponential_fit():
+    m=3
+    n=2
+    lundquist_number = 1e8
+    axis_q = 1.0
+    solution_scale_factor = 1e-10
+
+    times = np.linspace(0.0, 1e8, 10000)
+
+    sol, tm0, ql_threshold, s = solve_time_dependent_system(
+        m, n, lundquist_number, axis_q, solution_scale_factor, times
+    )
+
+    psi_t, w_t, dps = sol.psi_t, sol.w_t, sol.delta_primes
+
+    lin_delta_prime, lin_growth_rate = growth_rate(
+        m,
+        n,
+        lundquist_number,
+        axis_q
+    )
+
+
+    ql_time_min = time_from_flux(psi_t, times, 0.1*ql_threshold)
+    ql_time_max = time_from_flux(psi_t, times, 10.0*ql_threshold)
+    max_times = np.linspace(0.5*ql_time_min, 2.0*ql_time_max, 100)
+
+    fig, ax = plt.subplots(1, figsize=(4,3))
+
+    chisqrs = []
+
+    for max_time in max_times:
+        lin_filter = np.where(times < max_time)
+        lin_times = times[lin_filter]
+        lin_psi = psi_t[lin_filter]
+
+        #linear_model = ExponentialModel()
+        #params = linear_model.make_params(
+        #    amplitude=psi_t[0],
+        #    decay=-1.0/lin_growth_rate
+        #)
+        #result = linear_model.fit(lin_psi, params, x=lin_times)
+        
+        exp_fit = lin_psi[0]*np.exp(lin_growth_rate*lin_times)
+
+        rms_frac_error = np.mean((1.0-lin_psi/exp_fit)**2)
+        chisqrs.append(rms_frac_error)
+        
+        #chisqrs.append(result.chisqr)
+
+    print(chisqrs)
+    ax.plot(max_times, chisqrs, color='black')
+
+    ax.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax.set_ylabel(r"Exponential fit RMS fractional error")
+
+    #ax.set_xlim(left=0.0, right=2.0*ql_time_min)
+    #ax.set_ylim(top=1.0)
+    ax.set_yscale('log')
+    ax.grid(which='major')
+
+    ax.fill_between(
+        [ql_time_min, ql_time_max],
+        -200.0,
+        200.0,
+        alpha=0.3,
+        label='Quasi-linear region'
+    )
+
+    ax.legend()
+    
+    ax.set_ylim(top=1.0)
+    
+    fig.tight_layout()
+    
+    savefig(
+        f"frac_error_exp_fit_(m,n,A)=({m},{n},{solution_scale_factor})"
+    )
+
+    plt.show()
+
 if __name__=='__main__':
-    ql_tm_vs_time()
+    #ql_tm_vs_time()
     #ql_with_fit_plots()
+    check_exponential_fit()
