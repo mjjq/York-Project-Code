@@ -11,7 +11,7 @@ from scipy.integrate import odeint
 from matplotlib import pyplot as plt
 from scipy.stats import sem
 from scipy.optimize import curve_fit
-
+from typing import Tuple
 
 
 from linear_solver import (
@@ -30,18 +30,31 @@ def flux_time_derivative(psi: float,
                          lundquist_number: float,
                          mag_shear: float,
                          epsilon: float = 1e-5):
+    """
+    Calculate first order time derivative of the perturbed flux
+    in the inner region of the tearing mode using the strongly non-linear
+    time evolution equation.
 
+    Parameters:
+        psi: float
+            Tuple containing the perturbed flux at the current time
+        time: float
+            The current time of the simulation.
+        tm: TearingModeSolution
+            The outer solution of the current tearing mode
+        poloidal_mode: int
+            Poloidal mode number of the tearing mode
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        lundquist_number: float
+            The Lundquist number
+        mag_shear: float
+            Magnetic shear at the resonant surface. See magnetic_shear() in
+            linear_solver.py
+    """
     
     m = poloidal_mode
     n = toroidal_mode
-    
-    #if psi[0]<0.0:
-    #    print(f"Warning, negative flux at {time}. Setting to zero.")
-    #    psi[0]=0.0
-    # if psi[0]>1e-5:
-    #     print("Warning, weirdly high psi value")
-    # if np.isnan(psi[0]):
-    #     print("Warning, psi is nan")
       
     s = mag_shear
     w = island_width(psi, tm.r_s, s)
@@ -65,12 +78,31 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 lundquist_number: float,
                                 axis_q: float,
                                 initial_scale_factor: float = 1.0,
-                                t_range: np.array = np.linspace(0.0, 1e5, 10)):
+                                t_range: np.array = np.linspace(0.0, 1e5, 10))\
+    -> Tuple[TimeDependentSolution, TearingModeSolution]:
+    """
+    Numerically integrate the quasi-linear flux time derivative of a tearing
+    mode.
+
+    Parameters:
+        poloidal_mode: int
+                Poloidal mode number of the tearing mode
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        lundquist_number: float
+            The Lundquist number
+        axis_q: float
+            The on-axis equilibrium safety factor
+        initial_scale_factor: float
+            The value of the perturbed flux at the resonant surface at t=0
+        t_range: np.array
+            Array of time values to record. Each element will have an associated
+            perturbed flux, derivative etc calculated for that time.
+    """
     
     tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
-    #tm = scale_tm_solution(tm, initial_scale_factor)
 
-    psi_t0 = initial_scale_factor#tm.psi_forwards[-1]
+    psi_t0 = initial_scale_factor
     
     s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
     
@@ -102,6 +134,10 @@ def solve_time_dependent_system(poloidal_mode: int,
     
 
 def nl_tm_vs_time():
+    """
+    Calculate tearing mode solution in strongly non-linear regime and plot
+    the solution as a function of time.
+    """
     m=2
     n=1
     lundquist_number = 1e8
@@ -141,6 +177,12 @@ def nl_tm_vs_time():
     plt.show()
 
 def const_psi_approximation():
+    """
+    Calculate layer_width * Delta' and plot as a function of layer width
+    to test the constant-psi approximation for a strongly non-linear solution.
+
+    The constant-psi approximation breaks down if layer_width*Delta' ~ 1
+    """
     m=2
     n=1
     lundquist_number = 1e8
@@ -170,6 +212,13 @@ def const_psi_approximation():
     plt.show()
 
 def const_psi_q_sweep():
+    """
+    Find and plot the maximum layer_width*Delta' value for a tearing mode as a
+    function of the on-axis safety factor.
+
+    Used to determine whether the constant-psi approximation remains true
+    over a range of on-axis safety factor values.
+    """
     m=2
     n=1
     lundquist_number = 1e8
@@ -206,13 +255,33 @@ def const_psi_q_sweep():
     plt.show()
 
 def parabola(x, a, b, c):
+    """
+    Parabolic function.
+    """
     return a*x**2 + b*x + c
 
 def nl_parabola_coefficients(tm: TearingModeSolution,
                              mag_shear: float,
                              lundquist_number: float,
                              delta_prime_linear: float,
-                             psi_0: float):
+                             psi_0: float) -> Tuple[float, float, float]:
+    """
+    Coefficients of the algebraic solution to the strongly non-linear tearing
+    mode in the small island limit.
+
+    Parameters:
+        tm: TearingModeSolution
+            Solution to the perturbed flux in the outer region of the plasma.
+        mag_shear: float
+            Magnetic shear at the resonant surface.
+        lundquist_number: float
+            The Lundquist number.
+        delta_prime_linear: float
+            Discontinuity parameter of the outer perturbed flux solution in the
+            linear regime.
+        psi_0: float
+            Perturbed flux at t=0 at the resonant surface.
+    """
     c_0 = (tm.r_s**3 / (64*lundquist_number**2))\
         *mag_shear*delta_prime_linear**2
     c_1 = np.sqrt(psi_0) * (tm.r_s**3 * mag_shear)**0.5\
@@ -227,6 +296,25 @@ def nl_parabola(tm: TearingModeSolution,
                 delta_prime_linear: float,
                 psi_0: float,
                 times: np.array):
+    """
+    Full algebraic solution to the strongly non-linear tearing
+    mode in the small island limit.
+
+    Parameters:
+        tm: TearingModeSolution
+            Solution to the perturbed flux in the outer region of the plasma.
+        mag_shear: float
+            Magnetic shear at the resonant surface.
+        lundquist_number: float
+            The Lundquist number.
+        delta_prime_linear: float
+            Discontinuity parameter of the outer perturbed flux solution in the
+            linear regime.
+        psi_0: float
+            Perturbed flux at t=0 at the resonant surface.
+        times: float
+            Times over which to calculate the algebraic solution.
+    """
     c_0, c_1, c_2 = nl_parabola_coefficients(
         tm,
         mag_shear,
@@ -240,6 +328,13 @@ def nl_parabola(tm: TearingModeSolution,
     return c_0*(new_times**2) + c_1*new_times + c_2
 
 def nl_tm_small_w():
+    """
+    Numerically solve the tearing mode problem in the strongly non-linear regime
+    starting with a small seeding island value.
+
+    We then plot this solution as a function of time together with the algebraic
+    solution found in the small island limit.
+    """
     m=3
     n=2
     lundquist_number = 1e8
@@ -270,16 +365,11 @@ def nl_tm_small_w():
     )
 
     fig, ax = plt.subplots(1, figsize=(4,3))
-    #ax2 = ax.twinx()
 
     ax.plot(times, psi_t, label='Numerical solution', color='black')
 
     ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
     ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
-
-    #ax2.plot(times, w_t, label='Normalised island width', color='red')
-    #ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
-    #ax2.yaxis.label.set_color('red')
 
     # Returns highest power coefficients first
     fit, cov = curve_fit(
@@ -296,10 +386,6 @@ def nl_tm_small_w():
     print("Errors: ", perr)
     poly = np.poly1d(fit)
 
-    #ax.plot(
-        #times, parabola(times, *fit), label='Order 2 poly fit', linestyle='dashed',
-        #color='darkturquoise'
-    #)
 
     t_fit = (a_theory, b_theory, c_theory)
     ax.plot(
@@ -322,6 +408,10 @@ def nl_tm_small_w():
     plt.show()
 
 def algebraic_departure():
+    """
+    Calculate the difference between the numerical solution to the non-linear
+    equations and the algebraic solution found in the small island limit.
+    """
     m=3
     n=2
     lundquist_number = 1e8
@@ -484,6 +574,9 @@ def marginal_stability(poloidal_mode: int = 2, toroidal_mode: int = 2):
     plt.show()
 
 def marg_stability_multi_mode():
+    """
+    Create marginal stability plots for multiple modes.
+    """
     modes = [
         (2,1),
         (2,2),
@@ -496,9 +589,9 @@ def marg_stability_multi_mode():
         marginal_stability(m, n)
 
 if __name__=='__main__':
-    #nl_tm_vs_time()
+    nl_tm_vs_time()
     #nl_tm_small_w()
     #nl_tm_vs_time()
     #algebraic_departure()
     #const_psi_approximation()
-    const_psi_q_sweep()
+    #const_psi_q_sweep()
