@@ -8,6 +8,10 @@ from new_ql_solver import nu
 from helpers import classFromArgs, TimeDependentSolution, savefig
 
 def ql_tm_vs_time():
+    """
+    Plot various numerically solved variables from a tearing mode solution and
+    island width as a function of time from .csv data.
+    """
     fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df = pd.read_csv(fname)
 
@@ -158,6 +162,10 @@ def ql_tm_vs_time():
     plt.show()
 
 def compare_ql_evolution():
+    """
+    Plot numerical solutions for a tearing mode solved using the gamma model
+    and delta model and compare them.
+    """
     m=2
     n=1
     S=1e8
@@ -320,6 +328,11 @@ def compare_ql_evolution():
     plt.show()
 
 def difference_in_flux_models():
+    """
+    Load numerical solutions to a tearing mode calculated using the gamma
+    and delta models, calculate the absolute difference in the perturbed flux
+    as a function of time, then plot the difference.
+    """
     m=2
     n=1
     S=1e8
