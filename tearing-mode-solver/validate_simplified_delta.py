@@ -21,6 +21,41 @@ def del_ql_full(sol: TimeDependentSolution,
                 r_s: float,
                 x_range: Tuple[float, float],
                 dx: float = 0.01):
+    """
+    Calculate the full (unapproximated) quasi-linear layer width as a function
+    of X and t.
+
+    Parameters:
+        sol: TimeDependentSolution
+            The time-dependent tearing mode solution
+        poloidal_mode: int
+            Poloidal mode number of the tearing mode
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        lundquist_number: float
+            The Lundquist number
+        mag_shear: float
+            Magnetic shear at the resonant surface
+        r_s: float
+            Location of the resonant surface normalised to the minor radius of
+            the plasma.
+        x_range: Tuple[float, float]
+            Minimum and maximum bounds defining the range of X values to use in
+            the calculation of delta(X,t)
+        dx: float
+            Distance between adjacent X-values in x_range
+
+    Returns:
+        deltas: np.ndarray
+            2D array containing delta values as a function of X and t. First
+            dimension corresponds to time, second dimension corresponds to
+            space.
+        times: np.array
+            Array of times associated with the first dimension of deltas
+        xs: np.array
+            Array of X values associated with the second dimension of deltas
+
+    """
 
     times = sol.times
     w_t_func = UnivariateSpline(times, sol.w_t, s=0)
@@ -61,6 +96,10 @@ def del_ql_full(sol: TimeDependentSolution,
     return deltas, times, xs
 
 def simple_integration():
+    """
+    Perform the approximate spatial integral for the inner layer solution to
+    verify that we get the correct result. We should get ~2.12
+    """
     xs = np.linspace(-10.0, 10.0, 100)
     ys = Y(xs)
     
@@ -79,6 +118,37 @@ def delta_prime_full(delta_qls: np.ndarray,
                      w_t: np.array,
                      r_s: float,
                      lundquist_number: float):
+    """
+    Calculate the full (unapproximated) discontinuity parameter of the
+    quasi-linear inner layer solution. Integrates over the spatial component
+    so that Delta' is a function of time only.
+
+    Parameters:
+        deltas: np.ndarray
+            2D array containing delta values as a function of X and t. First
+            dimension corresponds to time, second dimension corresponds to
+            space.
+        xs: np.array
+            Array of X values associated with the second dimension of deltas
+        times: np.array
+            Array of times associated with the first dimension of deltas
+        psi_t: np.array
+            Perturbed flux at the resonant surface as a function of time
+        dpsi_dt: np.array
+            First time derivative in perturbed flux at resonant surface as a
+            function of time.
+        w_t: np.array
+            Quasi-linear layer width as a function of time.
+        r_s: float
+            Location of the resonant surface normalised to the minor radius of
+            the plasma.
+        lundquist_number: float
+            The Lundquist number.
+
+    Returns:
+        delta_primes: np.array
+            Discontinuity parameter as a function of time.
+    """
     
     ys = Y(xs)
     
@@ -102,6 +172,10 @@ def delta_prime_full(delta_qls: np.ndarray,
     return np.array(delta_primes)
 
 def convergence_of_delta_prime():
+    """
+    Demonstrate convergence of the unapproximated discontinuity parameter to the
+    approximated value over a numerical solution to the quasi-linear equations.
+    """
     m=2
     n=1
     S=1e8
@@ -176,6 +250,10 @@ def convergence_of_delta_prime():
 
 
 def constant_psi_approx():
+    """
+    Test the constant-psi approximation using the full (unapproximated) value
+    of the discontinuity parameter for a quasi-linear tearing mode solution.
+    """
     m=2
     n=1
     S=1e8
@@ -259,6 +337,10 @@ def constant_psi_approx():
     savefig(f"{orig_fname}_const_psi_approx")
 
 def convergence_of_growth_rate():
+    """
+    Demonstrate convergence of the unapproximated growth rate to the
+    approximated value over a numerical solution to the quasi-linear equations.
+    """
     m=2
     n=1
     S=1e8
@@ -335,6 +417,9 @@ def convergence_of_growth_rate():
     ax_w.set_yscale('log')
 
 def plot_full_delql():
+    """
+    Plot the full quasi-linear layer width as a function of (X, t) on a heatmap.
+    """
     m=2
     n=1
     S=1e8
