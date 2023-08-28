@@ -172,11 +172,11 @@ def compare_ql_evolution():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname_new = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_new = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df_new = pd.read_csv(fname_new)
     ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
 
-    fname_approx = "./output/21-08-2023_16:55_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_approx = "./output/28-08-2023_19:24_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df_approx = pd.read_csv(fname_approx)
     ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
 
@@ -339,11 +339,11 @@ def difference_in_flux_models():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname_new = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_new = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df_new = pd.read_csv(fname_new)
     ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
 
-    fname_approx = "./output/21-08-2023_16:55_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_approx = "./output/28-08-2023_19:24_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df_approx = pd.read_csv(fname_approx)
     ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
 
@@ -374,6 +374,6 @@ def difference_in_flux_models():
     plt.show()
 
 if __name__=='__main__':
-    ql_tm_vs_time()
-    #compare_ql_evolution()
-    #difference_in_flux_models()
+    #ql_tm_vs_time()
+    compare_ql_evolution()
+    difference_in_flux_models()

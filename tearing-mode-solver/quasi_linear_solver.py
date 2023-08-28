@@ -146,12 +146,15 @@ def flux_time_derivative(psi: float,
     w = island_width(
         psi, tm.r_s, s
     )
+    delql = modal_width(
+        psi, tm.r_s, m, n, s, lundquist_number, linear_growth_rate
+    )
 
     delta_prime = delta_prime_non_linear(tm, w)
 
     gamma = gamma_constant()
 
-    dpsi_dt = tm.r_s * psi * delta_prime / (gamma*w*lundquist_number)
+    dpsi_dt = tm.r_s * psi * delta_prime / (gamma*delql*lundquist_number)
     
     # print(psi)
     # print(w)

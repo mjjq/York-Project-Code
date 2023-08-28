@@ -371,7 +371,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e7, 10000)
+    times = np.linspace(0.0, 1e8, 100000)
 
     ql_solution = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
