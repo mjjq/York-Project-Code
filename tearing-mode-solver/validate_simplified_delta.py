@@ -9,7 +9,7 @@ from typing import Tuple
 import os
 
 from y_sol import Y
-from new_ql_solver import nu, island_width
+from new_ql_solver import nu, mode_width
 from helpers import savefig, classFromArgs, TimeDependentSolution
 from linear_solver import magnetic_shear, rational_surface
 
@@ -257,15 +257,15 @@ def constant_psi_approx():
     m=2
     n=1
     S=1e8
-    axis_q=1.2
+    axis_q=1.0
     r_s=rational_surface(m/n)
     s=magnetic_shear(r_s, m, n)
 
-    fname = "./output/20-08-2023_17:12_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.2).csv"
+    fname = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    delta_ql_orig = island_width(
+    delta_ql_orig = mode_width(
         ql_sol.psi_t,
         ql_sol.dpsi_dt,
         ql_sol.d2psi_dt2,
@@ -276,62 +276,18 @@ def constant_psi_approx():
         S
     )
 
-    simple_integration()
+    d_delta_primes = delta_ql_orig * ql_sol.delta_primes
 
-    x_lims = [20.0]
+    fig, ax = plt.subplots(1, figsize=(4,3))
 
+    ax.set_xscale('log')
 
-    fig_dp, ax_dp = plt.subplots(1, figsize=(4,4))
+    ax.plot(ql_sol.times, d_delta_primes, color='black')
 
-    #ax_dp.set_xscale('log')
+    ax.set_xlabel(r'Normalised time $\bar{\omega}_A t$')
+    ax.set_ylabel(r"$\delta_{ql}(t) \Delta'[w(t)]$")
 
-    fig_time, ax_time = plt.subplots(1, figsize=(4,4))
-    ax_time.set_xscale('log')
-
-    for xlim in x_lims:
-        delqls, times, xs = del_ql_full(
-            ql_sol, m, n, S, s, r_s,
-            (-xlim, xlim),
-            0.1
-        )
-        #delqls = delqls[:,::1000]
-
-        delta_primes = delta_prime_full(
-            delqls,
-            xs,
-            times,
-            ql_sol.psi_t,
-            ql_sol.dpsi_dt,
-            delta_ql_orig,
-            r_s,
-            S
-        )
-
-        widths = delqls[-1]
-        d_delta_primes = widths*delta_primes
-
-        times_f = times[times>1e3]
-        widths_f = widths[-len(times_f):]
-        d_delta_primes_f = d_delta_primes[-len(times_f):]
-        ax_dp.plot(
-            widths_f, d_delta_primes_f, label=r"Exact $a\Delta'$"+f"(X={xlim})",
-            color='black'
-        )
-        #ax_time.plot(
-        #    times_f, d_delta_primes_f, label=r"Exact $a\Delta'$"+f"(X={xlim})",
-        #    color='black'
-        #)
-
-    ax_dp.set_xscale('log')
-    #ax_dp.legend()
-    ax_dp.set_xlabel(r"Layer width")
-    ax_dp.set_ylabel(r"$\delta \Delta'$")
-    ax_time.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
-    ax_time.set_ylabel(r"$\delta \Delta'$")
-    #ax_dp.set_xlim(left=1e3)
-    #ax_dp.set_ylim(bottom=1.0)
-    fig_dp.tight_layout()
-    fig_time.tight_layout()
+    fig.tight_layout()
 
     orig_fname, ext = os.path.splitext(os.path.basename(fname))
     savefig(f"{orig_fname}_const_psi_approx")
@@ -562,11 +518,11 @@ def compare_delql_terms():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    ts_to_plot = [100.0, 1e3, 1e5, 1e6]
+    ts_to_plot = [100.0, 1e3, 1e5, 5e7]
     for t in ts_to_plot:
         plot_delql_terms(
             ql_sol,
@@ -582,7 +538,7 @@ def compare_delql_terms():
 if __name__=='__main__':
     #constant_psi_approx()
     #convergence_of_delta_prime()
-    #constant_psi_approx()
-    compare_delql_terms()
+    constant_psi_approx()
+    #compare_delql_terms()
 
     plt.show()

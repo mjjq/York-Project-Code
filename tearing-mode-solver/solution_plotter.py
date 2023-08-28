@@ -12,7 +12,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
 
     times = df['times']
@@ -64,9 +64,11 @@ def ql_tm_vs_time():
 
     fig_growth.tight_layout()
 
+    ax_growth.set_xscale('log')
     orig_fname, ext = os.path.splitext(os.path.basename(fname))
     savefig(f"{orig_fname}_growth_rate")
 
+    ax_growth.set_xscale('linear')
     ax_growth.set_xlim(left=0.0, right=1e5)
     ax_growth.set_ylim(bottom=5.46e-5, top=5.50e-5)
 
@@ -176,7 +178,7 @@ def compare_ql_evolution():
     df_new = pd.read_csv(fname_new)
     ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
 
-    fname_approx = "./output/28-08-2023_19:24_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_approx = "./output/28-08-2023_19:36_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df_approx = pd.read_csv(fname_approx)
     ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
 
@@ -343,7 +345,7 @@ def difference_in_flux_models():
     df_new = pd.read_csv(fname_new)
     ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
 
-    fname_approx = "./output/28-08-2023_19:24_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_approx = "./output/28-08-2023_19:36_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df_approx = pd.read_csv(fname_approx)
     ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
 
@@ -374,6 +376,6 @@ def difference_in_flux_models():
     plt.show()
 
 if __name__=='__main__':
-    #ql_tm_vs_time()
-    compare_ql_evolution()
-    difference_in_flux_models()
+    ql_tm_vs_time()
+    #compare_ql_evolution()
+    #difference_in_flux_models()
