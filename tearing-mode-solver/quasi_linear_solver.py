@@ -13,14 +13,15 @@ from linear_solver import (
 )
 
 from non_linear_solver import (
-    delta_prime_non_linear
+    delta_prime_non_linear,
+    island_width
 )
 
 from helpers import savefig, TimeDependentSolution, dataclass_to_disk
 from nl_td_solver import nl_parabola
 
 @np.vectorize
-def island_width(psi_rs: float,
+def modal_width(psi_rs: float,
                  r_s: float,
                  poloidal_mode: float,
                  toroidal_mode: float,
@@ -28,7 +29,8 @@ def island_width(psi_rs: float,
                  lundquist_number: float,
                  linear_growth_rate: float) -> float:
     """
-    Calculate the quasi-linear island width of the tearing mode (gamma model).
+    Calculate the quasi-linear electrostatic modal width of the tearing mode
+    (gamma model).
 
     Parameters:
         psi_rs: float
@@ -142,7 +144,7 @@ def flux_time_derivative(psi: float,
 
     s = mag_shear
     w = island_width(
-        psi, tm.r_s, m, n, s, lundquist_number, linear_growth_rate
+        psi, tm.r_s, s
     )
 
     delta_prime = delta_prime_non_linear(tm, w)
@@ -219,7 +221,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     psi_t[np.argwhere(np.isnan(psi_t))] = 0.0
 
     w_t = np.squeeze(
-        island_width(
+        modal_width(
             psi_t, tm.r_s,
             poloidal_mode, toroidal_mode,
             s, lundquist_number,
@@ -277,7 +279,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 3e5, 100000)
+    times = np.linspace(0.0, 1e8, 100000)
 
     sol, tm0, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
@@ -518,6 +520,6 @@ def check_exponential_fit():
     plt.show()
 
 if __name__=='__main__':
-    #ql_tm_vs_time()
+    ql_tm_vs_time()
     #ql_with_fit_plots()
-    check_exponential_fit()
+    #check_exponential_fit()
