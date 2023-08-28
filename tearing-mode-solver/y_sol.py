@@ -7,6 +7,9 @@ from helpers import savefig
 
 @np.vectorize
 def Y(x):
+    """
+    Integral solution to the differential equation Y''(X) = X(1+XY(X))
+    """
     int_result, int_error = quad(
         lambda u: np.exp(-0.5*u*x**2)/(1-u**2)**(1/4),
         0,
