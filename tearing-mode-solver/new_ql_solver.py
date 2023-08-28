@@ -17,7 +17,8 @@ from linear_solver import (
 )
 
 from non_linear_solver import (
-    delta_prime_non_linear
+    delta_prime_non_linear,
+    island_width
 )
 
 from helpers import savefig, savecsv, TimeDependentSolution
@@ -47,7 +48,7 @@ def nu(psi_rs: float,
     return (0.5*m**2)*S*psi_rs**2/r_s**4
 
 @np.vectorize
-def island_width(psi_rs: float,
+def mode_width(psi_rs: float,
                  dpsi_dt: float,
                  d2psi_dt2: float,
                  r_s: float,
@@ -56,7 +57,7 @@ def island_width(psi_rs: float,
                  mag_shear: float,
                  lundquist_number: float) -> float:
     """
-    Calculate the quasi-linear island width of the tearing mode.
+    Calculate the quasi-linear mode width of the tearing mode.
 
     Parameters:
         psi_rs: float
@@ -138,9 +139,7 @@ def flux_time_derivative(time: float,
                          poloidal_mode: int,
                          toroidal_mode: int,
                          lundquist_number: float,
-                         mag_shear: float,
-                         init_island_width: float,
-                         delta_prime: float):
+                         mag_shear: float):
     """
     Calculate first and second order time derivatives of the perturbed flux
     in the inner region of the tearing mode using the quasi-linear time
@@ -173,7 +172,10 @@ def flux_time_derivative(time: float,
 
     psi, dpsi_dt = var
 
-    w = init_island_width
+    w = island_width(psi, tm.r_s, mag_shear)
+    delta_prime = delta_prime_non_linear(
+        tm, w
+    )
 
     m = poloidal_mode
     n = toroidal_mode
@@ -258,7 +260,7 @@ def solve_time_dependent_system(poloidal_mode: int,
     dt = t_range[1]-t_range[0]
     # Use the vode algorithm provided by ODE. This is more stable than lsoda.
     r = ode(flux_time_derivative).set_integrator(
-        'vode', method='bdf'
+        'lsoda'#'dop853'#, atol=1, rtol=1, max_step=dt, first_step=dt
     )
     r.set_initial_value((psi_t0, dpsi_dt_t0), t0)
     r.set_f_params(
@@ -266,9 +268,7 @@ def solve_time_dependent_system(poloidal_mode: int,
         poloidal_mode,
         toroidal_mode,
         lundquist_number,
-        s,
-        init_island_width,
-        delta_prime
+        s
     )
 
     # Set up return parameters.
@@ -302,9 +302,9 @@ def solve_time_dependent_system(poloidal_mode: int,
             poloidal_mode,
             toroidal_mode,
             lundquist_number,
-            s,
-            init_island_width,
-            delta_prime
+            s
+            #init_island_width,
+            #delta_prime
         )
 
         times.append(r.t)
@@ -314,7 +314,7 @@ def solve_time_dependent_system(poloidal_mode: int,
         d2psi_dt2.append(d2psi_dt2_now)
 
         # Use the derivatives to calculate new island width.
-        init_island_width = island_width(
+        init_island_width = mode_width(
             psi_now,
             dpsi_dt_now,
             d2psi_dt2_now,
@@ -329,15 +329,15 @@ def solve_time_dependent_system(poloidal_mode: int,
 
         delta_primes.append(delta_prime)
 
-        r.set_f_params(
-            tm,
-            poloidal_mode,
-            toroidal_mode,
-            lundquist_number,
-            s,
-            init_island_width,
-            delta_prime
-        )
+        #r.set_f_params(
+            #tm,
+            #poloidal_mode,
+            #toroidal_mode,
+            #lundquist_number,
+            #s,
+            #init_island_width,
+            #delta_prime
+        #)
 
     return TimeDependentSolution(
         np.squeeze(times),
@@ -371,7 +371,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e6, 1000)
+    times = np.linspace(0.0, 1e7, 10000)
 
     ql_solution = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
@@ -388,17 +388,17 @@ def ql_tm_vs_time():
     #print("Threshold: ", ql_threshold)
     #print(psi_t)
 
-    fig, ax = plt.subplots(1, figsize=(4,3))
+    fig, ax = plt.subplots(1, figsize=(4,3.5))
     ax2 = ax.twinx()
 
 
     ax.plot(times, psi_t, label='Flux', color='black')
 
     ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
+    ax.set_ylabel(r"Normalised perturbed flux ($\delta \psi^{(1)}$)")
 
     ax2.plot(times, w_t, label='Normalised island width', color='red')
-    ax2.set_ylabel(r"Normalised layer width ($\hat{\delta}$)")
+    ax2.set_ylabel(r"Normalised electrostatic modal width ($\hat{\delta}_{ql}$)")
     ax2.yaxis.label.set_color('red')
 
     ax.legend(prop={'size': 7}, loc='lower right')
@@ -428,7 +428,7 @@ def ql_with_fit_plots():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e6, 100000)
+    times = np.linspace(0.0, 1e2, 100000)
 
     psi_t, w_t, tm0, dps, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
