@@ -21,7 +21,33 @@ def flux_time_derivative(psi: np.array,
                          r_range_bkwd: np.array,
                          K: float,
                          epsilon: float = 1e-5):
-    
+    """
+    Calculate first order time derivative of the perturbed flux
+    in the inner region of the tearing mode using the linear time-dependent
+    differential equation.
+
+    This is passed to scipy's ODE function to be integrated.
+
+    This function manually calculates the discontinuity parameter Delta'
+    instead of using recently created functions. TODO: Update
+    implementation to use full TearingModeSolution and faster Delta' functions.
+
+    Parameters:
+        psi: np.array
+            Full outer solution to the perturbed flux concatenated into a single
+            1D array.
+        time: float
+            The current time of the simulation.
+        r_range_fwd: np.array
+            Radial co-ordinate values associated with the forward outer solution
+        r_range_bkwd: np.array
+            Radial co-ordinate values associated with the backward outer
+            solution
+        K: float
+            Growth rate multiplier for the current tearing mode. See
+            growth_rate_scale() in linear_solver
+    """
+
     psi_f, psi_b = psi.reshape(2, len(psi)//2)
     
     dr_fwd = r_range_fwd[-1] - r_range_fwd[-2]
@@ -51,8 +77,27 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 lundquist_number: float,
                                 axis_q: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10)):
-    
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, n=10000)
+    """
+    Numerically integrate the linear flux time derivative of a tearing
+    mode.
+
+    Parameters:
+        poloidal_mode: int
+                Poloidal mode number of the tearing mode
+        toroidal_mode: int
+            Toroidal mode number of the tearing mode
+        lundquist_number: float
+            The Lundquist number
+        axis_q: float
+            The on-axis equilibrium safety factor
+        t_range: np.array
+            Array of time values to record. Each element will have an associated
+            perturbed flux, derivative etc calculated for that time.
+    """
+
+    # TODO: Implementation of solve_system has changed. Need to update
+    # the implementation here so that it's compatible with this.
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
     grs = growth_rate_scale(
         lundquist_number, tm.r_s, poloidal_mode, toroidal_mode
     )
@@ -93,6 +138,10 @@ def solve_time_dependent_system(poloidal_mode: int,
     
 
 def linear_tm_growth_plots():
+    """
+    Plot the full outer solution as a function of minor radius at different
+    times using the linear time-dependent solver.
+    """
     m=3
     n=2
     lundquist_number = 1e8
@@ -130,6 +179,10 @@ def linear_tm_growth_plots():
     
     
 def linear_tm_amplitude_vs_time():
+    """
+    Plot amplitude of the flux at the resonant surface as a function of time
+    for a linear tearing mode.
+    """
     m=4
     n=2
     lundquist_number = 1e8
@@ -173,6 +226,6 @@ def linear_tm_amplitude_vs_time():
     
 if __name__=='__main__':
     linear_tm_growth_plots()
-    linear_tm_amplitude_vs_time()
+    #linear_tm_amplitude_vs_time()
         
         
