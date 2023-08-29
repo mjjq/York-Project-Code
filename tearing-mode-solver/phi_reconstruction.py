@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import os
 
 from helpers import TimeDependentSolution
 from y_sol import Y
-from helpers import classFromArgs
+from helpers import classFromArgs, savefig
 
 def F(ql_sol: TimeDependentSolution,
       toroidal_mode: int,
@@ -90,11 +91,10 @@ def check_solution_is_valid(phi: np.ndarray,
     dphi_dx = np.gradient(phi, xs, axis=0, edge_order=2)
     d2phi_dx2 = np.gradient(dphi_dx, xs, axis=0, edge_order=2)
 
-    #TODO: Multiply everything by x^2 to avoid singularity
-
-    d2phi_term = np.outer(d2phi_dx2, delta_t**4)
-    psi_term = np.outer(xs/(n*s), dpsi_dt)    
-    phi_term = phi*(xs**2)
+    
+    d2phi_term = ((d2phi_dx2.T/xs**2).T) * delta_t**4 / phi
+    psi_term = np.outer(1.0/(xs*n*s), dpsi_dt)   / phi  
+    #phi_term = (phi.T*xs**2).T / phi
 
     #d4_x2 = np.outer(1.0/xs**2, delta_t**4)
     #psi_term = np.outer(1.0/(n*s*xs), dpsi_dt)
@@ -102,14 +102,23 @@ def check_solution_is_valid(phi: np.ndarray,
     #print(d4_x2.shape)
     #print(psi_term.shape)
 
-    diff = (d2phi_term - phi_term + psi_term)**2
+    diff = (d2phi_term + psi_term)**2
+    
+    diff[len(xs)//2] = np.ones(len(times))
 
-    fig, ax = plt.subplots(1)
-    ax.imshow(
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    im = ax.imshow(
         diff,
-        extent=[min(times), max(times), min(xs), max(xs)]
+        extent=[min(times), max(times), min(xs), max(xs)],
+        vmin=0.5, vmax=1.5
     )
+    fig.colorbar(im)
     ax.set_aspect((max(times)-min(times))/(max(xs)-min(xs)))
+    
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"x ($r_s$)")
+    
+    fig.tight_layout()
 
 def potential_from_data():
     """
@@ -122,20 +131,32 @@ def potential_from_data():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname = "./output/19-08-2023_14:29_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
+    df = df.iloc[:100:1,:]
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    xs = np.arange(-0.025, 0.025, 0.005)
+    xs = np.linspace(-1e-3, 1e-3, 100)
+    #print(xs)
     phi = potential(ql_sol, n, s, xs)
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4,3))
     times = ql_sol.times
-    ax.imshow(
+    im = ax.imshow(
         phi,
         extent=[min(times), max(times), min(xs), max(xs)]
     )
+
+    fig.colorbar(im)
     ax.set_aspect((max(times)-min(times))/(max(xs)-min(xs)))
+    
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"x ($r_s$)")
+    
+    fig.tight_layout()
+    
+    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    savefig(f"potential_rec_{orig_fname}")
 
     check_solution_is_valid(
         phi,
@@ -146,6 +167,9 @@ def potential_from_data():
         n,
         s
     )
+    
+    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    savefig(f"pde_validation_{orig_fname}")
 
 if __name__=='__main__':
     potential_from_data()

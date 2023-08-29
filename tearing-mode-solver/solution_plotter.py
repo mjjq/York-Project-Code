@@ -13,7 +13,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    fname = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname = "./output/29-08-2023_12:07_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
 
     times = df['times']
@@ -109,7 +109,7 @@ def ql_tm_vs_time():
 
     ax_d2psi.set_xscale('linear')
     ax_d2psi.set_yscale('linear')
-    ax_d2psi.set_xlim(left=1e5, right=3e5)
+    #ax_d2psi.set_xlim(left=1e5, right=3e5)
     ax_d2psi.set_ylim(bottom=0.0, top=2e-15)
     fig_d2psi_actual.tight_layout()
     savefig(f"{orig_fname}_d2psi_dt2")
@@ -219,8 +219,8 @@ def compare_ql_evolution():
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
-    ax.set_ylabel(r"Perturbed flux")
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"Perturbed flux ($a^2 B_{\phi 0}$)")
 
     ax.legend(prop={'size':7})
     fig.tight_layout()
@@ -256,8 +256,8 @@ def compare_ql_evolution():
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
-    ax2.set_ylabel(r"Growth rate $\delta\dot{\psi}^{(1)}/\delta\psi^{(1)}$")
+    ax2.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax2.set_ylabel(r"Growth rate $\delta\dot{\psi}^{(1)}/\delta\psi^{(1)}$ ($\bar{\omega}_A$)")
 
     ax2.legend(prop={'size':7})
     fig2.tight_layout()
@@ -301,8 +301,8 @@ def compare_ql_evolution():
 
     ax5.set_xscale('log')
     ax5.set_yscale('log')
-    ax5.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
-    ax5.set_ylabel(r"Growth rate $\delta\ddot{\psi}^{(1)}/\delta\dot{\psi}^{(1)}$")
+    ax5.set_xlabel(r"Normalised time $1/\bar{\omega}_A$")
+    ax5.set_ylabel(r"Growth rate $\delta\ddot{\psi}^{(1)}/\delta\dot{\psi}^{(1)}$ ($\bar{\omega}_A$)")
 
     ax5.legend(prop={'size':7})
     fig5.tight_layout()
@@ -381,7 +381,7 @@ def difference_in_flux_models():
     fig, ax = plt.subplots(figsize=(4,4))
     ax.plot(times, pc_delta, color='black')
     ax.set_xscale('log')
-    ax.set_xlabel(r'Normalised time $\bar{\omega}_A t$')
+    ax.set_xlabel(r'Normalised time ($1/\bar{\omega}_A$)')
     ax.set_ylabel(r'Flux change from gamma to delta model (%)')
     fig.tight_layout()
     savefig("flux_delta")
@@ -401,7 +401,7 @@ def ql_modal_width_and_island_width():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname_new = "./output/29-08-2023_09:55_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname_new = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df_new = pd.read_csv(fname_new)
     ql_sol = classFromArgs(TimeDependentSolution, df_new)
 
@@ -428,26 +428,32 @@ def ql_modal_width_and_island_width():
     fig, ax = plt.subplots(1, figsize=(4,3))
 
     ax.plot(ql_sol.times, island_widths,
-        label=r'Magnetic island width $[w(t)]$'
+        label=r'Magnetic island width $[w(t)]$',
+        color='black'
     )
     ax.plot(ql_sol.times, modal_widths,
-        label=r'Modal width $[2^{9/4}r_s \bar{\delta}_{ql}(t)]$'
+        label=r'Modal width $[2^{9/4}r_s \bar{\delta}_{ql}(t)]$',
+        color='red', linestyle='--'
     )
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.legend()
+    ax.legend(prop={'size':7})
 
-    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax.set_ylabel(r"Width (fraction of $a$)")
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"Width ($a$)")
 
     fig.tight_layout()
+
+    orig_fname, ext = os.path.splitext(os.path.basename(fname_new))
+    savefig(f"width_comparison_{orig_fname}")
 
     plt.show()
 
 
+
 if __name__=='__main__':
-    ql_tm_vs_time()
-    #compare_ql_evolution()
-    #difference_in_flux_models()
+    #ql_tm_vs_time()
+    compare_ql_evolution()
+    difference_in_flux_models()
     #ql_modal_width_and_island_width()
