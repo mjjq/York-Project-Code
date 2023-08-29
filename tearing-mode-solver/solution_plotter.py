@@ -4,8 +4,9 @@ from scipy.interpolate import UnivariateSpline
 import os
 
 from linear_solver import rational_surface, magnetic_shear
-from new_ql_solver import nu
+from new_ql_solver import nu, mode_width
 from helpers import classFromArgs, TimeDependentSolution, savefig
+from non_linear_solver import island_width
 
 def ql_tm_vs_time():
     """
@@ -375,7 +376,53 @@ def difference_in_flux_models():
 
     plt.show()
 
+def ql_modal_width_and_island_width():
+    m=2
+    n=1
+    S=1e8
+    s=5.84863459819362
+    r_s=0.7962252761034401
+
+    fname_new = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    df_new = pd.read_csv(fname_new)
+    ql_sol = classFromArgs(TimeDependentSolution, df_new)
+
+    island_widths = island_width(
+        ql_sol.psi_t,
+        r_s,
+        s
+    )
+
+    modal_widths = mode_width(
+        ql_sol.psi_t,
+        ql_sol.dpsi_dt,
+        ql_sol.d2psi_dt2,
+        r_s,
+        m,
+        n,
+        s,
+        S
+    )
+
+    fig, ax = plt.subplots(1, figsize=(4,3))
+
+    ax.plot(ql_sol.times, island_widths, label='Magnetic island width')
+    ax.plot(ql_sol.times, modal_widths, label='Electrostatic modal width')
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.legend()
+
+    ax.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
+    ax.set_ylabel(r"Normalised feature width (fraction of $a$)")
+
+    fig.tight_layout()
+
+    plt.show()
+
+
 if __name__=='__main__':
-    ql_tm_vs_time()
+    #ql_tm_vs_time()
     #compare_ql_evolution()
     #difference_in_flux_models()
+    ql_modal_width_and_island_width()

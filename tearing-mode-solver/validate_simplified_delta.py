@@ -282,7 +282,7 @@ def constant_psi_approx():
 
     ax.set_xscale('log')
 
-    ax.plot(ql_sol.times, d_delta_primes, color='black')
+    ax.plot(ql_sol.times, ql_sol.delta_primes, color='black')
 
     ax.set_xlabel(r'Normalised time $\bar{\omega}_A t$')
     ax.set_ylabel(r"$\delta_{ql}(t) \Delta'[w(t)]$")
