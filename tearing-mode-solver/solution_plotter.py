@@ -13,7 +13,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    fname = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname = "./output/29-08-2023_10:23_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
 
     times = df['times']
@@ -36,11 +36,11 @@ def ql_tm_vs_time():
 
     ax.plot(times, psi_t, label='Flux', color='black')
 
-    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"Normalised perturbed flux ($a^2 B_{\phi 0}$)")
 
     ax2.plot(times, w_t, label='Normalised island width', color='red')
-    ax2.set_ylabel(r"Normalised layer width ($\hat{\delta}$)")
+    ax2.set_ylabel(r"Normalised modal width ($a$)")
     ax2.yaxis.label.set_color('red')
 
     ax.legend(prop={'size': 7}, loc='lower right')
@@ -59,7 +59,7 @@ def ql_tm_vs_time():
 
     ax_growth.plot(times, dpsi_t/psi_t, color='black')
     ax_growth.set_ylabel(r'Growth rate $\delta\dot{\psi}^{(1)}/\delta\psi^{(1)}$')
-    ax_growth.set_xlabel(r'Normalised time $(\bar{\omega}_A t)$')
+    ax_growth.set_xlabel(r'Normalised time $1/\bar{\omega}_A$')
 
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
 
@@ -175,11 +175,11 @@ def compare_ql_evolution():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname_new = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname_new = "./output/29-08-2023_10:23_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df_new = pd.read_csv(fname_new)
     ql_sol_new = classFromArgs(TimeDependentSolution, df_new)
 
-    fname_approx = "./output/28-08-2023_19:36_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname_approx = "./output/29-08-2023_10:24_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df_approx = pd.read_csv(fname_approx)
     ql_sol_approx = classFromArgs(TimeDependentSolution, df_approx)
 
@@ -429,7 +429,7 @@ def ql_modal_width_and_island_width():
 
 
 if __name__=='__main__':
-    #ql_tm_vs_time()
+    ql_tm_vs_time()
     #compare_ql_evolution()
     #difference_in_flux_models()
-    ql_modal_width_and_island_width()
+    #ql_modal_width_and_island_width()

@@ -19,7 +19,7 @@ from linear_solver import (
     scale_tm_solution, delta_prime, q
 )
 from non_linear_solver import delta_prime_non_linear, island_width
-from helpers import savefig, TimeDependentSolution
+from helpers import savefig, TimeDependentSolution, dataclass_to_disk
 
 
 def flux_time_derivative(psi: float,
@@ -129,8 +129,8 @@ def solve_time_dependent_system(poloidal_mode: int,
     return TimeDependentSolution(
         t_range,
         np.squeeze(psi_t),
-        np.array([]),
-        np.array([]),
+        np.array([np.nan]*len(psi_t)),
+        np.array([np.nan]*len(psi_t)),
         w_t,
         dps
     ), tm
@@ -176,9 +176,11 @@ def nl_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
+    fname = f"nl_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
     savefig(
-        f"nl_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
+        fname
     )
+    dataclass_to_disk(fname, td_sol)
     plt.show()
 
 def const_psi_approximation():

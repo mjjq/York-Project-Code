@@ -12,6 +12,7 @@ from y_sol import Y
 from new_ql_solver import nu, mode_width
 from helpers import savefig, classFromArgs, TimeDependentSolution
 from linear_solver import magnetic_shear, rational_surface
+from non_linear_solver import island_width, delta_prime_non_linear
 
 def del_ql_full(sol: TimeDependentSolution,
                 poloidal_mode: int,
@@ -261,31 +262,43 @@ def constant_psi_approx():
     r_s=rational_surface(m/n)
     s=magnetic_shear(r_s, m, n)
 
-    fname = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    delta_ql_orig = mode_width(
+    #delta_ql_orig = mode_width(
+        #ql_sol.psi_t,
+        #ql_sol.dpsi_dt,
+        #ql_sol.d2psi_dt2,
+        #r_s,
+        #m,
+        #n,
+        #s,
+        #S
+    #)
+    w = island_width(
         ql_sol.psi_t,
-        ql_sol.dpsi_dt,
-        ql_sol.d2psi_dt2,
         r_s,
         m,
         n,
-        s,
-        S
+        s
     )
 
-    d_delta_primes = delta_ql_orig * ql_sol.delta_primes
+    #dps = delta_prime_non_linear(ql_sol, w)
+
+    d_delta_primes = w * ql_sol.delta_primes
+
+    fig_dp, ax_dp = plt.subplots(1)
+    ax_dp.plot(ql_sol.times, ql_sol.delta_primes)
 
     fig, ax = plt.subplots(1, figsize=(4,3))
 
     ax.set_xscale('log')
 
-    ax.plot(ql_sol.times, ql_sol.delta_primes, color='black')
+    ax.plot(ql_sol.times, d_delta_primes, color='black')
 
     ax.set_xlabel(r'Normalised time $\bar{\omega}_A t$')
-    ax.set_ylabel(r"$\delta_{ql}(t) \Delta'[w(t)]$")
+    ax.set_ylabel(r"$w(t) \Delta'[w(t)]$")
 
     fig.tight_layout()
 

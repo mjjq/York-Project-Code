@@ -243,16 +243,18 @@ def solve_time_dependent_system(poloidal_mode: int,
     )
     dpsi_dt_t0 = linear_growth_rate * psi_t0
 
+    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
+
     # Calculate the initial width of the magnetic island using the linear layer
     # width.
-    init_island_width = layer_width(
+    init_island_width = island_width(
+        psi_t0,
+        tm.r_s,
         poloidal_mode,
         toroidal_mode,
-        lundquist_number,
-        axis_q
+        s
     )
 
-    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
 
 
     t0 = t_range[0]
@@ -314,15 +316,12 @@ def solve_time_dependent_system(poloidal_mode: int,
         d2psi_dt2.append(d2psi_dt2_now)
 
         # Use the derivatives to calculate new island width.
-        init_island_width = mode_width(
+        init_island_width = island_width(
             psi_now,
-            dpsi_dt_now,
-            d2psi_dt2_now,
             tm.r_s,
             poloidal_mode,
             toroidal_mode,
-            s,
-            lundquist_number
+            s
         )
         
         delta_prime = delta_prime_non_linear(tm, init_island_width)
@@ -371,7 +370,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 1000)
+    times = np.linspace(0.0, 6e7, 100000)
 
     ql_solution = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
