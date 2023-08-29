@@ -262,7 +262,7 @@ def constant_psi_approx():
     r_s=rational_surface(m/n)
     s=magnetic_shear(r_s, m, n)
 
-    fname = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname = "./output/29-08-2023_11:04_new_ql_tm_time_evo_(m,n,A,q0)=(3,2,1e-10,1.0).csv"
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 

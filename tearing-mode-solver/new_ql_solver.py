@@ -364,8 +364,8 @@ def ql_tm_vs_time():
     Numerically solve the quasi-linear time-dependent tearing mode problem
     and plot the perturbed flux and layer width as functions of time.
     """
-    m=2
-    n=1
+    m=3
+    n=2
     lundquist_number = 1e8
     axis_q = 1.0
     solution_scale_factor = 1e-10

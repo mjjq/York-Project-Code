@@ -247,12 +247,12 @@ def const_psi_q_sweep():
 
         d_delta_maxs.append(max(d_delta))
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4,3))
 
     ax.plot(axis_qs, d_delta_maxs, color='black')
 
     ax.set_xlabel(r"On-axis safety factor")
-    ax.set_ylabel(r"Maximum $\delta \Delta'$")
+    ax.set_ylabel(r"Peak $w(t) \Delta'[w(t)]$")
 
     fig.tight_layout()
     #plt.show()
@@ -596,9 +596,9 @@ def marg_stability_multi_mode():
         marginal_stability(m, n)
 
 if __name__=='__main__':
-    nl_tm_vs_time()
+    #nl_tm_vs_time()
     #nl_tm_small_w()
     #nl_tm_vs_time()
     #algebraic_departure()
     #const_psi_approximation()
-    #const_psi_q_sweep()
+    const_psi_q_sweep()
