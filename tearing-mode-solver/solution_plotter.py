@@ -383,13 +383,15 @@ def ql_modal_width_and_island_width():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname_new = "./output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname_new = "./output/29-08-2023_09:55_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df_new = pd.read_csv(fname_new)
     ql_sol = classFromArgs(TimeDependentSolution, df_new)
 
     island_widths = island_width(
         ql_sol.psi_t,
         r_s,
+        m,
+        n,
         s
     )
 
@@ -403,18 +405,23 @@ def ql_modal_width_and_island_width():
         s,
         S
     )
+    modal_widths = modal_widths*2**(9/4) * r_s
 
     fig, ax = plt.subplots(1, figsize=(4,3))
 
-    ax.plot(ql_sol.times, island_widths, label='Magnetic island width')
-    ax.plot(ql_sol.times, modal_widths, label='Electrostatic modal width')
+    ax.plot(ql_sol.times, island_widths,
+        label=r'Magnetic island width $[w(t)]$'
+    )
+    ax.plot(ql_sol.times, modal_widths,
+        label=r'Modal width $[2^{9/4}r_s \bar{\delta}_{ql}(t)]$'
+    )
 
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.legend()
 
-    ax.set_xlabel(r"Normalised time $\bar{\omega}_A t$")
-    ax.set_ylabel(r"Normalised feature width (fraction of $a$)")
+    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+    ax.set_ylabel(r"Width (fraction of $a$)")
 
     fig.tight_layout()
 

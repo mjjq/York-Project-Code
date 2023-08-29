@@ -57,14 +57,15 @@ def flux_time_derivative(psi: float,
     n = toroidal_mode
       
     s = mag_shear
-    w = island_width(psi, tm.r_s, s)
+    w = island_width(psi, tm.r_s, m, n, s)
     delta_prime = delta_prime_non_linear(tm, w)
     sqrt_factor = (tm.r_s**3)*s*psi
     
     
     if sqrt_factor >= 0.0:
-        dpsi_dt = (0.25/lundquist_number)*\
-            (np.sqrt(sqrt_factor) * delta_prime)
+        dpsi_dt = (0.5*1.12*((n*s/m)**0.5)*(psi**0.5)*tm.r_s**2 *
+            (delta_prime/lundquist_number)
+        )
 
     else:
         dpsi_dt = 0.0
@@ -118,7 +119,9 @@ def solve_time_dependent_system(poloidal_mode: int,
     psi_t[np.abs(psi_t) > 1e10] = 0.0
     psi_t[np.argwhere(np.isnan(psi_t))] = 0.0
 
-    w_t = np.squeeze(island_width(psi_t, tm.r_s, s))
+    w_t = np.squeeze(
+        island_width(psi_t, tm.r_s, poloidal_mode, toroidal_mode, s)
+    )
 
     dps = [delta_prime_non_linear(tm, w) for w in w_t]
     
@@ -163,11 +166,13 @@ def nl_tm_vs_time():
     ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
 
     ax2.plot(times, w_t, label='Normalised island width', color='red')
-    ax2.set_ylabel(r"Normalised island width ($\hat{w}$)")
+    ax2.set_ylabel(r"Normalised island width ($w/a$)")
     ax2.yaxis.label.set_color('red')
     
     ax.set_yscale('log')
     ax2.set_yscale('log')
+    ax.set_xscale('log')
+    ax2.set_xscale('log')
 
     fig.tight_layout()
     #plt.show()

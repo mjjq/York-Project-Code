@@ -171,14 +171,14 @@ def flux_time_derivative(time: float,
     """
 
     psi, dpsi_dt = var
+    m = poloidal_mode
+    n = toroidal_mode
 
-    w = island_width(psi, tm.r_s, mag_shear)
+    w = island_width(psi, tm.r_s, m, n, mag_shear)
     delta_prime = delta_prime_non_linear(
         tm, w
     )
 
-    m = poloidal_mode
-    n = toroidal_mode
     
 
     s = mag_shear
@@ -371,7 +371,7 @@ def ql_tm_vs_time():
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 100000)
+    times = np.linspace(0.0, 1e8, 1000)
 
     ql_solution = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times

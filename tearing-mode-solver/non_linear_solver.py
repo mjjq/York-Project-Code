@@ -8,12 +8,14 @@ from linear_solver import TearingModeSolution, solve_system
 @np.vectorize
 def island_width(psi_rs: float,
                  r_s: float,
+                 poloidal_mode: int,
+                 toroidal_mode: int,
                  magnetic_shear: float) -> float:
     """
     Helical width of a magnetic island (maximum distance between separatrices
     of the magnetic island).
     """
-    pre_factor = psi_rs*r_s/magnetic_shear
+    pre_factor = poloidal_mode*psi_rs/(toroidal_mode*magnetic_shear)
     if pre_factor >= 0.0:
         return 4.0*np.sqrt(pre_factor)
     

@@ -144,7 +144,7 @@ def flux_time_derivative(psi: float,
 
     s = mag_shear
     w = island_width(
-        psi, tm.r_s, s
+        psi, tm.r_s, m, n, s
     )
     delql = modal_width(
         psi, tm.r_s, m, n, s, lundquist_number, linear_growth_rate
