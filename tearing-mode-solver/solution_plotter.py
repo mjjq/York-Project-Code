@@ -13,7 +13,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    fname = "./output/29-08-2023_10:23_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    fname = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
 
     times = df['times']
@@ -33,17 +33,32 @@ def ql_tm_vs_time():
     fig, ax = plt.subplots(1, figsize=(4,3))
     ax2 = ax.twinx()
 
+    m = 2
+    n = 1
+    S=1e8
+    r_s = rational_surface(m, n)
+    s=magnetic_shear(r_s, m, n)
+    modal_widths = mode_width(
+        psi_t,
+        dpsi_t,
+        d2psi_dt2,
+        r_s,
+        m,
+        n,
+        s,
+        S
+    )
 
     ax.plot(times, psi_t, label='Flux', color='black')
 
     ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
     ax.set_ylabel(r"Normalised perturbed flux ($a^2 B_{\phi 0}$)")
 
-    ax2.plot(times, w_t, label='Normalised island width', color='red')
+    ax2.plot(times, modal_widths, label='Normalised island width', color='red')
     ax2.set_ylabel(r"Normalised modal width ($a$)")
     ax2.yaxis.label.set_color('red')
 
-    ax.legend(prop={'size': 7}, loc='lower right')
+    #ax.legend(prop={'size': 7}, loc='lower right')
 
     # ax.set_yscale('log')
     # ax2.set_yscale('log')
@@ -54,6 +69,8 @@ def ql_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
+    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    savefig(f"{orig_fname}_full")
 
     fig_growth, ax_growth = plt.subplots(1, figsize=(4.5,3))
 
@@ -163,6 +180,7 @@ def ql_tm_vs_time():
     fig_psis.tight_layout()
 
     plt.show()
+
 
 def compare_ql_evolution():
     """
