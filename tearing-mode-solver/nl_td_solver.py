@@ -145,7 +145,7 @@ def nl_tm_vs_time():
     n=1
     lundquist_number = 1e8
     axis_q = 1.0
-    solution_scale_factor = 1e-10
+    solution_scale_factor = 0.3
 
     times = np.linspace(0.0, 1e8, 10000)
     
@@ -162,17 +162,17 @@ def nl_tm_vs_time():
     
     ax.plot(times, psi_t, label='Normalised perturbed flux', color='black')
 
-    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax.set_ylabel(r"Normalised perturbed flux ($\delta \hat{\psi}^{(1)}$)")
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"Normalised perturbed flux ($a^2 B_{\phi 0}$)")
 
-    ax2.plot(times, w_t, label='Normalised island width', color='red')
-    ax2.set_ylabel(r"Normalised island width ($w/a$)")
+    ax2.plot(times, w_t, label='Normalised island width', color='red', linestyle='--')
+    ax2.set_ylabel(r"Normalised island width ($a$)")
     ax2.yaxis.label.set_color('red')
     
-    ax.set_yscale('log')
-    ax2.set_yscale('log')
-    ax.set_xscale('log')
-    ax2.set_xscale('log')
+    #ax.set_yscale('log')
+    #ax2.set_yscale('log')
+    #ax.set_xscale('log')
+    #ax2.set_xscale('log')
 
     fig.tight_layout()
     #plt.show()
@@ -596,9 +596,9 @@ def marg_stability_multi_mode():
         marginal_stability(m, n)
 
 if __name__=='__main__':
-    #nl_tm_vs_time()
+    nl_tm_vs_time()
     #nl_tm_small_w()
     #nl_tm_vs_time()
     #algebraic_departure()
     #const_psi_approximation()
-    const_psi_q_sweep()
+    #const_psi_q_sweep()

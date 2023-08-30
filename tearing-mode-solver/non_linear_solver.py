@@ -95,14 +95,14 @@ def island_saturation():
     
     fig, ax = plt.subplots(1, figsize=(4,3))
     
-    ax.plot(island_widths, delta_ps, label=f"(m,n)=({m},{n})")
+    ax.plot(island_widths, delta_ps, label=f"(m,n)=({m},{n})", color='black')
     
-    ax.set_xlabel(r"Normalised island width ($\hat{w}$)")
-    ax.set_ylabel(r"$a\Delta ' (\hat{w})$")
+    ax.set_xlabel(r"Normalised island width ($a$)")
+    ax.set_ylabel(r"$a\Delta ' (w/a)$")
     
     ax.hlines(
         0.0, xmin=0.0, xmax=1.0, color='red',
-        linestyle='--', label=r"$a\Delta' = 0 $"
+        linestyle='--', label=r"Marginal stability"
     )
     fig.tight_layout()
 
