@@ -6,6 +6,7 @@ import os
 from helpers import TimeDependentSolution
 from y_sol import Y
 from helpers import classFromArgs, savefig
+from new_ql_solver import mode_width
 
 def F(ql_sol: TimeDependentSolution,
       toroidal_mode: int,
@@ -133,10 +134,20 @@ def potential_from_data():
 
     fname = "./output/29-08-2023_10:53_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
     df = pd.read_csv(fname)
-    df = df.iloc[:100:1,:]
+    df = df.iloc[:100000:1000,:]
     ql_sol = classFromArgs(TimeDependentSolution, df)
+    ql_sol.w_t = mode_width(
+        ql_sol.psi_t,
+        ql_sol.dpsi_dt,
+        ql_sol.d2psi_dt2,
+        r_s,
+        m,
+        n,
+        s,
+        S
+    )
 
-    xs = np.linspace(-1e-3, 1e-3, 100)
+    xs = np.linspace(-0.5, 0.5, 1000)
     #print(xs)
     phi = potential(ql_sol, n, s, xs)
 
