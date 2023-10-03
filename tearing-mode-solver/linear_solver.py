@@ -1,33 +1,12 @@
 from scipy.integrate import odeint, solve_ivp
-from scipy.optimize import minimize_scalar
 from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
-from helpers import savefig
 from scipy.interpolate import interp1d
 
-from typing import Tuple
-
-from profiles import q, dj_dr
-
-def rational_surface(target_q: float,
-                     shaping_exponent: float = 2.0) -> float:
-    """
-    Compute the location of the rational surface of the q-profile defined in q().
-    """
-    
-    # Establish the function to pass to scipy's scalar minimiser. We want to 
-    # find the value of r such that q(r) = target_q. This is equivalent to
-    # finding the value of r that minimises (q(r) - target_q)^2
-    # Call vectorize so that it converts q(r) into a function that can take
-    # np arrays. This is necessary because q(r) contains an if statement which
-    # fails if the function is not vectorized.
-    fun = np.vectorize(lambda r : (q(r, shaping_exponent) - target_q)**2)
-    
-    rs = minimize_scalar(fun, bounds=(0.0, 1.0), method='bounded')
-
-    return rs.x
+from profiles import q, dj_dr, rational_surface
+from helpers import savefig
 
 
 def compute_derivatives(y: Tuple[float, float],
