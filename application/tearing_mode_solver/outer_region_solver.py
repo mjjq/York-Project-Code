@@ -402,30 +402,3 @@ def ps_correction(alfven_freq: float,
 
     return alfven_freq / (1+2*poloidal_mode/toroidal_mode)
 
-
-
-
-
-if __name__=='__main__':
-    #solve_and_plot_system_simple()
-    #plt.show()
-    #plt.tight_layout()
-    #plt.savefig("tm-with-q-djdr.png", dpi=300)
-
-    # island_saturation()
-    # plt.savefig("island-saturation.png", dpi=300)
-    # plt.show()
-    
-    #print(growth_rate(4,2,1e8))
-    #growth_rate_vs_mode_number()
-    #plt.show()
-
-    #test_gradient()
-
-    #q_sweep()
-
-    #test_accuracy_vs_layer_width()
-
-    #q_sweep_diff_res()
-
-    solution_near_res_surface()
