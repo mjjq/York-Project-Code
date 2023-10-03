@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import UnivariateSpline
 
 from linear_solver import (
-    TearingModeSolution,
+    OuterRegionSolution,
     gamma_constant,
     growth_rate,
     solve_system,
@@ -97,7 +97,7 @@ def quasi_linear_threshold(toroidal_mode: int,
 
 def flux_time_derivative(psi: float,
                          time: float,
-                         tm: TearingModeSolution,
+                         tm: OuterRegionSolution,
                          poloidal_mode: int,
                          toroidal_mode: int,
                          lundquist_number: float,
@@ -116,7 +116,7 @@ def flux_time_derivative(psi: float,
             Perturbed flux at the resonant surface and current time
         time: float
             The current time of the simulation.
-        tm: TearingModeSolution
+        tm: OuterRegionSolution
             The outer solution of the current tearing mode
         poloidal_mode: int
             Poloidal mode number of the tearing mode

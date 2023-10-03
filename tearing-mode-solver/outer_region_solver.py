@@ -102,7 +102,7 @@ def compute_derivatives(y: Tuple[float, float],
     return dpsi_dr, d2psi_dr2
 
 @dataclass
-class TearingModeSolution():
+class OuterRegionSolution():
     # Contains numerical solution to the outer solution differential
     # equation
 
@@ -128,9 +128,9 @@ class TearingModeSolution():
     # Location of the resonant surface
     r_s: float
     
-def scale_tm_solution(tm: TearingModeSolution, scale_factor: float)\
-    -> TearingModeSolution:
-    return TearingModeSolution(
+def scale_tm_solution(tm: OuterRegionSolution, scale_factor: float)\
+    -> OuterRegionSolution:
+    return OuterRegionSolution(
         tm.psi_forwards*scale_factor, 
         tm.dpsi_dr_forwards*scale_factor, 
         tm.r_range_fwd, 
@@ -144,7 +144,7 @@ def solve_system(poloidal_mode: int,
                  toroidal_mode: int, 
                  axis_q: float,
                  resolution: float = 1e-6,
-                 r_s_thickness: float = 1e-4) -> TearingModeSolution:
+                 r_s_thickness: float = 1e-4) -> OuterRegionSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
     plasma given the mode numbers of the tearing mode.
@@ -163,7 +163,7 @@ def solve_system(poloidal_mode: int,
 
     Returns
     -------
-    TearingModeSolution:
+    OuterRegionSolution:
         Quantities relating to the tearing mode solution.
 
     """
@@ -243,7 +243,7 @@ def solve_system(poloidal_mode: int,
     )
     #print(dpsi_dr_forwards)
     
-    return TearingModeSolution(
+    return OuterRegionSolution(
         psi_forwards, dpsi_dr_forwards, dpsi_dr_f_func, r_range_fwd,
         psi_backwards, dpsi_dr_backwards, dpsi_dr_b_func, r_range_bkwd,
         r_s
@@ -253,7 +253,7 @@ def solve_system(poloidal_mode: int,
     #     psi_backwards, dpsi_dr_backwards, r_range_bkwd , r_s
     
     
-def delta_prime(tm_sol: TearingModeSolution,
+def delta_prime(tm_sol: OuterRegionSolution,
                 epsilon: float = 1e-10):
     """
     Calculate the discontinuity parameter close to the resonant surface for

@@ -7,7 +7,7 @@ from dataclasses import dataclass, asdict
 from typing import Tuple
 
 from linear_solver import (
-    TearingModeSolution,
+    OuterRegionSolution,
     gamma_constant,
     growth_rate,
     solve_system,
@@ -135,7 +135,7 @@ def quasi_linear_threshold(toroidal_mode: int,
 
 def flux_time_derivative(time: float,
                          var: Tuple[float, float],
-                         tm: TearingModeSolution,
+                         tm: OuterRegionSolution,
                          poloidal_mode: int,
                          toroidal_mode: int,
                          lundquist_number: float,
@@ -153,7 +153,7 @@ def flux_time_derivative(time: float,
         var: Tuple[float, float]
             Tuple containing the perturbed flux and rate of change of perturbed
             flux at the current time
-        tm: TearingModeSolution
+        tm: OuterRegionSolution
             The outer solution of the current tearing mode
         poloidal_mode: int
             Poloidal mode number of the tearing mode

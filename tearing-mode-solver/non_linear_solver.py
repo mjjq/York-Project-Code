@@ -3,7 +3,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from linear_solver import TearingModeSolution, solve_system
+from linear_solver import OuterRegionSolution, solve_system
 
 @np.vectorize
 def island_width(psi_rs: float,
@@ -21,7 +21,7 @@ def island_width(psi_rs: float,
     
     return 0.0
 
-def delta_prime_non_linear(tm: TearingModeSolution,
+def delta_prime_non_linear(tm: OuterRegionSolution,
                            island_width: float,
                            epsilon: float = 1e-10) -> float:
     """
@@ -30,7 +30,7 @@ def delta_prime_non_linear(tm: TearingModeSolution,
 
     Parameters
     ----------
-    tm : TearingModeSolution
+    tm : OuterRegionSolution
         Solution to the reduced MHD equation obtained from solve_system.
     island_width : float
         Width of the magnetic island.

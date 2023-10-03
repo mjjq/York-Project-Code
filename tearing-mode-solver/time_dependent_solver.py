@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 from scipy.stats import sem
 
 from linear_solver import (
-    TearingModeSolution, solve_system, growth_rate_scale
+    OuterRegionSolution, solve_system, growth_rate_scale
 )
 
 def flux_time_derivative(psi: np.array,
@@ -30,7 +30,7 @@ def flux_time_derivative(psi: np.array,
 
     This function manually calculates the discontinuity parameter Delta'
     instead of using recently created functions. TODO: Update
-    implementation to use full TearingModeSolution and faster Delta' functions.
+    implementation to use full OuterRegionSolution and faster Delta' functions.
 
     Parameters:
         psi: np.array

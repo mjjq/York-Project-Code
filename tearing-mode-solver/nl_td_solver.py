@@ -15,7 +15,7 @@ from typing import Tuple
 
 
 from linear_solver import (
-    TearingModeSolution, solve_system, magnetic_shear,
+    OuterRegionSolution, solve_system, magnetic_shear,
     scale_tm_solution, delta_prime, q
 )
 from non_linear_solver import delta_prime_non_linear, island_width
@@ -24,7 +24,7 @@ from helpers import savefig, TimeDependentSolution, dataclass_to_disk
 
 def flux_time_derivative(psi: float,
                          time: float,
-                         tm: TearingModeSolution,
+                         tm: OuterRegionSolution,
                          poloidal_mode: int,
                          toroidal_mode: int,
                          lundquist_number: float,
@@ -40,7 +40,7 @@ def flux_time_derivative(psi: float,
             Tuple containing the perturbed flux at the current time
         time: float
             The current time of the simulation.
-        tm: TearingModeSolution
+        tm: OuterRegionSolution
             The outer solution of the current tearing mode
         poloidal_mode: int
             Poloidal mode number of the tearing mode
@@ -80,7 +80,7 @@ def solve_time_dependent_system(poloidal_mode: int,
                                 axis_q: float,
                                 initial_scale_factor: float = 1.0,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10))\
-    -> Tuple[TimeDependentSolution, TearingModeSolution]:
+    -> Tuple[TimeDependentSolution, OuterRegionSolution]:
     """
     Numerically integrate the quasi-linear flux time derivative of a tearing
     mode.
@@ -267,7 +267,7 @@ def parabola(x, a, b, c):
     """
     return a*x**2 + b*x + c
 
-def nl_parabola_coefficients(tm: TearingModeSolution,
+def nl_parabola_coefficients(tm: OuterRegionSolution,
                              mag_shear: float,
                              lundquist_number: float,
                              delta_prime_linear: float,
@@ -277,7 +277,7 @@ def nl_parabola_coefficients(tm: TearingModeSolution,
     mode in the small island limit.
 
     Parameters:
-        tm: TearingModeSolution
+        tm: OuterRegionSolution
             Solution to the perturbed flux in the outer region of the plasma.
         mag_shear: float
             Magnetic shear at the resonant surface.
@@ -297,7 +297,7 @@ def nl_parabola_coefficients(tm: TearingModeSolution,
 
     return c_0, c_1, c_2
 
-def nl_parabola(tm: TearingModeSolution,
+def nl_parabola(tm: OuterRegionSolution,
                 mag_shear: float,
                 lundquist_number: float,
                 delta_prime_linear: float,
@@ -308,7 +308,7 @@ def nl_parabola(tm: TearingModeSolution,
     mode in the small island limit.
 
     Parameters:
-        tm: TearingModeSolution
+        tm: OuterRegionSolution
             Solution to the perturbed flux in the outer region of the plasma.
         mag_shear: float
             Magnetic shear at the resonant surface.
