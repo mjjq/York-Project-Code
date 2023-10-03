@@ -2,6 +2,7 @@ from dataclasses import fields, dataclass, asdict
 from datetime import datetime
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -26,6 +27,12 @@ def savefig(name: str, **kwargs):
     be created to manually for this to work.
     """
     date_time = datetime.now().strftime("%d-%m-%Y_%H:%M")
+
+    p = Path("./output")
+    try:
+        p.mkdir()
+    except FileExistsError:
+        print("Path exists. Skipping")
 
     s = f"./output/{date_time}_{name}.png"
     print(f"Saving figure: {s}")
