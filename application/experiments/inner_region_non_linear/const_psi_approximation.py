@@ -1,3 +1,15 @@
+import numpy as np
+from matplotlib import pyplot as plt
+from scipy.optimize import curve_fit
+
+import imports
+
+from tearing_mode_solver.nl_td_solver import solve_time_dependent_system
+from tearing_mode_solver.outer_region_solver import (
+    delta_prime, magnetic_shear
+)
+from tearing_mode_solver.helpers import savefig
+
 def const_psi_approximation():
     """
     Calculate layer_width * Delta' and plot as a function of layer width
@@ -32,3 +44,6 @@ def const_psi_approximation():
         f"nl_const_psi_approx_(m,n,A)=({m},{n},{solution_scale_factor})"
     )
     plt.show()
+
+if __name__=='__main__':
+    const_psi_approximation()
