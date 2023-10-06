@@ -3,7 +3,11 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from linear_solver import OuterRegionSolution, solve_system
+import imports
+
+from tearing_mode_solver.outer_region_solver import (
+    OuterRegionSolution, solve_system, delta_prime_non_linear
+)
 
 
 
@@ -45,8 +49,8 @@ def island_saturation():
 
     ax.legend()
 
-    #plt.show()
     plt.savefig(f"./output/island_saturation_(m,n)=({m},{n}).png", dpi=300)
+    plt.show()
 
     
 if __name__=='__main__':
