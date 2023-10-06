@@ -1,3 +1,12 @@
+import numpy as np
+from matplotlib import pyplot as plt
+
+import imports
+
+from tearing_mode_solver.profiles import q
+from tearing_mode_solver.nl_td_solver import solve_time_dependent_system
+from tearing_mode_solver.helpers import savefig
+
 def const_psi_q_sweep():
     """
     Find and plot the maximum layer_width*Delta' value for a tearing mode as a
@@ -40,3 +49,6 @@ def const_psi_q_sweep():
         f"nl_const_psi_approx_q_sweep_(m,n,A)=({m},{n},{solution_scale_factor})"
     )
     plt.show()
+
+if __name__=='__main__':
+    const_psi_q_sweep()
