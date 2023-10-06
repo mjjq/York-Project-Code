@@ -1,7 +1,6 @@
 from dataclasses import fields, dataclass, asdict
 from datetime import datetime
 import numpy as np
-import pandas as pd
 from pathlib import Path
 
 from matplotlib import pyplot as plt
