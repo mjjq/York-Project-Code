@@ -1,3 +1,15 @@
+import numpy as np
+from scipy.stats import sem
+from matplotlib import pyplot as plt
+
+import imports
+
+from tearing_mode_solver.outer_region_solver import (
+    q
+)
+from tearing_mode_solver.nl_td_solver import solve_time_dependent_system
+from tearing_mode_solver.helpers import savefig
+
 def marginal_stability(poloidal_mode: int = 2, toroidal_mode: int = 2):
     """
     Solve time dependent NL equation for multiple q-values. Plot
@@ -16,10 +28,12 @@ def marginal_stability(poloidal_mode: int = 2, toroidal_mode: int = 2):
     final_widths = []
 
     for axis_q in axis_qs:
-        psi_t, w_t, tm0, delta_primes = solve_time_dependent_system(
+
+        td0, tm0 = solve_time_dependent_system(
             m, n, lundquist_number, axis_q, solution_scale_factor, times
         )
-        w_t = np.squeeze(w_t)
+        w_t = np.squeeze(td0.w_t)
+        delta_primes = td0.delta_primes
 
         saturation_width = np.mean(w_t[-20:])
         saturation_width_sem = sem(w_t[-20:])
@@ -75,3 +89,7 @@ def marg_stability_multi_mode():
     ]
     for m,n in modes:
         marginal_stability(m, n)
+
+
+if __name__=='__main__':
+    marginal_stability()
