@@ -1,4 +1,18 @@
+import numpy as np
+from matplotlib import pyplot as plt
+from scipy.optimize import curve_fit
 
+import imports
+
+from tearing_mode_solver.nl_td_solver import solve_time_dependent_system
+from tearing_mode_solver.outer_region_solver import (
+    delta_prime,
+    magnetic_shear
+)
+from tearing_mode_solver.algebraic_fitting import (
+    nl_parabola_coefficients, parabola
+)
+from tearing_mode_solver.helpers import savefig
 
 def nl_tm_small_w():
     """
@@ -16,9 +30,11 @@ def nl_tm_small_w():
 
     times = np.linspace(0.0, 1e7, 10000)
 
-    psi_t, w_t, tm0, dps = solve_time_dependent_system(
+    td0, tm0 = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
+
+    psi_t = td0.psi_t
 
     psi0 = psi_t[0]
     dp = delta_prime(tm0)
@@ -79,3 +95,6 @@ def nl_tm_small_w():
     #plt.show()
     savefig(f"nl_small_w_(m,n,A)=({m},{n},{solution_scale_factor})")
     plt.show()
+
+if __name__=='__main__':
+    nl_tm_small_w()
