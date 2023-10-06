@@ -1,3 +1,11 @@
+import numpy as np
+from matplotlib import pyplot as plt
+
+import imports
+
+from tearing_mode_solver.helpers import savefig, dataclass_to_disk
+from tearing_mode_solver.nl_td_solver import solve_time_dependent_system
+
 def nl_tm_vs_time():
     """
     Calculate tearing mode solution in strongly non-linear regime and plot
@@ -44,3 +52,6 @@ def nl_tm_vs_time():
     )
     dataclass_to_disk(fname, td_sol)
     plt.show()
+
+if __name__=='__main__':
+    nl_tm_vs_time()
