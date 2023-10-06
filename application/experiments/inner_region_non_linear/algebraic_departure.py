@@ -1,3 +1,19 @@
+import numpy as np
+from matplotlib import pyplot as plt
+from scipy.optimize import curve_fit
+
+import imports
+
+from tearing_mode_solver.nl_td_solver import solve_time_dependent_system
+from tearing_mode_solver.outer_region_solver import (
+    delta_prime, magnetic_shear
+)
+from tearing_mode_solver.algebraic_fitting import (
+    nl_parabola_coefficients, parabola
+)
+from tearing_mode_solver.helpers import savefig
+
+
 def algebraic_departure():
     """
     Calculate the difference between the numerical solution to the non-linear
@@ -11,9 +27,11 @@ def algebraic_departure():
 
     times = np.linspace(0.0, 5e7, 10000)
 
-    psi_t, w_t, tm0, dps = solve_time_dependent_system(
+    td_sol, tm0 = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
+
+    psi_t = td_sol.psi_t
 
     psi0 = psi_t[0]
     dp = delta_prime(tm0)
@@ -100,3 +118,6 @@ def algebraic_departure():
         f"error_algebraic_sol_(m,n,A)=({m},{n},{solution_scale_factor})"
     )
     plt.show()
+
+if __name__=='__main__':
+    algebraic_departure()

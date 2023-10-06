@@ -1,3 +1,9 @@
+from typing import Tuple
+import numpy as np
+
+from tearing_mode_solver.outer_region_solver import OuterRegionSolution
+
+
 
 def parabola(x, a, b, c):
     """

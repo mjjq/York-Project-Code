@@ -14,12 +14,14 @@ from scipy.optimize import curve_fit
 from typing import Tuple
 
 
-from linear_solver import (
+from tearing_mode_solver.outer_region_solver import (
     OuterRegionSolution, solve_system, magnetic_shear,
-    scale_tm_solution, delta_prime, q
+    scale_tm_solution, delta_prime, q,
+    delta_prime_non_linear, island_width
 )
-from non_linear_solver import delta_prime_non_linear, island_width
-from helpers import savefig, TimeDependentSolution, dataclass_to_disk
+from tearing_mode_solver.helpers import (
+    savefig, TimeDependentSolution, dataclass_to_disk
+)
 
 
 def flux_time_derivative(psi: float,
