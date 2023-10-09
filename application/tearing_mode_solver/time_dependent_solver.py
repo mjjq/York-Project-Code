@@ -11,7 +11,7 @@ from scipy.integrate import odeint
 from matplotlib import pyplot as plt
 from scipy.stats import sem
 
-from linear_solver import (
+from tearing_mode_solver.outer_region_solver import (
     OuterRegionSolution, solve_system, growth_rate_scale
 )
 
@@ -48,8 +48,12 @@ def flux_time_derivative(psi: np.array,
             growth_rate_scale() in linear_solver
     """
 
-    psi_f, psi_b = psi.reshape(2, len(psi)//2)
+    #psi_f, psi_b = psi.reshape(2, len(psi)//2)
     
+    psi_f = psi[:len(r_range_fwd)]
+    psi_b = psi[len(r_range_fwd):]
+
+
     dr_fwd = r_range_fwd[-1] - r_range_fwd[-2]
     dpsi_dr_forwards = np.gradient(psi_f, dr_fwd, edge_order=2)[-1]
     
@@ -130,102 +134,11 @@ def solve_time_dependent_system(poloidal_mode: int,
     # We work around this by manually iterating through each timestamp and
     # appending forwards and backwards solutions to the relevant variables.
     for psi_t in results:
-        psi_t_fwd, psi_t_bkwd = psi_t.reshape(2, len(y0)//2)
+        #psi_t_fwd, psi_t_bkwd = psi_t.reshape(2, len(y0)//2)
+        psi_t_fwd = psi_t[0:len(tm.r_range_fwd)]
+        psi_t_bkwd = psi_t[len(tm.r_range_fwd):]
         results_forwards.append(psi_t_fwd)
         results_backwards.append(psi_t_bkwd)
         
     return results_forwards, results_backwards, tm, t_range
     
-
-def linear_tm_growth_plots():
-    """
-    Plot the full outer solution as a function of minor radius at different
-    times using the linear time-dependent solver.
-    """
-    m=3
-    n=2
-    lundquist_number = 1e8
-    
-    times = np.linspace(0.0, 1e4, 3)
-    
-    res_f, res_b, tm, t_range = solve_time_dependent_system(
-        m, n, lundquist_number,1.0, times
-    )
-
-    fig, ax = plt.subplots(1, figsize=(4,3))
-    
-    for i, psi_f in enumerate(res_f):
-        psi_b = res_b[i]
-        
-        psi = np.concatenate((psi_f, psi_b[::-1]))
-        r = np.concatenate((tm.r_range_fwd, tm.r_range_bkwd[::-1]))
-        
-        max_num = np.max((psi_b, psi_f))
-        #print(max_num)
-        
-        ax.plot(r, psi, label=r'$\bar{\omega}_A t$='+f'{times[i]:.1e}')
-        
-    ax.vlines(
-        tm.r_s, 0.0, np.max((res_f, res_b)), color='red', linestyle='--',
-        label='$\hat{r}_s$='+f'{tm.r_s:.2f}'
-    )
-    
-    ax.set_xlabel("Normalised minor radial co-ordinate $\hat{r}$")  
-    ax.set_ylabel("Normalised perturbed flux $\delta \hat{\psi}^{(1)}$")
-    ax.legend(prop={'size':8})
-    fig.tight_layout()
-    
-    plt.savefig(f"linear_tm_time_evo_(m,n)={m},{n}.png", dpi=300)
-    
-    
-def linear_tm_amplitude_vs_time():
-    """
-    Plot amplitude of the flux at the resonant surface as a function of time
-    for a linear tearing mode.
-    """
-    m=4
-    n=2
-    lundquist_number = 1e8
-    
-    res_f, res_b, tm, t_range = solve_time_dependent_system(
-        m, n, lundquist_number, 1.0, np.linspace(0.0, 1e5, 100)
-    )
-
-    fig, ax = plt.subplots(1, figsize=(4,3))
-    
-    res_amplitudes = [psi_f[-1] for psi_f in res_f]
-    
-    ax.set_yscale('log')
-    ax.scatter(t_range, res_amplitudes, s=1)
-    
-    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax.set_ylabel(
-        """Normalised perturbed flux at 
-        resonant surface [$\delta \hat{\psi}^{(1)}(r_s)$]"""
-    )
-    
-    fig.tight_layout()
-        
-    plt.savefig(f"res_amplitude_vs_time_(m,n)={m},{n}.png", dpi=300)
-        
-    dt = t_range[-1] - t_range[-2]
-    dpsi_dt = np.gradient(res_amplitudes, dt)
-    growth_rate = dpsi_dt/res_amplitudes
-
-    growth_rate_clipped = growth_rate[1:-2]
-    print(f"""Average growth_rate = {np.mean(growth_rate_clipped)} 
-          +/- {sem(growth_rate_clipped)}""")
-    
-    fig2, ax2 = plt.subplots(1, figsize=(4,3))
-    ax2.plot(t_range, growth_rate)
-    
-    ax2.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax2.set_ylabel(r"Normalised growth rate ($\gamma/\bar{\omega}_A$)")
-    
-    fig2.tight_layout()
-    
-if __name__=='__main__':
-    linear_tm_growth_plots()
-    #linear_tm_amplitude_vs_time()
-        
-        
