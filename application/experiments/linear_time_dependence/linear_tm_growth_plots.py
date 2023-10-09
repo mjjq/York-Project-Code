@@ -1,3 +1,10 @@
+from matplotlib import pyplot as plt
+import numpy as np
+
+import imports
+from tearing_mode_solver.time_dependent_solver import \
+    solve_time_dependent_system
+
 def linear_tm_growth_plots():
     """
     Plot the full outer solution as a function of minor radius at different
@@ -21,13 +28,10 @@ def linear_tm_growth_plots():
         psi = np.concatenate((psi_f, psi_b[::-1]))
         r = np.concatenate((tm.r_range_fwd, tm.r_range_bkwd[::-1]))
 
-        max_num = np.max((psi_b, psi_f))
-        #print(max_num)
-
         ax.plot(r, psi, label=r'$\bar{\omega}_A t$='+f'{times[i]:.1e}')
 
     ax.vlines(
-        tm.r_s, 0.0, np.max((res_f, res_b)), color='red', linestyle='--',
+        tm.r_s, 0.0, np.max((np.max(res_f), np.max(res_b))), color='red', linestyle='--',
         label='$\hat{r}_s$='+f'{tm.r_s:.2f}'
     )
 
@@ -37,3 +41,7 @@ def linear_tm_growth_plots():
     fig.tight_layout()
 
     plt.savefig(f"linear_tm_time_evo_(m,n)={m},{n}.png", dpi=300)
+
+
+if __name__=='__main__':
+    linear_tm_growth_plots()
