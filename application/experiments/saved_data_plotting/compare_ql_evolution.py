@@ -1,3 +1,19 @@
+import pandas as pd
+from matplotlib import pyplot as plt
+from scipy.interpolate import UnivariateSpline
+import os
+
+import imports
+from tearing_mode_solver.outer_region_solver import (
+    rational_surface, magnetic_shear
+)
+from tearing_mode_solver.delta_model_solver import nu, mode_width
+from tearing_mode_solver.helpers import (
+    classFromArgs, TimeDependentSolution, savefig
+)
+from tearing_mode_solver.outer_region_solver import island_width
+
+
 def compare_ql_evolution():
     """
     Plot numerical solutions for a tearing mode solved using the gamma model
@@ -163,3 +179,6 @@ def compare_ql_evolution():
     #ax4.legend()
 
     plt.show()
+
+if __name__=='__main__':
+    compare_ql_evolution()
