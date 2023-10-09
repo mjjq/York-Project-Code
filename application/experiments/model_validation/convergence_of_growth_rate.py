@@ -1,4 +1,28 @@
+import numpy as np
+from dataclasses import dataclass, fields
+import pandas as pd
+from scipy.interpolate import UnivariateSpline
+from matplotlib import pyplot as plt
+from scipy.integrate import quad, simpson
+from tqdm import tqdm, trange
+from typing import Tuple
+import os
 
+import imports
+from tearing_mode_solver.y_sol import Y
+from tearing_mode_solver.delta_model_solver import nu, mode_width
+from tearing_mode_solver.helpers import (
+    savefig, classFromArgs, TimeDependentSolution
+)
+from tearing_mode_solver.outer_region_solver import (
+    magnetic_shear, rational_surface,
+    island_width, delta_prime_non_linear
+)
+from tearing_mode_solver.unapprox_layer_width import(
+    simple_integration,
+    del_ql_full,
+    delta_prime_full
+)
 
 def convergence_of_growth_rate():
     """
@@ -11,24 +35,21 @@ def convergence_of_growth_rate():
     s=5.84863459819362
     r_s=0.7962252761034401
 
-    fname = "./output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
+    fname = "../../tearing_mode_solver/output/18-08-2023_16:41_new_ql_tm_time_evo_(m,n,A)=(2,1,1e-10).csv"
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
     delta_ql_orig = island_width(
         ql_sol.psi_t,
-        ql_sol.dpsi_dt,
-        ql_sol.d2psi_dt2,
         r_s,
         m,
         n,
-        s,
-        S
+        s
     )
 
     simple_integration()
 
-    delqls, times, xs = del_ql_full(ql_sol, m, n, S, s, r_s)
+    delqls, times, xs = del_ql_full(ql_sol, m, n, S, s, r_s, (-1.0, 1.0))
     #delqls = delqls[:,::1000]
 
     delta_primes = delta_prime_full(
@@ -37,10 +58,9 @@ def convergence_of_growth_rate():
         times,
         ql_sol.psi_t,
         ql_sol.dpsi_dt,
+        ql_sol.w_t,
         r_s,
-        S,
-        (-10.0, 10.0),
-        0.1
+        S
     )
 
     fig_dp, ax_dp = plt.subplots(1, figsize=(4,4))
@@ -79,3 +99,8 @@ def convergence_of_growth_rate():
 
     ax_w.plot(times, ql_sol.w_t)
     ax_w.set_yscale('log')
+
+    plt.show()
+
+if __name__=='__main__':
+    convergence_of_growth_rate()

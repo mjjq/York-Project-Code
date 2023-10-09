@@ -8,11 +8,15 @@ from tqdm import tqdm, trange
 from typing import Tuple
 import os
 
-from y_sol import Y
-from new_ql_solver import nu, mode_width
-from helpers import savefig, classFromArgs, TimeDependentSolution
-from linear_solver import magnetic_shear, rational_surface
-from non_linear_solver import island_width, delta_prime_non_linear
+from tearing_mode_solver.y_sol import Y
+from tearing_mode_solver.delta_model_solver import nu, mode_width
+from tearing_mode_solver.helpers import (
+    savefig, classFromArgs, TimeDependentSolution
+)
+from tearing_mode_solver.outer_region_solver import (
+    magnetic_shear, rational_surface,
+    island_width, delta_prime_non_linear
+)
 
 def del_ql_full(sol: TimeDependentSolution,
                 poloidal_mode: int,
