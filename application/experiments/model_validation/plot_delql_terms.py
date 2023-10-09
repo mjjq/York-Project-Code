@@ -116,3 +116,4 @@ def plot_delql_terms(sol: TimeDependentSolution,
     fig.tight_layout()
 
     savefig(f"delql_contributions_t={plot_t:.2f}")
+
