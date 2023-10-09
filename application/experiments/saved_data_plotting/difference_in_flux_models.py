@@ -1,3 +1,19 @@
+import pandas as pd
+from matplotlib import pyplot as plt
+from scipy.interpolate import UnivariateSpline
+import os
+
+import imports
+from tearing_mode_solver.outer_region_solver import (
+    rational_surface, magnetic_shear
+)
+from tearing_mode_solver.delta_model_solver import nu, mode_width
+from tearing_mode_solver.helpers import (
+    classFromArgs, TimeDependentSolution, savefig
+)
+from tearing_mode_solver.outer_region_solver import island_width
+
+
 def difference_in_flux_models():
     """
     Load numerical solutions to a tearing mode calculated using the gamma
@@ -100,3 +116,5 @@ def ql_modal_width_and_island_width():
 
     plt.show()
 
+if __name__=='__main__':
+    difference_in_flux_models()
