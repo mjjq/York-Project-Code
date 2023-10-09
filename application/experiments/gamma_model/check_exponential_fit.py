@@ -1,6 +1,15 @@
-
+import numpy as np
+from matplotlib import pyplot as plt
 
 from lmfit.models import ExponentialModel
+
+import imports
+from tearing_mode_solver.gamma_model_solver import (
+    solve_time_dependent_system,
+    time_from_flux
+)
+from tearing_mode_solver.outer_region_solver import growth_rate
+from tearing_mode_solver.helpers import savefig
 
 def check_exponential_fit():
     """
@@ -92,3 +101,6 @@ def check_exponential_fit():
     )
 
     plt.show()
+
+if __name__=='__main__':
+    check_exponential_fit()
