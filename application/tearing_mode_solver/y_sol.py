@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.interpolate import UnivariateSpline
 
-from helpers import savefig
+from tearing_mode_solver.helpers import savefig
 
 @np.vectorize
 def Y(x):
