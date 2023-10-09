@@ -1,24 +1,36 @@
+import numpy as np
+from matplotlib import pyplot as plt
 
+import imports
+
+from tearing_mode_solver.gamma_model_solver import (
+    solve_time_dependent_system,
+    time_from_flux
+)
+from tearing_mode_solver.outer_region_solver import growth_rate
+from tearing_mode_solver.algebraic_fitting import nl_parabola
+from tearing_mode_solver.helpers import savefig
 
 def ql_with_fit_plots():
     """
-    Plot quasi-linear solution to the perturbed flux in conjunction with an
-    exponential fit for the linear regime and a quadratic fit in the strongly
-    non-linear regime.
+    Deprecated function.
     """
-    m=2
-    n=1
+    m=4
+    n=3
     lundquist_number = 1e8
     axis_q = 1.0
     solution_scale_factor = 1e-10
 
-    times = np.linspace(0.0, 1e8, 10000)
+    times = np.linspace(0.0, 1e2, 1000)
 
-    sol, tm0, ql_threshold, s = solve_time_dependent_system(
+    ql_solution, tm, ql_threshold, s = solve_time_dependent_system(
         m, n, lundquist_number, axis_q, solution_scale_factor, times
     )
-
-    psi_t, w_t, dps = sol.psi_t, sol.w_t, sol.delta_primes
+    times = ql_solution.times
+    psi_t = ql_solution.psi_t
+    dpsi_t = ql_solution.dpsi_dt
+    w_t = ql_solution.w_t
+    dps = ql_solution.delta_primes
 
     lin_delta_prime, lin_growth_rate = growth_rate(
         m,
@@ -33,6 +45,7 @@ def ql_with_fit_plots():
 
     fig, ax = plt.subplots(1, figsize=(4,3))
 
+    ql_threshold = 1.0 # TODO: Re-add correct threshold
     ql_time_min = time_from_flux(psi_t, times, 0.1*ql_threshold)
     ql_time_max = time_from_flux(psi_t, times, 10.0*ql_threshold)
 
@@ -57,18 +70,18 @@ def ql_with_fit_plots():
     psi_t0_nl = psi_t[np.abs(times-ql_time_max).argmin()]
     dp_nl = dps[np.abs(times-ql_time_max).argmin()]
     print(psi_t0_nl)
-    ax.plot(
-        nl_times,
-        nl_parabola(
-            tm0,
-            s,
-            lundquist_number,
-            dp_nl,
-            psi_t0_nl,
-            nl_times
-        ),
-        label="Quadratic fit"
-    )
+    #ax.plot(
+        #nl_times,
+        #nl_parabola(
+            #tm0,
+            #s,
+            #lundquist_number,
+            #dp_nl,
+            #psi_t0_nl,
+            #nl_times
+        #),
+        #label="Quadratic fit"
+    #)
 
 
 
@@ -88,3 +101,6 @@ def ql_with_fit_plots():
         f"ql_with_fitting_(m,n,A)=({m},{n},{solution_scale_factor})"
     )
     plt.show()
+
+if __name__=='__main__':
+    ql_with_fit_plots()
