@@ -41,7 +41,7 @@ def compare_delql_terms():
             m,n,
             S,
             r_s,
-            (-100, 100),
+            (-10, 10),
             t
         )
 

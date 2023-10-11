@@ -5,6 +5,7 @@ from tqdm import tqdm, trange
 from typing import Tuple
 import os
 import numpy as np
+import pandas as pd
 
 import imports
 from tearing_mode_solver.y_sol import Y
@@ -91,16 +92,16 @@ def plot_delql_terms(sol: TimeDependentSolution,
     fig, ax = plt.subplots(1, figsize=(4,3))
 
     ax.plot(
-        xs, abs(nu_value+psi_dot_term),
-        label=r"$|\nu Y'' + Y'' \delta\ddot{\psi}/\delta\dot{\psi}|$"
+        xs, nu_value+psi_dot_term,
+        label=r"$\nu Y'' + Y'' \delta\ddot{\psi}/\delta\dot{\psi}$"
     )
     #ax.plot(
     #    times, psi_dot_term,
     #    label=r"$|Y'' \delta\ddot{\psi}/\delta\dot{\psi}|$"
     #)
     ax.plot(
-        xs, abs(del_dot_term),
-        label=r"$|[XY''' + 3Y''] \dot{\delta}/\delta|$"
+        xs, del_dot_term,
+        label=r"$[XY''' + 3Y''] \dot{\delta}/\delta$"
     )
 
     ax.set_xlabel(r"X")
@@ -111,9 +112,31 @@ def plot_delql_terms(sol: TimeDependentSolution,
     ax.legend(prop={'size':8})
 
     #ax.set_xscale('log')
-    ax.set_yscale('log')
+    #ax.set_yscale('log')
 
     fig.tight_layout()
 
     savefig(f"delql_contributions_t={plot_t:.2f}")
+    #plt.show()
 
+if __name__=='__main__':
+    m=2
+    n=1
+    S=1e8
+    s=5.84863459819362
+    r_s=0.7962252761034401
+
+    fname = "../../tearing_mode_solver/output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
+    df = pd.read_csv(fname)
+    ql_sol = classFromArgs(TimeDependentSolution, df)
+
+    t = 10000.0
+
+    plot_delql_terms(
+        ql_sol,
+        m,n,
+        S,
+        r_s,
+        (-10, 10),
+        t
+    )
