@@ -88,7 +88,14 @@ def plot_delql_terms(sol: TimeDependentSolution,
     delta_t_func = UnivariateSpline(times, delta_t, s=0)
     ddelta_dt_func = delta_t_func.derivative()
 
-    plt.plot(times, delta_t_func(times))
+    #fig_delta, ax_delta = plt.subplots(1, figsize=(4,3))
+    #ax_delta.plot(times, ddelta_dt_func(times)/delta_t_func(times))
+    #ax_delta.set_xlabel(r'Time ($1/\bar{\omega}_A$)')
+    #ax_delta.set_ylabel(r'Electrostatic mode growth rate ($\bar{\omega}_A$)')
+    #fig_delta.tight_layout()
+    #ax_delta.set_xlim(left=0.0, right=20000.0)
+
+    #plt.plot(times, delta_t_func(times))
     #plt.plot(times, ddelta_dt_func(times)/delta_t_func(times))
 
     xmin, xmax = x_range
