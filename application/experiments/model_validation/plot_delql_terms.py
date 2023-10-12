@@ -24,6 +24,7 @@ def plot_delql_terms(sol: TimeDependentSolution,
                 toroidal_mode: int,
                 lundquist_number: float,
                 r_s: float,
+                mag_shear: float,
                 x_range: Tuple[float, float],
                 plot_t: float,
                 dx: float = 0.01):
@@ -71,6 +72,25 @@ def plot_delql_terms(sol: TimeDependentSolution,
     dpsi_dt_func = psi_t_func.derivative()
     d2psi_dt2_func = dpsi_dt_func.derivative()
 
+    dpsi_dt_vals = dpsi_dt_func(times)
+    d2psi_dt2_vals = d2psi_dt2_func(times)
+
+    delta_t = mode_width(
+        sol.psi_t,
+        dpsi_dt_vals,
+        d2psi_dt2_vals,
+        r_s,
+        poloidal_mode,
+        toroidal_mode,
+        mag_shear,
+        lundquist_number
+    )
+    delta_t_func = UnivariateSpline(times, delta_t, s=0)
+    ddelta_dt_func = delta_t_func.derivative()
+
+    plt.plot(times, delta_t_func(times))
+    #plt.plot(times, ddelta_dt_func(times)/delta_t_func(times))
+
     xmin, xmax = x_range
     xs = np.arange(xmin, xmax, dx)
     ys = Y(xs)
@@ -80,7 +100,7 @@ def plot_delql_terms(sol: TimeDependentSolution,
 
 
     del_dot_term = ((xs*d3ydx3(xs) + 3.0*d2ydx2(xs))*
-        dw_dt_func(plot_t)/w_t_func(plot_t))
+        ddelta_dt_func(plot_t)/delta_t_func(plot_t))
     psi_dot_term = d2ydx2(xs)*d2psi_dt2_func(plot_t)/dpsi_dt_func(plot_t)
     nu_value = (
         d2ydx2(xs)*nu(psi_t_func(plot_t), poloidal_mode, lundquist_number, r_s)
@@ -130,13 +150,16 @@ if __name__=='__main__':
     df = pd.read_csv(fname)
     ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    t = 10000.0
+    t = 5e7
 
     plot_delql_terms(
         ql_sol,
         m,n,
         S,
         r_s,
+        s,
         (-10, 10),
         t
     )
+
+    plt.show()
