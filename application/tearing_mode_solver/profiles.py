@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 def dj_dr(radial_coordinate: float,
-          shaping_exponent: float = 2.0) -> float:
+          shaping_exponent: float) -> float:
     """
     Normalised derivative in the current profile.
 
@@ -16,7 +16,7 @@ def dj_dr(radial_coordinate: float,
 
 @np.vectorize
 def q(radial_coordinate: float,
-      shaping_exponent: float = 2.0) -> float:
+      shaping_exponent: float) -> float:
     r = radial_coordinate
     nu = shaping_exponent
 
@@ -30,7 +30,7 @@ def q(radial_coordinate: float,
     return (nu+1)*(r**2)/(1-(1-r**2)**(nu+1))
 
 def rational_surface(target_q: float,
-                     shaping_exponent: float = 2.0) -> float:
+                     shaping_exponent: float) -> float:
     """
     Compute the location of the rational surface of the q-profile defined in q().
     """

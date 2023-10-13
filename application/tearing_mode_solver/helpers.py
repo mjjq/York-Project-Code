@@ -91,6 +91,8 @@ class TearingModeParameters():
     axis_q: float
     # Current profile shaping factor
     profile_shaping_factor: float
+    # Initial perturbed flux value
+    initial_flux: float
 
 def dataclass_to_disk(name: str, cls: dataclass):
     """

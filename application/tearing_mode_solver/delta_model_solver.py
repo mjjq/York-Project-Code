@@ -18,7 +18,9 @@ from tearing_mode_solver.outer_region_solver import (
     island_width
 )
 
-from tearing_mode_solver.helpers import savefig, savecsv, TimeDependentSolution
+from tearing_mode_solver.helpers import (
+    savefig, savecsv, TimeDependentSolution, TearingModeParameters
+)
 
 @np.vectorize
 def nu(psi_rs: float,
@@ -196,11 +198,7 @@ def flux_time_derivative(time: float,
 
 
 
-def solve_time_dependent_system(poloidal_mode: int,
-                                toroidal_mode: int,
-                                lundquist_number: float,
-                                axis_q: float,
-                                initial_scale_factor: float = 1.0,
+def solve_time_dependent_system(params: TearingModeParameters,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10))\
                                     -> TimeDependentSolution:
     """
@@ -208,25 +206,22 @@ def solve_time_dependent_system(poloidal_mode: int,
     mode.
 
     Parameters:
-        poloidal_mode: int
-                Poloidal mode number of the tearing mode
-        toroidal_mode: int
-            Toroidal mode number of the tearing mode
-        lundquist_number: float
-            The Lundquist number
-        axis_q: float
-            The on-axis equilibrium safety factor
-        initial_scale_factor: float
-            The value of the perturbed flux at the resonant surface at t=0
+        params: TearingModeParameters
+            Parameters used in the tearing mode.
         t_range: np.array
             Array of time values to record. Each element will have an associated
             perturbed flux, derivative etc calculated for that time.
     """
+    poloidal_mode = params.poloidal_mode_number
+    toroidal_mode = params.toroidal_mode_number
+    axis_q = params.axis_q
+    lundquist_number = params.lundquist_number
+    nu = params.profile_shaping_factor
 
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, nu)
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
-    psi_t0 = initial_scale_factor#tm.psi_forwards[-1]
+    psi_t0 = params.initial_flux#tm.psi_forwards[-1]
 
     # Calculate the initial growth rate of the mode using the linear theory
     # result. We hence assume that we are solving this system with an initially
@@ -236,11 +231,12 @@ def solve_time_dependent_system(poloidal_mode: int,
         poloidal_mode,
         toroidal_mode,
         lundquist_number,
-        axis_q
+        axis_q,
+        nu
     )
     dpsi_dt_t0 = linear_growth_rate * psi_t0
 
-    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
+    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode, nu)
 
     # Calculate the initial width of the magnetic island using the linear layer
     # width.
