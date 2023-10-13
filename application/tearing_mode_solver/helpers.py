@@ -89,11 +89,8 @@ class TearingModeParameters():
     lundquist_number: float
     # On-axis safety factor (normalised)
     axis_q: float
-    # Magnetic shear at the resonant surface
-    magnetic_shear: float
-    # Minor radial co-ordinate of the resonant surface
-    # (normalised to minor radius)
-    resonant_surface: float
+    # Current profile shaping factor
+    profile_shaping_factor: float
 
 def dataclass_to_disk(name: str, cls: dataclass):
     """
