@@ -18,6 +18,8 @@ from tearing_mode_solver.outer_region_solver import (
     island_width
 )
 
+from tearing_mode_solver.profiles import rational_surface_of_mode
+
 from tearing_mode_solver.helpers import (
     savefig, savecsv, TimeDependentSolution, TearingModeParameters
 )
@@ -96,6 +98,33 @@ def mode_width(psi_rs: float,
         return (pre_factor)**(1/4)/denominator
 
     return 0.0
+
+def mode_width_precalc(params: TearingModeParameters,
+                       data: TimeDependentSolution) -> float:
+    r_s = rational_surface_of_mode(
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        params.axis_q,
+        params.profile_shaping_factor
+    )
+
+    mag_shear = magnetic_shear(
+        r_s,
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        params.profile_shaping_factor
+    )
+
+    return mode_width(
+        data.psi_t,
+        data.dpsi_dt,
+        data.d2psi_dt2,
+        r_s,
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        mag_shear,
+        params.lundquist_number
+    )
 
 
 def quasi_linear_threshold(toroidal_mode: int,

@@ -7,32 +7,39 @@ from tearing_mode_solver.gamma_model_solver import (
     time_from_flux
 )
 from tearing_mode_solver.outer_region_solver import growth_rate
-from tearing_mode_solver.helpers import savefig, dataclass_to_disk
+from tearing_mode_solver.helpers import (
+    savefig, sim_to_disk,
+    TearingModeParameters
+)
 
 def ql_tm_vs_time():
     """
     Numerically solve the quasi-linear time-dependent tearing mode problem
     and plot the perturbed flux and layer width as functions of time.
     """
-    m=2
-    n=1
-    lundquist_number = 1e8
-    axis_q = 1.0
-    solution_scale_factor = 1e-10
+    params = TearingModeParameters(
+        poloidal_mode_number = 2,
+        toroidal_mode_number = 1,
+        lundquist_number = 1e8,
+        axis_q = 1.0,
+        profile_shaping_factor = 2.0,
+        initial_flux = 1e-10
+    )
 
     times = np.linspace(0.0, 6e7, 100000)
 
-    sol, tm0, ql_threshold, s = solve_time_dependent_system(
-        m, n, lundquist_number, axis_q, solution_scale_factor, times
+    sol = solve_time_dependent_system(
+        params, times
     )
 
     psi_t, w_t, dps = sol.psi_t, sol.w_t, sol.delta_primes
 
     lin_delta_prime, lin_growth_rate = growth_rate(
-        m,
-        n,
-        lundquist_number,
-        axis_q
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        params.lundquist_number,
+        params.axis_q,
+        params.profile_shaping_factor
     )
 
     #print("lgr: ", lin_growth_rate)
@@ -42,6 +49,7 @@ def ql_tm_vs_time():
     fig, ax = plt.subplots(1, figsize=(4,3))
     ax2 = ax.twinx()
 
+    ql_threshold = 1.0
     ql_time_min = time_from_flux(psi_t, times, 0.1*ql_threshold)
     ql_time_max = time_from_flux(psi_t, times, 10.0*ql_threshold)
 
@@ -73,9 +81,9 @@ def ql_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
-    fname = f"ql_tm_time_evo_(m,n,A)=({m},{n},{solution_scale_factor})"
+    fname = f"gamma_model_(m,n,A)=({params.poloidal_mode_number},{params.toroidal_mode_number},{params.initial_flux})"
     savefig(fname)
-    dataclass_to_disk(fname, sol)
+    sim_to_disk(fname, params, sol)
     plt.show()
 
 if __name__=='__main__':

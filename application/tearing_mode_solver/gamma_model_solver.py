@@ -15,7 +15,7 @@ from tearing_mode_solver.outer_region_solver import (
 )
 
 from tearing_mode_solver.helpers import (
-    savefig, TimeDependentSolution, dataclass_to_disk
+    savefig, TimeDependentSolution, dataclass_to_disk, TearingModeParameters
 )
 from tearing_mode_solver.algebraic_fitting import nl_parabola
 
@@ -163,43 +163,40 @@ def flux_time_derivative(psi: float,
     return dpsi_dt
 
 
-def solve_time_dependent_system(poloidal_mode: int,
-                                toroidal_mode: int,
-                                lundquist_number: float,
-                                axis_q: float,
-                                initial_scale_factor: float = 1.0,
-                                t_range: np.array = np.linspace(0.0, 1e5, 10)):
+def solve_time_dependent_system(params: TearingModeParameters,
+                                t_range: np.array = np.linspace(0.0, 1e5, 10))\
+                                    -> TimeDependentSolution:
     """
     Numerically integrate the quasi-linear flux time derivative of a tearing
     mode (gamma model).
 
     Parameters:
-        poloidal_mode: int
-                Poloidal mode number of the tearing mode
-        toroidal_mode: int
-            Toroidal mode number of the tearing mode
-        lundquist_number: float
-            The Lundquist number
-        axis_q: float
-            The on-axis equilibrium safety factor
-        initial_scale_factor: float
-            The value of the perturbed flux at the resonant surface at t=0
+        params: TearingModeParameters
+            Parameters for the tearing mode.
         t_range: np.array
             Array of time values to record. Each element will have an associated
             perturbed flux, derivative etc calculated for that time.
     """
 
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
+    poloidal_mode = params.poloidal_mode_number
+    toroidal_mode = params.toroidal_mode_number
+    axis_q = params.axis_q
+    initial_scale_factor = params.initial_flux
+    lundquist_number = params.lundquist_number
+    nu = params.profile_shaping_factor
+
+    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, nu)
 
     psi_t0 = initial_scale_factor
 
-    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
+    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode, nu)
 
     lin_delta_prime, lin_growth_rate = growth_rate(
         poloidal_mode,
         toroidal_mode,
         lundquist_number,
-        axis_q
+        axis_q,
+        nu
     )
     print(lin_growth_rate)
 
@@ -256,7 +253,7 @@ def solve_time_dependent_system(poloidal_mode: int,
         np.array(dps)
     )
 
-    return sol, tm, ql_threshold, s
+    return sol
 
 def time_from_flux(psi: np.array,
                    times: np.array,

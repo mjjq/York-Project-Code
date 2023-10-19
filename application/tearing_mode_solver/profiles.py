@@ -46,3 +46,12 @@ def rational_surface(target_q: float,
     rs = minimize_scalar(fun, bounds=(0.0, 1.0), method='bounded')
 
     return rs.x
+
+def rational_surface_of_mode(poloidal_mode: int,
+                             toroidal_mode: int,
+                             axis_q: float,
+                             shaping_exponent: float) -> float:
+    return rational_surface(
+        poloidal_mode/(toroidal_mode*axis_q),
+        shaping_exponent
+    )
