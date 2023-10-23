@@ -9,22 +9,20 @@ import pandas as pd
 
 import imports
 from tearing_mode_solver.y_sol import Y
-from tearing_mode_solver.delta_model_solver import nu, mode_width
+from tearing_mode_solver.delta_model_solver import nu, mode_width_precalc
 from tearing_mode_solver.helpers import (
-    savefig, classFromArgs, TimeDependentSolution
+    savefig, classFromArgs, TimeDependentSolution, TearingModeParameters,
+    load_sim_from_disk
 )
 from tearing_mode_solver.outer_region_solver import (
     magnetic_shear, rational_surface,
     island_width, delta_prime_non_linear
 )
+from tearing_mode_solver.profiles import rational_surface_of_mode
 
 
 def plot_delql_terms(sol: TimeDependentSolution,
-                poloidal_mode: int,
-                toroidal_mode: int,
-                lundquist_number: float,
-                r_s: float,
-                mag_shear: float,
+                params: TearingModeParameters,
                 x_range: Tuple[float, float],
                 plot_t: float,
                 dx: float = 0.01):
@@ -35,17 +33,8 @@ def plot_delql_terms(sol: TimeDependentSolution,
     Parameters:
         sol: TimeDependentSolution
             The time-dependent tearing mode solution
-        poloidal_mode: int
-            Poloidal mode number of the tearing mode
-        toroidal_mode: int
-            Toroidal mode number of the tearing mode
-        lundquist_number: float
-            The Lundquist number
-        mag_shear: float
-            Magnetic shear at the resonant surface
-        r_s: float
-            Location of the resonant surface normalised to the minor radius of
-            the plasma.
+        params: TearingModeParameters
+            The tearing mode parameters
         x_range: Tuple[float, float]
             Minimum and maximum bounds defining the range of X values to use in
             the calculation of delta(X,t)
@@ -63,6 +52,24 @@ def plot_delql_terms(sol: TimeDependentSolution,
             Array of X values associated with the second dimension of deltas
 
     """
+    poloidal_mode = params.poloidal_mode_number
+    toroidal_mode = params.toroidal_mode_number
+    shaping_exponent = params.profile_shaping_factor
+    lundquist_number = params.lundquist_number
+
+    r_s = rational_surface_of_mode(
+        poloidal_mode,
+        toroidal_mode,
+        params.axis_q,
+        shaping_exponent
+    )
+    mag_shear = magnetic_shear(
+        r_s,
+        poloidal_mode,
+        toroidal_mode,
+        shaping_exponent
+    )
+
 
     times = sol.times
     w_t_func = UnivariateSpline(times, sol.w_t, s=0)
@@ -75,15 +82,9 @@ def plot_delql_terms(sol: TimeDependentSolution,
     dpsi_dt_vals = dpsi_dt_func(times)
     d2psi_dt2_vals = d2psi_dt2_func(times)
 
-    delta_t = mode_width(
-        sol.psi_t,
-        dpsi_dt_vals,
-        d2psi_dt2_vals,
-        r_s,
-        poloidal_mode,
-        toroidal_mode,
-        mag_shear,
-        lundquist_number
+    delta_t = mode_width_precalc(
+        params,
+        sol
     )
     delta_t_func = UnivariateSpline(times, delta_t, s=0)
     ddelta_dt_func = delta_t_func.derivative()
@@ -94,6 +95,9 @@ def plot_delql_terms(sol: TimeDependentSolution,
     #ax_delta.set_ylabel(r'Electrostatic mode growth rate ($\bar{\omega}_A$)')
     #fig_delta.tight_layout()
     #ax_delta.set_xlim(left=0.0, right=20000.0)
+
+    #ax_just_delta = ax_delta.twinx()
+    #ax_just_delta.plot(times, delta_t_func(times))
 
     #plt.plot(times, delta_t_func(times))
     #plt.plot(times, ddelta_dt_func(times)/delta_t_func(times))
@@ -147,26 +151,19 @@ def plot_delql_terms(sol: TimeDependentSolution,
     #plt.show()
 
 if __name__=='__main__':
-    m=2
-    n=1
-    S=1e8
-    s=5.84863459819362
-    r_s=0.7962252761034401
+    fname = "/home/marcus/Nextcloud/Documents/Fusion Energy MSc/Courses/Project/Code/application/experiments/delta_model/output/19-10-2023_16:27_delta_model_(m,n,A,q0)=(2,1,1e-10,1.0).zip"
+    params, sol = load_sim_from_disk(fname)
+    #ql_sol = classFromArgs(TimeDependentSolution, df)
 
-    fname = "../../tearing_mode_solver/output/28-08-2023_19:29_new_ql_tm_time_evo_(m,n,A,q0)=(2,1,1e-10,1.0).csv"
-    df = pd.read_csv(fname)
-    ql_sol = classFromArgs(TimeDependentSolution, df)
+    ts = np.linspace(0.5e5, 1.0e5, 5)
+    #t = 1.4e5
 
-    t = 5e7
-
-    plot_delql_terms(
-        ql_sol,
-        m,n,
-        S,
-        r_s,
-        s,
-        (-10, 10),
-        t
-    )
+    for t in ts:
+        plot_delql_terms(
+            sol,
+            params,
+            (-10, 10),
+            t
+        )
 
     plt.show()
