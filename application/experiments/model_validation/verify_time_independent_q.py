@@ -94,30 +94,47 @@ def verify_time_ind_q(sol: TimeDependentSolution,
         2.0*lundquist_number*r_s**4 * toroidal_mode**2 * mag_shear**2
     )
     spatial_term = ys/xs
-    temporal_term = dpsi_dt_func(plot_t)*psi_t_func(plot_t)\
-        /(delta_t_func(plot_t))**2
+    temporal_term = dpsi_dt_func(times)*psi_t_func(times)\
+        /(delta_t_func(times))**2
 
-    full_term = np.abs(pre_factor * spatial_term * temporal_term)
+    outer_product = np.outer(spatial_term, temporal_term)
+    full_term = np.abs(pre_factor * outer_product)
 
-    fig, ax = plt.subplots(1, figsize=(4,3))
-
-    ax.plot(
-        xs, full_term
+    fig, ax = plt.subplots(1)
+    im = ax.imshow(
+        full_term,
+        extent=[min(times), max(times), min(xs), max(xs)]
     )
 
-    ax.set_xlabel(r"X")
-    ax.set_ylabel(r"Temporal component of $\epsilon(x,t)/\mu x$")
+    fig.colorbar(im)
+    ax.set_aspect((max(times)-min(times))/(max(xs)-min(xs)))
 
-    ax.set_title(r"$\bar{\omega}_A t$"f"={plot_t:.1f}")
-
-    ax.legend(prop={'size':8})
-
-    #ax.set_xscale('log')
-    #ax.set_yscale('log')
+    ax.set_xlabel(r"Normalised time ($1/\bar{\omega}_A$)")
+    ax.set_ylabel(r"X ($r_s$)")
 
     fig.tight_layout()
 
-    savefig(f"q_time_verification={plot_t:.2f}")
+    #fig, ax = plt.subplots(1, figsize=(4,3))
+
+    #ax.plot(
+    #    xs, full_term
+    #)
+
+    print(np.max(full_term))
+
+    #ax.set_xlabel(r"X")
+    #ax.set_ylabel(r"Temporal component of $\epsilon(x,t)/\mu x$")
+
+    #ax.set_title(r"$\bar{\omega}_A t$"f"={plot_t:.1f}")
+
+    #ax.legend(prop={'size':8})
+
+    ##ax.set_xscale('log')
+    ##ax.set_yscale('log')
+
+    #fig.tight_layout()
+
+    savefig(f"q_time_verification_(m,n)=({poloidal_mode},{toroidal_mode})")
     #plt.show()
 
 if __name__=='__main__':
