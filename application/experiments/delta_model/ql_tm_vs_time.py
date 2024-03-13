@@ -5,6 +5,7 @@ from dataclasses import asdict
 
 import imports
 
+from tearing_mode_solver.profiles import generate_j_profile, generate_q_profile
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
 from tearing_mode_solver.helpers import (
     savefig, 
@@ -22,12 +23,12 @@ def ql_tm_vs_time():
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
         lundquist_number = 1e8,
-        axis_q = 1.0,
-        profile_shaping_factor = 2.0,
-        initial_flux = 1e-10
+        initial_flux = 1e-10,
+        q_profile = generate_q_profile(1.0, 2.0),
+        j_profile = generate_j_profile(2.0)
     )
 
-    times = np.linspace(0.0, 1e7, 10000)
+    times = np.linspace(0.0, 1e8, 10000)
 
     ql_solution = solve_time_dependent_system(
         params, times
@@ -71,7 +72,7 @@ def ql_tm_vs_time():
     fig.tight_layout()
     #plt.show()
 
-    fname = f"delta_model_(m,n,A,q0)=({params.poloidal_mode_number},{params.toroidal_mode_number},{params.initial_flux},{params.axis_q})"
+    fname = f"delta_model_(m,n,A)=({params.poloidal_mode_number},{params.toroidal_mode_number},{params.initial_flux})"
     savefig(fname)
     sim_to_disk(fname, params, ql_solution)
     plt.show()

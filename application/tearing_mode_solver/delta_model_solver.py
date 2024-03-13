@@ -12,13 +12,14 @@ from tearing_mode_solver.outer_region_solver import (
     growth_rate,
     solve_system,
     scale_tm_solution,
-    magnetic_shear,
     layer_width,
     delta_prime_non_linear,
     island_width
 )
 
-from tearing_mode_solver.profiles import rational_surface_of_mode
+from tearing_mode_solver.profiles import (
+    rational_surface_of_mode, magnetic_shear_profile, magnetic_shear
+)
 
 from tearing_mode_solver.helpers import (
     savefig, savecsv, TimeDependentSolution, TearingModeParameters
@@ -102,18 +103,12 @@ def mode_width(psi_rs: float,
 def mode_width_precalc(params: TearingModeParameters,
                        data: TimeDependentSolution) -> float:
     r_s = rational_surface_of_mode(
+        params.q_profile,
         params.poloidal_mode_number,
-        params.toroidal_mode_number,
-        params.axis_q,
-        params.profile_shaping_factor
+        params.toroidal_mode_number
     )
 
-    mag_shear = magnetic_shear(
-        r_s,
-        params.poloidal_mode_number,
-        params.toroidal_mode_number,
-        params.profile_shaping_factor
-    )
+    mag_shear = magnetic_shear(params.q_profile, r_s)
 
     return mode_width(
         data.psi_t,
@@ -243,11 +238,11 @@ def solve_time_dependent_system(params: TearingModeParameters,
     """
     poloidal_mode = params.poloidal_mode_number
     toroidal_mode = params.toroidal_mode_number
-    axis_q = params.axis_q
     lundquist_number = params.lundquist_number
-    nu = params.profile_shaping_factor
 
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q, nu)
+    tm = solve_system(
+        poloidal_mode, toroidal_mode, params.q_profile, params.j_profile
+    )
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
     psi_t0 = params.initial_flux#tm.psi_forwards[-1]
@@ -260,12 +255,12 @@ def solve_time_dependent_system(params: TearingModeParameters,
         poloidal_mode,
         toroidal_mode,
         lundquist_number,
-        axis_q,
-        nu
+        params.q_profile,
+        tm
     )
     dpsi_dt_t0 = linear_growth_rate * psi_t0
 
-    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode, nu)
+    s = magnetic_shear(params.q_profile, tm.r_s)
 
     # Calculate the initial width of the magnetic island using the linear layer
     # width.

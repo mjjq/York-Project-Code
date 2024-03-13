@@ -1,11 +1,13 @@
 from scipy.integrate import odeint, solve_ivp
-from typing import Tuple
+from typing import Tuple, List
 import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, UnivariateSpline
 
-from tearing_mode_solver.profiles import q, dj_dr, rational_surface
+from tearing_mode_solver.profiles import (
+    rational_surface, magnetic_shear_profile, magnetic_shear
+)
 from tearing_mode_solver.helpers import savefig
 
 
@@ -13,11 +15,9 @@ def compute_derivatives(y: Tuple[float, float],
                         r: float,
                         poloidal_mode: int,
                         toroidal_mode: int,
-                        j_profile_derivative,
-                        q_profile,
-                        axis_q: float,
-                        shaping_exponent: float,
-                        epsilon: float = 1e-5) -> Tuple[float, float]:
+                        q_profile: callable,
+                        dj_dr_profile: callable,
+                        epsilon: float = 1e-6) -> Tuple[float, float]:
     """
     Compute derivatives for the perturbed flux outside of the resonant region
     (resistivity and inertia neglected).
@@ -62,16 +62,12 @@ def compute_derivatives(y: Tuple[float, float],
         Poloidal mode number.
     toroidal_mode : int
         Toroidal mode number.
-    j_profile_derivative : func
-        Derivative in the current profile. Must be a function which accepts
-        the radial co-ordinate r as a parameter.
     q_profile : TYPE
         Safety factor profile. Must be a function which accepts the radial
         co-ordinate r as a parameter.
-    axis_q : float, optional
-        Value of the normalised safety factor on-axis. The default is 1.0.
-    shaping_exponent: float
-        Shaping exponent of the current/q-profiles
+    dj_dr_profile : func
+        Derivative in the current profile. Must be a function which accepts
+        the radial co-ordinate r as a parameter.
     epsilon : float, optional
         Tolerance value to determine values of r which are sufficiently close
         to r=0. The default is 1e-5.
@@ -90,14 +86,13 @@ def compute_derivatives(y: Tuple[float, float],
 
     m = poloidal_mode
     n = toroidal_mode
-    q_0 = axis_q
     
     if np.abs(r) < epsilon:
         d2psi_dr2 = psi*m**2
     else:
-        dj_dr = j_profile_derivative(r, shaping_exponent)
-        q = q_profile(r, shaping_exponent)
-        A = (q*m*dj_dr)/(n*q_0*q - m)
+        dj_dr = dj_dr_profile(r)
+        q = q_profile(r)
+        A = (q*m*dj_dr)/(n*q - m)
         d2psi_dr2 = psi*(m**2 - 2*A*r) + r*dpsi_dr
         
     #print(dpsi_dr)
@@ -145,8 +140,8 @@ def scale_tm_solution(tm: OuterRegionSolution, scale_factor: float)\
 
 def solve_system(poloidal_mode: int, 
                  toroidal_mode: int, 
-                 axis_q: float,
-                 shaping_exponent: float,
+                 q_profile: List[Tuple[float, float]],
+                 j_profile: List[Tuple[float, float]],
                  resolution: float = 1e-6,
                  r_s_thickness: float = 1e-4) -> OuterRegionSolution:
     """
@@ -159,10 +154,12 @@ def solve_system(poloidal_mode: int,
         Poloidal mode number.
     toroidal_mode : int
         Toroidal mode number.
-    axis_q : float
-        Value of the safety factor on-axis.
-    shaping_exponent: float
-        Shaping exponent of the current/q-profiles
+    q_profile : List[Tuple[float, float]]
+        Safety factor profile. Each list element is a tuple consisting of
+        (minor_radial_coordinate, q_at_minor_coord)
+    j_profile: List[Tuple[float, float]]
+        Current density profile. Each list element is a tuple consisting of
+        (minor_radial_coordinate, j_at_minor_coord)
     n: int, optional
         Number of elements in the integrand each for the forwards and 
         backwards solutions. The default is 10000.
@@ -176,15 +173,21 @@ def solve_system(poloidal_mode: int,
     initial_psi = 0.0
     initial_dpsi_dr = 1.0
 
-    q_rs = poloidal_mode/(toroidal_mode*axis_q)
-    if q_rs >= q(1.0, shaping_exponent) or q_rs <= q(0.0, shaping_exponent):
+    r_vals, q_vals = zip(*q_profile)
+    q_func = UnivariateSpline(r_vals, q_vals, s=0.0)
+    
+    print(j_profile)
+    r_vals, j_vals = zip(*j_profile)
+    j_func = UnivariateSpline(r_vals, j_vals, s=0.0)
+    dj_dr_func = j_func.derivative()
+
+    q_rs = poloidal_mode/(toroidal_mode)
+    if q_rs >= q_func(1.0) or q_rs <= q_func(0.0):
         raise ValueError("Rational surface located outside bounds")
 
-    r_s = rational_surface(
-        poloidal_mode/(toroidal_mode*axis_q),
-        shaping_exponent
-    )
-
+    r_s = rational_surface(q_profile, poloidal_mode/toroidal_mode)
+    
+    
     #r_s_thickness = 0.0001
 
     #print(f"Rational surface located at r={r_s:.4f}")
@@ -197,7 +200,7 @@ def solve_system(poloidal_mode: int,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
         args = (
-            poloidal_mode, toroidal_mode, dj_dr, q, axis_q, shaping_exponent
+            poloidal_mode, toroidal_mode, q_func, dj_dr_func
         ),
         tcrit=(0.0)
     )
@@ -214,7 +217,7 @@ def solve_system(poloidal_mode: int,
         (initial_psi, -initial_dpsi_dr),
         r_range_bkwd,
         args = (
-            poloidal_mode, toroidal_mode, dj_dr, q, axis_q, shaping_exponent
+            poloidal_mode, toroidal_mode, q_func, dj_dr_func
         )
     )
 
@@ -292,31 +295,6 @@ def delta_prime(tm_sol: OuterRegionSolution,
 
 
 
-
-
-def magnetic_shear(resonant_surface: float,
-                   poloidal_mode: int,
-                   toroidal_mode: int,
-                   shaping_exponent: float) -> float:
-    """
-    Calculate the magnetic shear of the plasma at the resonant surface using
-    the globally defined q profile.
-
-    s(r_s) = q'(r_s)/q(r_s)
-    """
-    r_s = resonant_surface
-    
-    r = np.linspace(0, 1, 1000)
-    dr = r[1]-r[0]
-    q_values = q(r, shaping_exponent)
-    dq_dr = np.gradient(q_values, dr)
-    rs_id = np.abs(r_s - r).argmin()
-    
-    m = poloidal_mode
-    n = toroidal_mode
-    
-    return (m/n)*r_s*dq_dr[rs_id]
-
 def gamma_constant() -> float:
     """
     Numerical solution to the integral int_{-\infty}^{\infty} (1+XY(X)) dX,
@@ -324,11 +302,10 @@ def gamma_constant() -> float:
     """
     return 2.1236482729819393256107565
 
-def growth_rate_scale(lundquist_number: float,
-                      r_s: float,
+def growth_rate_scale(q_profile: List[Tuple[float, float]],
+                      lundquist_number: float,
                       poloidal_mode: float,
-                      toroidal_mode: float,
-                      shaping_exponent: float) -> float:
+                      toroidal_mode: float) -> float:
     """
     Given some of the plasma paramters, calculate the value that multiplies
     by (Delta')^{4/5} to give the linear growth rate.
@@ -343,7 +320,9 @@ def growth_rate_scale(lundquist_number: float,
     n = toroidal_mode
     S = lundquist_number
     
-    s = magnetic_shear(r_s, m, n, shaping_exponent)
+    r_s = rational_surface(q_profile, poloidal_mode/toroidal_mode)
+    
+    s = magnetic_shear(q_profile, r_s)
     
     grs = gamma_scale_factor**(-4/5)* r_s**(4/5) \
         * (n*s)**(2/5) / S**(3/5)
@@ -354,9 +333,8 @@ def growth_rate_scale(lundquist_number: float,
 def growth_rate(poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
-                axis_q: float,
-                shaping_exponent: float,
-                resolution: float = 1e-6) -> Tuple[float, float]:
+                q_profile: List[Tuple[float, float]],
+                tm: OuterRegionSolution) -> Tuple[float, float]:
     """
     Calculate growth rate of a tearing mode in the linear regime.
 
@@ -368,11 +346,9 @@ def growth_rate(poloidal_mode: int,
     n = toroidal_mode
     S = lundquist_number
     
-    tm = solve_system(m, n, axis_q, shaping_exponent, resolution)
-    
     delta_p = delta_prime(tm)
     
-    grs = growth_rate_scale(S, tm.r_s, m, n, shaping_exponent)
+    grs = growth_rate_scale(q_profile, S, m, n)
 
     growth_rate = grs*complex(delta_p)**(4/5)
 
@@ -381,7 +357,7 @@ def growth_rate(poloidal_mode: int,
 def layer_width(poloidal_mode: int,
                 toroidal_mode: int,
                 lundquist_number: float,
-                axis_q: float = 1.0) -> float:
+                q_profile: List[Tuple[float, float]]) -> float:
     """
     Calculate the thickness of the resistive layer in the linear regime.
     """
@@ -390,13 +366,13 @@ def layer_width(poloidal_mode: int,
     S = lundquist_number
 
     try:
-        tm = solve_system(m, n, axis_q)
+        tm = solve_system(m, n, q_profile)
     except ValueError:
         return np.nan
 
-    delta_p, gr = growth_rate(m, n, S, axis_q)
+    delta_p, gr = growth_rate(m, n, S, q_profile)
 
-    s = magnetic_shear(tm.r_s, m, n)
+    s = magnetic_shear(q_profile, tm.r_s)
 
     return tm.r_s*(gr/(S*(n*s)**2))**(1/4)
 

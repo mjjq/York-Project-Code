@@ -5,7 +5,7 @@ from pathlib import Path
 from zipfile import ZipFile
 import json
 from io import BytesIO
-from typing import Tuple
+from typing import Tuple, List
 
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -87,12 +87,15 @@ class TearingModeParameters():
     toroidal_mode_number: int
     # Ratio of resistive timescale to Alfven timescale
     lundquist_number: float
-    # On-axis safety factor (normalised)
-    axis_q: float
-    # Current profile shaping factor
-    profile_shaping_factor: float
     # Initial perturbed flux value
     initial_flux: float
+    # Custom q-profile (overrides profile defined in profiles.py)
+    # Each array element contains (minor_radial_coord, q_value_at_coord)
+    q_profile: List[Tuple[float, float]]
+    # Custom current profile (overrides profile defined in profiles.py)
+    # Each array element contains (minor_radial_coord, current_at_coord)
+    j_profile: List[Tuple[float, float]]
+    
 
 def dataclass_to_disk(name: str, cls: dataclass):
     """
@@ -144,7 +147,9 @@ def load_sim_from_disk(name: str) -> \
 
 def _test_to_disk_function():
     params = TearingModeParameters(
-        2, 1, 1e8, 1.0, 5.2, 0.56
+        2, 1, 1e8, 1.0, 
+        [(0.0, 1.0), (0.5, 1.5), (1.0, 2.0)],
+        [(0.0, 3.0), (0.25, 1.5), (0.5, 0.75), (0.75, 0.3), (1.0, 0.0)]
     )
 
     data = TimeDependentSolution(
@@ -160,7 +165,7 @@ def _test_to_disk_function():
 
 def _test_load_from_disk_function():
     params, sim_data = load_sim_from_disk(
-        "./output/13-10-2023_12:12_test.zip"
+        "./output/11-03-2024_17:05_test.zip"
     )
 
     print(params)
@@ -169,4 +174,5 @@ def _test_load_from_disk_function():
     return
 
 if __name__=='__main__':
+    #_test_to_disk_function()
     _test_load_from_disk_function()
