@@ -243,6 +243,12 @@ def solve_time_dependent_system(params: TearingModeParameters,
     tm = solve_system(
         poloidal_mode, toroidal_mode, params.q_profile, params.j_profile
     )
+    
+    fig, ax = plt.subplots(1)
+    
+    ax.plot(tm.r_range_fwd, tm.psi_forwards)
+    ax.plot(tm.r_range_bkwd, tm.psi_backwards)
+    
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
     psi_t0 = params.initial_flux#tm.psi_forwards[-1]
