@@ -8,13 +8,15 @@ from scipy.interpolate import interp1d, UnivariateSpline
 from tearing_mode_solver.profiles import (
     rational_surface, magnetic_shear_profile, magnetic_shear
 )
-from tearing_mode_solver.helpers import savefig
+from tearing_mode_solver.helpers import savefig, TearingModeParameters
 
 
 def compute_derivatives(y: Tuple[float, float],
                         r: float,
                         poloidal_mode: int,
                         toroidal_mode: int,
+                        B0: float,
+                        R0: float,
                         q_profile: callable,
                         dj_dr_profile: callable,
                         epsilon: float = 1e-6) -> Tuple[float, float]:
@@ -62,6 +64,10 @@ def compute_derivatives(y: Tuple[float, float],
         Poloidal mode number.
     toroidal_mode : int
         Toroidal mode number.
+    B0: float
+        On-axis toroidal field in Tesla
+    R0: float
+        Major radius of the tokamak
     q_profile : TYPE
         Safety factor profile. Must be a function which accepts the radial
         co-ordinate r as a parameter.
@@ -92,8 +98,8 @@ def compute_derivatives(y: Tuple[float, float],
     else:
         dj_dr = dj_dr_profile(r)
         q = q_profile(r)
-        A = (q*m*dj_dr)/(n*q - m)
-        d2psi_dr2 = psi*(m**2 - 2*A*r) + r*dpsi_dr
+        A = (R0/B0)*(q*m*dj_dr)/(n*q - m)
+        d2psi_dr2 = psi*(m**2 - A*r) + r*dpsi_dr
         
     #print(dpsi_dr)
 
@@ -138,10 +144,7 @@ def scale_tm_solution(tm: OuterRegionSolution, scale_factor: float)\
         tm.r_s
     )
 
-def solve_system(poloidal_mode: int, 
-                 toroidal_mode: int, 
-                 q_profile: List[Tuple[float, float]],
-                 j_profile: List[Tuple[float, float]],
+def solve_system(params: TearingModeParameters,
                  resolution: float = 1e-6,
                  r_s_thickness: float = 1e-4) -> OuterRegionSolution:
     """
@@ -150,19 +153,9 @@ def solve_system(poloidal_mode: int,
 
     Parameters
     ----------
-    poloidal_mode : int
-        Poloidal mode number.
-    toroidal_mode : int
-        Toroidal mode number.
-    q_profile : List[Tuple[float, float]]
-        Safety factor profile. Each list element is a tuple consisting of
-        (minor_radial_coordinate, q_at_minor_coord)
-    j_profile: List[Tuple[float, float]]
-        Current density profile. Each list element is a tuple consisting of
-        (minor_radial_coordinate, j_at_minor_coord)
-    n: int, optional
-        Number of elements in the integrand each for the forwards and 
-        backwards solutions. The default is 10000.
+    tm: TearingModeParameters
+    
+    Tearing mode input parameters
 
     Returns
     -------
@@ -172,6 +165,13 @@ def solve_system(poloidal_mode: int,
     """
     initial_psi = 0.0
     initial_dpsi_dr = 1.0
+
+    q_profile = params.q_profile
+    j_profile = params.j_profile
+    poloidal_mode = params.poloidal_mode_number
+    toroidal_mode = params.toroidal_mode_number
+    B0 = params.B0
+    R0 = params.R0
 
     r_vals, q_vals = zip(*q_profile)
     q_func = UnivariateSpline(r_vals, q_vals, s=0.0)
@@ -200,7 +200,7 @@ def solve_system(poloidal_mode: int,
         (initial_psi, initial_dpsi_dr),
         r_range_fwd,
         args = (
-            poloidal_mode, toroidal_mode, q_func, dj_dr_func
+            poloidal_mode, toroidal_mode, B0, R0, q_func, dj_dr_func
         ),
         tcrit=(0.0)
     )
@@ -217,7 +217,7 @@ def solve_system(poloidal_mode: int,
         (initial_psi, -initial_dpsi_dr),
         r_range_bkwd,
         args = (
-            poloidal_mode, toroidal_mode, q_func, dj_dr_func
+            poloidal_mode, toroidal_mode, B0, R0, q_func, dj_dr_func
         )
     )
 

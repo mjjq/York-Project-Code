@@ -18,8 +18,8 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data = "../delta_model/output/13-03-2024_16:37_delta_model_(m,n,A)=(2,1,1e-10).zip"
-    params, sol = load_sim_from_disk(fname)
+    model_data_filename = "./output/15-03-2024_13:30_jorek_model_(m,n)=(2,1).zip"
+    params, sol = load_sim_from_disk(model_data_filename)
 
     times = sol.times
     psi_t = sol.psi_t
@@ -77,7 +77,7 @@ def ql_tm_vs_time():
 
     fig.tight_layout()
     #plt.show()
-    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    orig_fname, ext = os.path.splitext(os.path.basename(model_data_filename))
     savefig(f"{orig_fname}_full")
 
     fig_growth, ax_growth = plt.subplots(1, figsize=(4.5,3))
@@ -91,7 +91,7 @@ def ql_tm_vs_time():
     fig_growth.tight_layout()
 
     ax_growth.set_xscale('log')
-    orig_fname, ext = os.path.splitext(os.path.basename(fname))
+    orig_fname, ext = os.path.splitext(os.path.basename(model_data_filename))
     savefig(f"{orig_fname}_growth_rate")
 
     ax_growth.set_xscale('log')

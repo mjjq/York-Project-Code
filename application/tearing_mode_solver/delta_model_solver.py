@@ -240,14 +240,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
     toroidal_mode = params.toroidal_mode_number
     lundquist_number = params.lundquist_number
 
-    tm = solve_system(
-        poloidal_mode, toroidal_mode, params.q_profile, params.j_profile
-    )
-    
-    fig, ax = plt.subplots(1)
-    
-    ax.plot(tm.r_range_fwd, tm.psi_forwards)
-    ax.plot(tm.r_range_bkwd, tm.psi_backwards)
+    tm = solve_system(params)
     
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 

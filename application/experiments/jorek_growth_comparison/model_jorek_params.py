@@ -30,17 +30,13 @@ def ql_tm_vs_time():
     )
     
     
-    rq, q = zip(*q_profile)
-    rj, js = zip(*j_profile)
-    #js = j(rj, 2.0)
-    dj_dr = UnivariateSpline(rj, js, s=0.0).derivative()
-    dj_dr_vals = dj_dr(rj)
-    j_profile = list(zip(rj, js))
-    
-    fig, ax = plt.subplots(3)
-    ax[0].plot(rq, q)
-    ax[1].plot(rj, js)
-    ax[2].plot(rj, dj_dr_vals)
+    #rq, q = zip(*q_profile)
+    #q = np.array(q)/q[0]
+    #rj, js = zip(*j_profile)  
+    #fig, ax = plt.subplots(3)
+    #ax[0].plot(rq, q)
+    #ax[1].plot(rj, js)
+    #ax[2].plot(rj, dj_dr_vals)
     
     
     params = TearingModeParameters(
@@ -48,11 +44,13 @@ def ql_tm_vs_time():
         toroidal_mode_number = 1,
         lundquist_number = 1.147e10,
         initial_flux = 1e-10,
+        B0=1.0,
+        R0=40.0,
         q_profile = q_profile,
         j_profile = j_profile
     )
 
-    times = np.linspace(0.0, 1e5, 100)
+    times = np.linspace(0.0, 1e8, 10000)
 
     ql_solution = solve_time_dependent_system(
         params, times
@@ -96,7 +94,7 @@ def ql_tm_vs_time():
     fig.tight_layout()
     #plt.show()
 
-    fname = f"delta_model_(m,n,A)=({params.poloidal_mode_number},{params.toroidal_mode_number},{params.initial_flux})"
+    fname = f"jorek_model_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
     savefig(fname)
     sim_to_disk(fname, params, ql_solution)
     plt.show()

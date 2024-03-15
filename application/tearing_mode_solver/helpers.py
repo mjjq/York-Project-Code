@@ -89,6 +89,10 @@ class TearingModeParameters():
     lundquist_number: float
     # Initial perturbed flux value
     initial_flux: float
+    # On-axis toroidal field in Tesla
+    B0: float
+    # Major radius of the tokamak in metres
+    R0: float    
     # Custom q-profile (overrides profile defined in profiles.py)
     # Each array element contains (minor_radial_coord, q_value_at_coord)
     q_profile: List[Tuple[float, float]]
