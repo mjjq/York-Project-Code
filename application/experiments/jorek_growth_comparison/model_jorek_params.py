@@ -17,6 +17,21 @@ from tearing_mode_solver.helpers import (
     sim_to_disk
 )
 
+def plot_growth(times, dpsi_t, psi_t):
+    fig_growth, ax_growth = plt.subplots(1, figsize=(4.5,3))
+
+    ax_growth.plot(times, dpsi_t/psi_t, color='black')
+    ax_growth.set_ylabel(r'Growth rate $\delta\dot{\psi}^{(1)}/\delta\psi^{(1)}$')
+    ax_growth.set_xlabel(r'Normalised time $1/\bar{\omega}_A$')
+
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+
+    fig_growth.tight_layout()
+
+    ax_growth.set_xscale('log')
+    #orig_fname, ext = os.path.splitext(os.path.basename(model_data_filename))
+    #savefig(f"{orig_fname}_growth_rate")
+
 def ql_tm_vs_time():
     """
     Numerically solve the quasi-linear time-dependent tearing mode problem
@@ -43,14 +58,14 @@ def ql_tm_vs_time():
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
         lundquist_number = 1.147e10,
-        initial_flux = 1e-10,
+        initial_flux = 1e-12,
         B0=1.0,
         R0=40.0,
         q_profile = q_profile,
         j_profile = j_profile
     )
 
-    times = np.linspace(0.0, 1e8, 10000)
+    times = np.linspace(0.0, 1e7, 1000)
 
     ql_solution = solve_time_dependent_system(
         params, times
@@ -97,6 +112,9 @@ def ql_tm_vs_time():
     fname = f"jorek_model_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
     savefig(fname)
     sim_to_disk(fname, params, ql_solution)
+    
+    plot_growth(times, dpsi_t, psi_t)
+    
     plt.show()
 
 
