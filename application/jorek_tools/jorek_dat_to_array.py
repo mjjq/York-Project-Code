@@ -83,30 +83,29 @@ def q_and_j_from_input_files(filename_psi: str, filename_q: str) -> \
     
     return q_r, j_r
 
+def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
+    Tuple[ List[Tuple[float, float]], List[Tuple[float, float]] ]:
+        
+    exprs_data: pd.DataFrame = pd.read_csv(filename_exprs)
+    q_data = read_q_profile(filename_q)
+    
+    psi_n_data = list(zip(exprs_data['Psi_N'],exprs_data['r_minor']))
+    q_r = map_q_to_rminor(psi_n_data, q_data)
+    
+    # Use zj as this seems to be non-normalised compared to currdens and Jphi
+    j_r = list(zip(exprs_data['r_minor'], exprs_data['zj']))
+
+    return q_r, j_r
 
 if __name__=='__main__':
-    filename_psi = sys.argv[1]
-    psi_data = read_psi_profile(filename_psi)
-    j_data = read_j_profile(filename_psi)
-    #print(psi_data)
-
-    filename_q = sys.argv[2]
-    q_data = read_q_profile(filename_q)
-    #print(q_data)
-
-    q_r = map_q_to_rminor(psi_data, q_data)
-    #print(q_r)
+    filename_exprs = "./postproc/exprs_averaged_s00000.csv"
+    filename_q = "./postproc/qprofile_s00000.dat"
     
-    from matplotlib import pyplot as plt
-    #rs, qs = zip(*q_r)
-    #print(rs)
-    rs, qs = zip(*q_r)
-    rjs, js = zip(*j_data)
+    q_r, j_r = q_and_j_from_csv(filename_exprs, filename_q)
     
-    fig, ax = plt.subplots(2)
-    ax[0].plot(rs, qs)
-    ax[1].plot(rjs, js)
-
-    fig2, ax2 = plt.subplots(1)
+    print(q_r, j_r)
     
-    ax2.plot(rjs, (1-np.array(rjs)**2)**2)
+    
+    
+    
+    

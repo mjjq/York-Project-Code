@@ -1,20 +1,17 @@
 import numpy as np
 from matplotlib import pyplot as plt
-import pandas as pd
-from dataclasses import asdict
-from os.path import join
-from scipy.interpolate import UnivariateSpline
 
 import imports
 
-from tearing_mode_solver.profiles import j
-from jorek_tools.jorek_dat_to_array import q_and_j_from_input_files
+from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
+from tearing_mode_solver.outer_region_solver import \
+    solve_system, OuterRegionSolution
 from tearing_mode_solver.helpers import (
     savefig, 
-    savecsv, 
     TearingModeParameters,
-    sim_to_disk
+    sim_to_disk,
+    TimeDependentSolution
 )
 
 def plot_growth(times, dpsi_t, psi_t):
@@ -30,7 +27,49 @@ def plot_growth(times, dpsi_t, psi_t):
 
     ax_growth.set_xscale('log')
     #orig_fname, ext = os.path.splitext(os.path.basename(model_data_filename))
-    #savefig(f"{orig_fname}_growth_rate")
+    savefig("jorek_model_growth_rate")
+
+def plot_outer_region_solution(params: TearingModeParameters):
+    tm = solve_system(params)
+    
+    fig, axs = plt.subplots(2)
+    ax, ax_dpsi_dr = axs
+    
+    max_psi = max(
+        np.max(tm.psi_forwards), 
+        np.max(tm.psi_backwards)
+    )
+    ax.plot(tm.r_range_fwd, tm.psi_forwards/max_psi)
+    ax.plot(tm.r_range_bkwd, tm.psi_backwards/max_psi)
+    
+    ax.set_ylabel("Normalised perturbed flux")
+    
+    ax_dpsi_dr.plot(tm.r_range_fwd, tm.dpsi_dr_forwards)
+    ax_dpsi_dr.plot(tm.r_range_bkwd, tm.dpsi_dr_backwards)
+    
+    ax_dpsi_dr.set_ylabel("$\partial \delta\psi^{(1)}/\partial r$")
+    
+    ax_dpsi_dr.set_xlabel("Normalised minor radial co-ordinate (a)")
+    
+    fname = f"jorek_model_growth_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
+    savefig(fname)
+    
+def plot_delta_prime(outer_sol: OuterRegionSolution, 
+                     time_dep_sol: TimeDependentSolution):
+    r_s = outer_sol.r_s
+    dps = r_s*np.array(time_dep_sol.delta_primes)
+    times = time_dep_sol.times
+    
+    fig, ax = plt.subplots(1)
+    ax.plot(times, dps)
+    
+    ax.set_xlabel('Normalised time (1/$\omega_A$)')
+    ax.set_ylabel("$r_s\Delta'(w)$")
+    
+    fig.tight_layout()
+    
+    
+    
 
 def ql_tm_vs_time():
     """
@@ -38,9 +77,9 @@ def ql_tm_vs_time():
     and plot the perturbed flux and layer width as functions of time.
     """
     
-    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.dat"
+    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
     q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
-    q_profile, j_profile = q_and_j_from_input_files(
+    q_profile, j_profile = q_and_j_from_csv(
         psi_current_prof_filename, q_prof_filename
     )
     
@@ -48,6 +87,8 @@ def ql_tm_vs_time():
     #rq, q = zip(*q_profile)
     #q = np.array(q)/q[0]
     #rj, js = zip(*j_profile)  
+    #js = 10.0*np.array(js)
+    #j_profile = list(zip(rj, 40.0*np.array(js)))
     #fig, ax = plt.subplots(3)
     #ax[0].plot(rq, q)
     #ax[1].plot(rj, js)
@@ -57,16 +98,19 @@ def ql_tm_vs_time():
     params = TearingModeParameters(
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
-        lundquist_number = 1.147e10,
-        initial_flux = 1e-12,
+        lundquist_number = 1.15e10,
+        initial_flux = 2e-9,
         B0=1.0,
         R0=40.0,
         q_profile = q_profile,
         j_profile = j_profile
     )
+    
+    sol = solve_system(params)
 
-    times = np.linspace(0.0, 1e7, 1000)
+    times = np.linspace(0.0, 2e5, 1000)
 
+    
     ql_solution = solve_time_dependent_system(
         params, times
     )
@@ -114,6 +158,7 @@ def ql_tm_vs_time():
     sim_to_disk(fname, params, ql_solution)
     
     plot_growth(times, dpsi_t, psi_t)
+    plot_delta_prime(sol, ql_solution)
     
     plt.show()
 

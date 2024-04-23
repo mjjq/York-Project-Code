@@ -18,7 +18,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/15-03-2024_13:30_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/23-04-2024_16:44_jorek_model_(m,n)=(2,1).zip"
     params, sol = load_sim_from_disk(model_data_filename)
 
     times = sol.times
