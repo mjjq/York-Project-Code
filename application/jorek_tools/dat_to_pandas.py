@@ -6,9 +6,9 @@ from typing import List
 def get_parameter_names_from_dat(filename: str) -> List[str]:
 	names = []
 	with open(filename, 'r') as file:
-		line = file.readline()
+		line = file.readline().replace('"', '')
 		# First term in names will be the comment hash, so use [1:] to ignore this
-		names = line.split()[1:]
+		names = line.split()
 
 	return names
 
@@ -19,8 +19,19 @@ def dat_to_pandas(filename: str) -> pd.DataFrame:
 	names = get_parameter_names_from_dat(filename)
 	#print(names)
 	#print(data)
+	num_columns = data.shape[1]
+	if len(names) == num_columns + 1:
+		print(f"Warning: {num_columns} Columns and {len(names)} column names")
+		print("Removing first name (likely hash delimiter)")
+		names = names[1:]
+	elif (len(names) > num_columns+1) or (len(names) < num_columns):
+		raise ValueError(
+			f"Too many/not enough column names ({len(names)} "
+			f"names, {num_columns} cols). "
+			 "Check your dat file"
+		)
 
-	df = pd.DataFrame(data, columns=names)
+	df = pd.DataFrame(data, columns=names).dropna(how='all')
 
 	return df
 
