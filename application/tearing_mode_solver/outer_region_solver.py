@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
 from scipy.interpolate import interp1d, UnivariateSpline
+from scipy.integrate import simpson
 
 from tearing_mode_solver.profiles import (
     rational_surface, magnetic_shear_profile, magnetic_shear
@@ -456,3 +457,39 @@ def delta_prime_non_linear(tm: OuterRegionSolution,
 
     return delta_p
 
+def normalised_energy_integral(tm: OuterRegionSolution,
+                               params: TearingModeParameters):
+    m = params.poloidal_mode_number
+
+    psi_rs = tm.psi_forwards[-1]
+
+    r_f = tm.r_range_fwd[tm.r_range_fwd>0.0]
+    psi_f = tm.psi_forwards[tm.r_range_fwd>0.0]/psi_rs
+    dpsi_dr_f = tm.dpsi_dr_forwards[tm.r_range_fwd>0.0]/psi_rs
+
+    integrand_f = m**2/r_f * psi_f**2 + r_f * dpsi_dr_f**2
+
+    integral_f = simpson(integrand_f, r_f)
+
+    # Backward part
+    psi_b = tm.psi_backwards/psi_rs
+    dpsi_dr_b = tm.dpsi_dr_backwards/psi_rs
+    r_b = tm.r_range_bkwd
+
+    integrand_b = m**2/r_b * psi_b**2 + r_b * dpsi_dr_b**2
+
+    integral_b = simpson(integrand_b, r_b)
+
+    # Abs in case either of the integrals are negative (they shouldn't be)
+    return np.abs(integral_f) + np.abs(integral_b)
+
+def energy(psi_rs: float, params: TearingModeParameters, norm_integral: float):
+    """
+    Calculate magnetic energy of the tearing mode.
+
+    Note: norm_integral is calculated using the normalised_energy_integral()
+    function above.
+
+    psi_rs Can either be a float or an np.array.
+    """
+    return 2.0*np.pi**2 * params.R0 * (psi_rs**2) * norm_integral

@@ -6,7 +6,7 @@ import imports
 from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
 from tearing_mode_solver.outer_region_solver import \
-    solve_system, OuterRegionSolution
+    solve_system, OuterRegionSolution, normalised_energy_integral, energy
 from tearing_mode_solver.helpers import (
     savefig, 
     TearingModeParameters,
@@ -28,6 +28,31 @@ def plot_growth(times, dpsi_t, psi_t):
     ax_growth.set_xscale('log')
     #orig_fname, ext = os.path.splitext(os.path.basename(model_data_filename))
     savefig("jorek_model_growth_rate")
+
+def plot_energy(params: TearingModeParameters,
+                td_sol: TimeDependentSolution,
+                outer_sol: OuterRegionSolution):
+    norm_energy = normalised_energy_integral(
+        outer_sol,
+        params
+    )
+
+    print(f"Normalised energy integral: {norm_energy}")
+
+    energies = energy(td_sol.psi_t, params, norm_energy)
+
+    fig, axs = plt.subplots(2)
+
+    ax,ax2 = axs
+
+    ax.plot(td_sol.times, energies)
+
+    ax.set_yscale('log')
+    ax.set_xlabel("Time ($1/\omega_A$)")
+    ax.set_ylabel("Energy")
+
+    ax2.plot(outer_sol.r_range_fwd, outer_sol.psi_forwards)
+    ax2.plot(outer_sol.r_range_bkwd, outer_sol.psi_backwards)
 
 def plot_outer_region_solution(params: TearingModeParameters):
     tm = solve_system(params)
@@ -99,7 +124,7 @@ def ql_tm_vs_time():
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
         lundquist_number = 1.15e10,
-        initial_flux = 2e-9,
+        initial_flux = 2e-12,
         B0=1.0,
         R0=40.0,
         q_profile = q_profile,
@@ -108,7 +133,7 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
 
-    times = np.linspace(0.0, 2e5, 1000)
+    times = np.linspace(0.0, 0.5e6, 2000)
 
     
     ql_solution = solve_time_dependent_system(
@@ -159,6 +184,7 @@ def ql_tm_vs_time():
     
     plot_growth(times, dpsi_t, psi_t)
     plot_delta_prime(sol, ql_solution)
+    plot_energy(params, ql_solution, sol)
     
     plt.show()
 

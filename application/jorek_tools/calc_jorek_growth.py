@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import sys
 
+_name_time = r'%time'
+_name_energies = r'E_{mag,01}'
+
 def growth_rate(df: pd.DataFrame) -> np.array:
 	"""
 	Calculate growth rate of the perturbed flux from the magnetic energy live data

@@ -5,9 +5,11 @@ from scipy.interpolate import UnivariateSpline
 
 import imports
 
-from jorek_tools.jorek_dat_to_array import q_and_j_from_input_files
+from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
-from tearing_mode_solver.outer_region_solver import solve_system
+from tearing_mode_solver.outer_region_solver import (
+    solve_system, normalised_energy_integral, energy
+)
 from tearing_mode_solver.helpers import (
     savefig, 
     TearingModeParameters,
@@ -74,6 +76,21 @@ def plot_outer_region_solution(params: TearingModeParameters,
     ax_dpsi_dr.set_xlabel("Normalised minor radial co-ordinate (a)")
     
     fig.legend()
+
+
+def test_energy_calculation(params: TearingModeParameters):
+    tm = solve_system(params)
+
+    norm_energy_int = normalised_energy_integral(tm, params)
+
+    print("Normalised energy")
+    print(norm_energy_int)
+
+    psi_rs = 1e-10
+
+    e = energy(psi_rs, params, norm_energy_int)
+
+    print(f"Magnetic energy: {e}")
     
 
 def ql_tm_vs_time():
@@ -82,11 +99,11 @@ def ql_tm_vs_time():
     and plot the perturbed flux and layer width as functions of time.
     """
     
-    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.dat"
+    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
     q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
     jorek_psi_filename = "../../jorek_tools/postproc/outer_region.csv"
     
-    q_profile, j_profile = q_and_j_from_input_files(
+    q_profile, j_profile = q_and_j_from_csv(
         psi_current_prof_filename, q_prof_filename
     )
     
@@ -96,7 +113,7 @@ def ql_tm_vs_time():
         lundquist_number = 1.147e10,
         initial_flux = 3e-9,
         B0=1.0,
-        R0=40.0,
+        R0=1.0,
         q_profile = q_profile,
         j_profile = j_profile
     )
@@ -107,7 +124,7 @@ def ql_tm_vs_time():
 
     plot_outer_region_solution(params, jorek_psi_data)
     
-    
+    test_energy_calculation(params)
     
     plt.show()
 
