@@ -26,8 +26,11 @@ def plot_growth(times, dpsi_t, psi_t):
     fig_growth.tight_layout()
 
     ax_growth.set_xscale('log')
+    ax_growth.set_yscale('log')
+
+    ax_growth.plot(times, 2/times, color='red', label='2/t dependence')
     #orig_fname, ext = os.path.splitext(os.path.basename(model_data_filename))
-    savefig("jorek_model_growth_rate")
+    #savefig("jorek_model_growth_rate")
 
 def plot_energy(params: TearingModeParameters,
                 td_sol: TimeDependentSolution,
@@ -53,6 +56,10 @@ def plot_energy(params: TearingModeParameters,
 
     ax2.plot(outer_sol.r_range_fwd, outer_sol.psi_forwards)
     ax2.plot(outer_sol.r_range_bkwd, outer_sol.psi_backwards)
+    ax2.set_xlabel(r'Minor radial co-ordinate ($r/a$)')
+    ax2.set_ylabel(r'Perturbed flux $(a^2 B_{\phi 0})$')
+
+    fig.tight_layout()
 
 def plot_outer_region_solution(params: TearingModeParameters):
     tm = solve_system(params)
@@ -77,7 +84,7 @@ def plot_outer_region_solution(params: TearingModeParameters):
     ax_dpsi_dr.set_xlabel("Normalised minor radial co-ordinate (a)")
     
     fname = f"jorek_model_growth_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
-    savefig(fname)
+    #savefig(fname)
     
 def plot_delta_prime(outer_sol: OuterRegionSolution, 
                      time_dep_sol: TimeDependentSolution):
@@ -94,7 +101,28 @@ def plot_delta_prime(outer_sol: OuterRegionSolution,
     fig.tight_layout()
     
     
-    
+def plot_input_profiles():
+    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
+    q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
+    q_profile, j_profile = q_and_j_from_csv(
+        psi_current_prof_filename, q_prof_filename
+    )
+
+    fig, axs = plt.subplots(2)
+
+    axq, axj = axs
+
+    rs, qs = zip(*q_profile)
+    axq.plot(rs, qs)
+    #axq.set_xlabel('Minor radial coordinate (a)')
+    axq.set_ylabel('Safety factor')
+
+    rs, js = zip(*j_profile)
+    axj.plot(rs, js)
+    axj.set_xlabel('Minor radial coordinate (a)')
+    axj.set_ylabel('Current density')
+
+    plt.show()
 
 def ql_tm_vs_time():
     """
@@ -123,7 +151,7 @@ def ql_tm_vs_time():
     params = TearingModeParameters(
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
-        lundquist_number = 1.15e10,
+        lundquist_number = 4.32e6,
         initial_flux = 2e-12,
         B0=1.0,
         R0=40.0,
@@ -133,7 +161,7 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
 
-    times = np.linspace(0.0, 0.5e6, 2000)
+    times = np.linspace(0.0, 1e6, 10000)
 
     
     ql_solution = solve_time_dependent_system(
@@ -179,7 +207,7 @@ def ql_tm_vs_time():
     #plt.show()
 
     fname = f"jorek_model_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
-    savefig(fname)
+    #savefig(fname)
     sim_to_disk(fname, params, ql_solution)
     
     plot_growth(times, dpsi_t, psi_t)
@@ -191,3 +219,4 @@ def ql_tm_vs_time():
 
 if __name__=='__main__':
     ql_tm_vs_time()
+    #plot_input_profiles()

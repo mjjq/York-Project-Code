@@ -77,6 +77,8 @@ def plot_outer_region_solution(params: TearingModeParameters,
     
     fig.legend()
 
+    savefig("outer_soln_comparison")
+
 
 def test_energy_calculation(params: TearingModeParameters):
     tm = solve_system(params)
@@ -110,10 +112,10 @@ def ql_tm_vs_time():
     params = TearingModeParameters(
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
-        lundquist_number = 1.147e10,
+        lundquist_number = 4.32e6,
         initial_flux = 3e-9,
         B0=1.0,
-        R0=1.0,
+        R0=40.0,
         q_profile = q_profile,
         j_profile = j_profile
     )
@@ -123,7 +125,7 @@ def ql_tm_vs_time():
     jorek_psi_data = pd.read_csv(jorek_psi_filename)
 
     plot_outer_region_solution(params, jorek_psi_data)
-    
+
     test_energy_calculation(params)
     
     plt.show()
