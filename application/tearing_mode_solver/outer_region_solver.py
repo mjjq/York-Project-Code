@@ -99,7 +99,7 @@ def compute_derivatives(y: Tuple[float, float],
     else:
         dj_dr = dj_dr_profile(r)
         q = q_profile(r)
-        A = (R0/B0)*(q*m*dj_dr)/(n*q - m)
+        A = (q*m*dj_dr)/(n*q - m)
         d2psi_dr2 = psi*(m**2 - A*r) + r*dpsi_dr
         
     #print(dpsi_dr)
