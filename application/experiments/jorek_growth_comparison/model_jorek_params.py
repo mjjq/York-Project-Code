@@ -152,7 +152,7 @@ def ql_tm_vs_time():
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
         lundquist_number = 4.32e6,
-        initial_flux = 2e-12,
+        initial_flux = 1.53e-13,
         B0=1.0,
         R0=40.0,
         q_profile = q_profile,
@@ -161,7 +161,7 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
 
-    times = np.linspace(0.0, 1e6, 10000)
+    times = np.linspace(0.0, 2e6, 10000)
 
     
     ql_solution = solve_time_dependent_system(
@@ -207,7 +207,7 @@ def ql_tm_vs_time():
     #plt.show()
 
     fname = f"jorek_model_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
-    #savefig(fname)
+    savefig(fname)
     sim_to_disk(fname, params, ql_solution)
     
     plot_growth(times, dpsi_t, psi_t)

@@ -1,8 +1,9 @@
 from typing import Tuple
 import numpy as np
 
-from tearing_mode_solver.outer_region_solver import OuterRegionSolution
-
+from tearing_mode_solver.outer_region_solver import OuterRegionSolution, \
+    solve_system, magnetic_shear, delta_prime
+from tearing_mode_solver.helpers import TearingModeParameters
 
 
 def parabola(x, a, b, c):
@@ -79,3 +80,39 @@ def nl_parabola(tm: OuterRegionSolution,
     new_times = times - times[0]
 
     return c_0*(new_times**2) + c_1*new_times + c_2
+
+def get_parab_coefs(params: TearingModeParameters,
+                    initial_nl_flux: float) -> Tuple[float, float, float]:
+    """
+    Calculate the parabola coefficients using a TearingModeParameters 
+    object and an initial (non-linear) flux. Note: This is different from the
+    initial flux specified in params.
+
+    Parameters
+    ----------
+    params : TearingModeParameters
+        Parameters of the tearing mode in question.
+    initial_nl_flux : float
+        Initial flux in the non-linear regime (not the same as initial flux of
+        the model simulation).
+
+    Returns
+    -------
+    Tuple[float, float, float].
+        c_0: t^2 coefficient of parabola
+        c_1: t coefficient of parabola
+        c_2: Constant coefficient of parabola
+
+    """
+    outer_sol = solve_system(params)
+
+    s = magnetic_shear(params.q_profile, outer_sol.r_s)
+    dp = delta_prime(outer_sol)
+
+    return nl_parabola_coefficients(
+        outer_sol,
+        s,
+        params.lundquist_number,
+        dp,
+        initial_nl_flux
+    )
