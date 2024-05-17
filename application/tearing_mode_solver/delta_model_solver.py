@@ -209,8 +209,8 @@ def flux_time_derivative(time: float,
 
     gamma = gamma_constant()
 
-    q_rs = 2.0 # placeholder
-    ps_corr = np.sqrt(1+2*q_rs**2)
+    q_rs = m/n
+    ps_corr = (1+2*q_rs**2)**(1/2)
 
     linear_term = S*(n*s)**2 * (
        delta_prime * tm.r_s * psi/(gamma*S*dpsi_dt*ps_corr)

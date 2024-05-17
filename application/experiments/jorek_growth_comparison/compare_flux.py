@@ -44,7 +44,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/17-05-2024_12:25_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/17-05-2024_19:26_jorek_model_(m,n)=(2,1).zip"
     jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
 
     params, sol = load_sim_from_disk(model_data_filename)
@@ -83,7 +83,7 @@ def ql_tm_vs_time():
     jorek_flux = jorek_flux[jorek_filt]
 
     # Parabolic fitting
-    min_t2_time = 2e5
+    min_t2_time = 1.9e5
     max_t2_time = 5e5
     c_0, c_1, c_2 = get_parab_coefs(params, model_flux_func(min_t2_time))
 

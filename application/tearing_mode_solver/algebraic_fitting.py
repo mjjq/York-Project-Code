@@ -39,10 +39,13 @@ def nl_parabola_coefficients(tm: OuterRegionSolution,
     q_rs = 2.0
     ps_correction = np.sqrt(1+2*q_rs**2)
     
-    c_0 = (tm.r_s**3 / (64*lundquist_number**2))\
-        *mag_shear*delta_prime_linear**2 / ps_correction**2
-    c_1 = np.sqrt(psi_0) * (tm.r_s**3 * mag_shear)**0.5\
-        * delta_prime_linear/(4*lundquist_number) / ps_correction
+    c = (2.0*mag_shear**2 * tm.r_s**4 / q_rs**2) \
+        * (tm.r_s * delta_prime_linear / (2.12*lundquist_number*ps_correction))**4
+    
+    c_0 = 0.25*c**0.5
+    
+    c_1 = c**0.25 * psi_0**0.5
+    
     c_2 = psi_0
 
     return c_0, c_1, c_2
