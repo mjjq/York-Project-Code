@@ -16,7 +16,7 @@ from tearing_mode_solver.outer_region_solver import island_width
 from jorek_tools.calc_jorek_growth import growth_rate, _name_time
 
 def check_model_t_dependence():
-    model_data_filename = "./output/14-05-2024_16:59_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/16-05-2024_15:04_jorek_model_(m,n)=(2,1).zip"
 
     params, sol = load_sim_from_disk(model_data_filename)
 
@@ -41,7 +41,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/14-05-2024_18:18_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/16-05-2024_16:33_jorek_model_(m,n)=(2,1).zip"
     jorek_data_filename = "../../jorek_tools/postproc/magnetic_energies.csv"
 
     params, sol = load_sim_from_disk(model_data_filename)

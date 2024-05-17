@@ -161,7 +161,7 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
 
-    times = np.linspace(0.0, 2e6, 10000)
+    times = np.linspace(0.0, 2e6, 30000)
 
     
     ql_solution = solve_time_dependent_system(
