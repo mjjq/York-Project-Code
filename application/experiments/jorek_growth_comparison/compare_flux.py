@@ -67,7 +67,8 @@ def jorek_flux_interp_func(jorek_psi_t_data: pd.DataFrame) \
         
     vals = np.array(vals)
     coords = np.array(coords)
-    return CloughTocher2DInterpolator(coords, vals)
+    # TODO: Output is noisy, try to fix this!
+    return CloughTocher2DInterpolator(coords, vals, maxiter=400, rescale=True)
         
 def r_from_q(q_profile: List[Tuple[float, float]],
              target_q: float):
@@ -76,7 +77,6 @@ def r_from_q(q_profile: List[Tuple[float, float]],
     spline = UnivariateSpline(qs, rs, s=0)
     
     return spline(target_q)
-    
     
 
 def jorek_flux_at_q(jorek_data: pd.DataFrame,
