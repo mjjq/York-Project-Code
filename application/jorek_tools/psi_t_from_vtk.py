@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import binned_statistic
 from matplotlib import pyplot as plt
-from scipy.interpolate import CloughTocher2DInterpolator
+from scipy.interpolate import CloughTocher2DInterpolator, UnivariateSpline
 
 def print_point_data_attributes(vtk_point_data):
 	for idx in range(vtk_point_data.GetNumberOfArrays()):
@@ -74,7 +74,58 @@ def extract_psi_t(filenames: List[str]) -> pd.DataFrame:
 
 	return out
 
-#def export_psi_t_to_csv(times: np.array, psi_t: np.array, filename: str):
+
+def jorek_flux_interp_func(jorek_psi_t_data: pd.DataFrame) \
+    -> CloughTocher2DInterpolator:
+    """
+    Get temporal evolution of flux at a particular radial co-ordinate.
+
+    Parameters
+    ----------
+    jorek_psi_t_data : pd.DataFrame
+        Dataframe containing perturbed flux as a function of r and t.
+        
+    Returns
+    -------
+    CloughTocher2DInterpolator
+        Psi(r, t)
+
+    """
+    grouped = jorek_psi_t_data.groupby('time')
+    
+    vals = []
+    coords = []
+    
+    for time, group in grouped:
+        vals += list(group['Psi'])
+        coords += [(time, r_val) for r_val in group['r']]
+        
+    vals = np.array(vals)
+    coords = np.array(coords)
+    # TODO: Output is noisy, try to fix this!
+    return CloughTocher2DInterpolator(coords, vals, maxiter=400, rescale=True)
+        
+def r_from_q(q_profile: List[Tuple[float, float]],
+             target_q: float):
+    rs, qs = zip(*q_profile)
+    
+    spline = UnivariateSpline(qs, rs, s=0)
+    
+    return spline(target_q)
+    
+
+def jorek_flux_at_q(jorek_data: pd.DataFrame,
+                    q_profile: List[Tuple[float, float]],
+                    target_q: float) -> Tuple[List[float], List[float]]:
+    target_r = r_from_q(q_profile, target_q)
+    
+    jorek_psi_t_func = jorek_flux_interp_func(jorek_data)
+    
+    times = np.unique(jorek_data['time'])
+    
+    return np.array(times), \
+        np.array([jorek_psi_t_func(t, target_r) for t in times])
+ 
 
 
 if __name__=='__main__':

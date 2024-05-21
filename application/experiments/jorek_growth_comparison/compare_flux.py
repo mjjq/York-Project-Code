@@ -17,7 +17,7 @@ from tearing_mode_solver.outer_region_solver import island_width
 from tearing_mode_solver.algebraic_fitting import get_parab_coefs
 from jorek_tools.calc_jorek_growth import growth_rate, _name_time, _name_flux
 from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
-
+from jorek_tools.psi_t_from_vtk import jorek_flux_at_q
 
 def check_model_t_dependence():
     model_data_filename = "./output/15-05-2024_16:49_jorek_model_(m,n)=(2,1).zip"
@@ -39,65 +39,14 @@ def check_model_t_dependence():
     ax.set_xscale('log')
 
     plt.show()
-    
-def jorek_flux_interp_func(jorek_psi_t_data: pd.DataFrame) \
-    -> CloughTocher2DInterpolator:
-    """
-    Get temporal evolution of flux at a particular radial co-ordinate.
-
-    Parameters
-    ----------
-    jorek_psi_t_data : pd.DataFrame
-        Dataframe containing perturbed flux as a function of r and t.
-        
-    Returns
-    -------
-    CloughTocher2DInterpolator
-        Psi(r, t)
-
-    """
-    grouped = jorek_psi_t_data.groupby('time')
-    
-    vals = []
-    coords = []
-    
-    for time, group in grouped:
-        vals += list(group['Psi'])
-        coords += [(time, r_val) for r_val in group['r']]
-        
-    vals = np.array(vals)
-    coords = np.array(coords)
-    # TODO: Output is noisy, try to fix this!
-    return CloughTocher2DInterpolator(coords, vals, maxiter=400, rescale=True)
-        
-def r_from_q(q_profile: List[Tuple[float, float]],
-             target_q: float):
-    rs, qs = zip(*q_profile)
-    
-    spline = UnivariateSpline(qs, rs, s=0)
-    
-    return spline(target_q)
-    
-
-def jorek_flux_at_q(jorek_data: pd.DataFrame,
-                    q_profile: List[Tuple[float, float]],
-                    target_q: float) -> Tuple[List[float], List[float]]:
-    target_r = r_from_q(q_profile, target_q)
-    
-    jorek_psi_t_func = jorek_flux_interp_func(jorek_data)
-    
-    times = np.unique(jorek_data['time'])
-    
-    return np.array(times), \
-        np.array([jorek_psi_t_func(t, target_r) for t in times])
-    
+   
 
 def ql_tm_vs_time():
     """
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/17-05-2024_19:26_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/21-05-2024_13:52_jorek_model_(m,n)=(2,1).zip"
     jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
     q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
     psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
