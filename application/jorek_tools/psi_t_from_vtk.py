@@ -3,6 +3,7 @@ from vtk import vtkUnstructuredGridReader
 from vtk.util import numpy_support as vn
 from vtk.util.numpy_support import vtk_to_numpy
 
+from tqdm import tqdm
 import glob
 import sys
 from typing import List, Tuple
@@ -27,7 +28,7 @@ def extract_psi_t(filenames: List[str]) -> pd.DataFrame:
 	#filenames = glob.glob(filename_glob)
 	#print(filenames)
 	out = pd.DataFrame()
-	for filename in filenames:
+	for filename in tqdm(filenames):
 		reader.SetFileName(filename)
 
 		reader.ReadAllScalarsOn()
@@ -35,7 +36,7 @@ def extract_psi_t(filenames: List[str]) -> pd.DataFrame:
 		reader.Update()
 
 		pdata = reader.GetOutput().GetPointData()
-		print_point_data_attributes(pdata)
+#		print_point_data_attributes(pdata)
 		
 		coords = reader.GetOutput().GetPoints().GetData()
 		coords = vtk_to_numpy(coords)
@@ -53,11 +54,22 @@ def extract_psi_t(filenames: List[str]) -> pd.DataFrame:
 		psi_values = pdata.GetArray("Psi")
 		psi_values = vtk_to_numpy(psi_values)
 		
-		interp = CloughTocher2DInterpolator(cyl_coords, psi_values)
+		max_delta_psi_arg = np.argmax(psi_values)
+		max_r, max_theta = cyl_coords[max_delta_psi_arg]
 
-		theta_sample_vals = np.linspace(0.0, 2.0*np.pi, 100)
+		interp_delta_psi = CloughTocher2DInterpolator(cyl_coords, psi_values)
+
+		psi_norms = pdata.GetArray("psi_norm")
+		psi_norms = vtk_to_numpy(psi_norms)
+		interp_psi_norm = CloughTocher2DInterpolator(cyl_coords, psi_norms)
+
+		#theta_sample_vals = np.linspace(0.0, 2.0*np.pi, 100)
 		r_sample_vals = np.linspace(0.0, max(radii), 100)
-		max_psi_r = [max(interp(r, theta_sample_vals)) for r in r_sample_vals]
+		#max_psi_r = [
+		#	max(interp_delta_psi(r, theta_sample_vals)) for r in r_sample_vals
+		#]
+		max_psi_r = [interp_delta_psi(r, max_theta) for r in r_sample_vals]
+		max_psi_norms = [interp_psi_norm(r, max_theta) for r in r_sample_vals]
 
 		time = reader.GetOutput().GetFieldData().GetArray("TIME")
 		time = max(vtk_to_numpy(time))
@@ -67,7 +79,8 @@ def extract_psi_t(filenames: List[str]) -> pd.DataFrame:
 		df = pd.DataFrame({
 			'time':times,
 			'r':r_sample_vals,
-			'Psi':max_psi_r
+			'Psi':max_psi_r,
+			'psi_norm':max_psi_norms
 		})
 		out = pd.concat([out, df])
 		#print(time, max_psi)
@@ -87,7 +100,7 @@ if __name__=='__main__':
 	psi_data.to_csv("psi_t_data.csv")
 
 	group = psi_data.groupby("time")
-	group.plot(x='r', y='Psi')
+	group.plot(x='r', y='psi_norm')
 	from matplotlib import pyplot as plt
 
 	#fig, ax = plt.subplots(1)
