@@ -17,11 +17,12 @@ from tearing_mode_solver.helpers import (
 )
 from jorek_tools.calc_jorek_growth import growth_rate, _name_time, _name_flux
 from tearing_mode_solver.profiles import magnetic_shear
-
+from jorek_tools.psi_t_from_vtk import jorek_flux_at_q
 
 
 def ql_tm_vs_time():
    
+    jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
     psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
     q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
     q_profile, j_profile = q_and_j_from_csv(
@@ -41,7 +42,7 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
     
-    fmin = 0.00125
+    fmin = 0.00100
     fmax = 0.00175
     fluxes = np.linspace(fmin, fmax, 100)
     shear_rs = magnetic_shear(params.q_profile, sol.r_s)
@@ -66,17 +67,8 @@ def ql_tm_vs_time():
     ax.set_ylabel(r"$r_s \Delta' \left[\delta \psi^{(1)} \right]$")
     
     
-    jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
-    jorek_data = pd.read_csv(jorek_data_filename)
-    # Ratio between flux at rational surface and maximum flux in outer region
-    # (constant since shape of outer region solution remains constant)
-    # We do this because we extract maximum flux at each timestep from data,
-    # which doesn't necessarily correspond to the flux at the rational surface.
-    # Will need to change this if looking at other modes, but the value of 0.6
-    # is valid for the (2,1) mode.
-    resonant_flux_factor = 0.6
-    jorek_flux = np.array(resonant_flux_factor * jorek_data[_name_flux])
-    #jorek_times = jorek_data['times']
+    jorek_data = pd.read_csv(jorek_data_filename).fillna(0)
+    jorek_times, jorek_flux = jorek_flux_at_q(jorek_data, q_profile, 2/1)
     
     jorek_saturation_flux = jorek_flux[-1]
     

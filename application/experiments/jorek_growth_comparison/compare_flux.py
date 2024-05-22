@@ -1,8 +1,9 @@
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import CloughTocher2DInterpolator, UnivariateSpline
 import os
 import numpy as np
+from typing import List, Tuple
 
 import imports
 from tearing_mode_solver.outer_region_solver import (
@@ -15,8 +16,8 @@ from tearing_mode_solver.helpers import (
 from tearing_mode_solver.outer_region_solver import island_width
 from tearing_mode_solver.algebraic_fitting import get_parab_coefs
 from jorek_tools.calc_jorek_growth import growth_rate, _name_time, _name_flux
-
-
+from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
+from jorek_tools.psi_t_from_vtk import jorek_flux_at_q
 
 def check_model_t_dependence():
     model_data_filename = "./output/15-05-2024_16:49_jorek_model_(m,n)=(2,1).zip"
@@ -38,14 +39,21 @@ def check_model_t_dependence():
     ax.set_xscale('log')
 
     plt.show()
+   
 
 def ql_tm_vs_time():
     """
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/17-05-2024_19:26_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/21-05-2024_13:52_jorek_model_(m,n)=(2,1).zip"
     jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
+    q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
+    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
+    q_profile, j_profile = q_and_j_from_csv(
+        psi_current_prof_filename, q_prof_filename
+    )
+
 
     params, sol = load_sim_from_disk(model_data_filename)
 
@@ -57,16 +65,9 @@ def ql_tm_vs_time():
     delta_primes = sol.delta_primes
 
 
-    jorek_data = pd.read_csv(jorek_data_filename)
-    # Ratio between flux at rational surface and maximum flux in outer region
-    # (constant since shape of outer region solution remains constant)
-    # We do this because we extract maximum flux at each timestep from data,
-    # which doesn't necessarily correspond to the flux at the rational surface.
-    # Will need to change this if looking at other modes, but the value of 0.6
-    # is valid for the (2,1) mode.
-    resonant_flux_factor = 0.6
-    jorek_flux = resonant_flux_factor * jorek_data[_name_flux]
-    jorek_times = jorek_data['times']
+    jorek_data = pd.read_csv(jorek_data_filename).fillna(0)
+    jorek_times, jorek_flux = jorek_flux_at_q(jorek_data, q_profile, 2/1)
+    
 
     min_time = 0.0#1e4
     max_time = 1e6
