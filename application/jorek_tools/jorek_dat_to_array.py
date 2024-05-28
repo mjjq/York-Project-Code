@@ -45,6 +45,8 @@ def read_q_profile(filename: str) -> List[Tuple[float, float]]:
     We later use this to derive q as a function of r_minor
     """
     data = np.genfromtxt(filename)
+
+    print(data)
     
     psi_n, qs = zip(*data)
     plt.plot(psi_n, qs)
@@ -97,15 +99,79 @@ def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
 
     return q_r, j_r
 
-if __name__=='__main__':
-    filename_exprs = "./postproc/exprs_averaged_s00000.csv"
-    filename_q = "./postproc/qprofile_s00000.dat"
-    
+def main():
+    import sys
+
+    if len(sys.argv) < 3:
+        filename_exprs = "./postproc/exprs_averaged_s00000.csv"
+        filename_q = "./postproc/qprofile_s00000.dat"
+    else:
+        filename_exprs = sys.argv[1]
+        filename_q = sys.argv[2]
     q_r, j_r = q_and_j_from_csv(filename_exprs, filename_q)
     
     print(q_r, j_r)
-    
-    
-    
-    
-    
+
+def read_q_profile_temporal(q_filename: str) -> pd.DataFrame:
+    #data = np.genfromtxt(q_filename, comments=None)
+    #print(data)
+
+    data = []
+
+    with open(q_filename, 'r') as file:
+        lines = []
+        for line in file:
+            if '#' in line:
+                data.append(lines)
+                lines = []
+            lines.append(line)
+
+    #print(data)
+    headers = [d[0] if d else None for d in data]
+    numbers = [np.abs(np.genfromtxt(d[1:])) if d else None for d in data]
+    #print(headers)
+    #print(numbers[1])
+
+    #fig, ax = plt.subplots(1)
+    profiles = pd.DataFrame()
+    for i, d in enumerate(zip(headers, numbers)):
+        header, qprof = d
+        #print(qprof)
+        if qprof is None:
+            continue
+        if qprof.size==0:
+            continue
+        psi_ns, qs = zip(*qprof)
+        timestep = int(''.join(filter(str.isdigit, header)))
+
+        df = pd.DataFrame({
+            'timestep':[timestep]*len(psi_ns),
+            'Psi_N':psi_ns,
+            'q':qs
+        })
+        
+        profiles = pd.concat([profiles, df])
+        #ax.plot(rs, qs, label=header, color=(i/len(data), 0.0, 0.0))
+
+    #ax.hlines(2.0, xmin=0.0, xmax=1.0, label='q=2', linestyle='--')
+    #ax.legend()
+    #ax.set_ylim(bottom=1.99, top=2.01)
+    #plt.show()
+
+    return profiles
+
+def plot_profiles(profiles: pd.DataFrame):
+    #print(profiles)
+    pivoted = profiles.pivot('timestep', 'Psi_N')
+
+    print(pivoted.columns)
+
+def test():
+    import sys
+    q_filename = sys.argv[1]
+
+    profiles = read_q_profile_temporal(q_filename)
+    plot_profiles(profiles)
+
+if __name__=='__main__':
+    test()
