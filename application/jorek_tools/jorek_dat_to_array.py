@@ -174,4 +174,4 @@ def test():
     plot_profiles(profiles)
 
 if __name__=='__main__':
-    test()
+    main()

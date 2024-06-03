@@ -9,3 +9,5 @@ set surfaces 200
 average
 
 done
+
+exit
