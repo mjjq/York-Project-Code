@@ -1,5 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from os.path import join, expanduser
+import sys
 
 import imports
 
@@ -130,8 +132,17 @@ def ql_tm_vs_time():
     and plot the perturbed flux and layer width as functions of time.
     """
     
-    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
-    q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
+    if len(sys.argv) < 3:
+        experiment_root = expanduser("~/csd3/jorek_data/intear_ntor3_cylinder/run_53316884/postproc")
+        
+        psi_current_prof_filename = join(
+            experiment_root, "exprs_averaged_s00000.csv"
+        )
+        q_prof_filename = join(experiment_root, "qprofile_s00000.dat")
+    else:
+        psi_current_prof_filename = sys.argv[1]
+        q_prof_filename = sys.argv[2]
+        
     q_profile, j_profile = q_and_j_from_csv(
         psi_current_prof_filename, q_prof_filename
     )
@@ -147,12 +158,13 @@ def ql_tm_vs_time():
     #ax[1].plot(rj, js)
     #ax[2].plot(rj, dj_dr_vals)
     
+    t0 = 1.04e4
     
     params = TearingModeParameters(
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
         lundquist_number = 4.32e6,
-        initial_flux = 1.53e-13,
+        initial_flux = 1.336e-12,
         B0=1.0,
         R0=40.0,
         q_profile = q_profile,
@@ -161,7 +173,7 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
 
-    times = np.linspace(0.0, 5e5, 20000)
+    times = np.linspace(t0, 5e5, 20000)
 
     
     ql_solution = solve_time_dependent_system(
