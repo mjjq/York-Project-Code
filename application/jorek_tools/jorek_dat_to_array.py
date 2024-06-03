@@ -46,10 +46,13 @@ def read_q_profile(filename: str) -> List[Tuple[float, float]]:
     """
     data = np.genfromtxt(filename)
 
-    print(data)
+    #print(data)
     
     psi_n, qs = zip(*data)
     plt.plot(psi_n, qs)
+
+    # Take absolute q values since JOREK outputs negative q for some reason
+    data = list(zip(psi_n, np.abs(qs)))
 
     return data
 
