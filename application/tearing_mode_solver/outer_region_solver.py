@@ -4,7 +4,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from dataclasses import dataclass
 from scipy.interpolate import interp1d, UnivariateSpline
-from scipy.integrate import simpson
+
+try:
+	from scipy.integrate import simpson
+except ImportError:
+	from scipy.integrate import simps as simpson
 
 from tearing_mode_solver.profiles import (
     rational_surface, magnetic_shear_profile, magnetic_shear
