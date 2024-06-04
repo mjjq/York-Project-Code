@@ -28,6 +28,9 @@ def read_j_profile(filename: str) -> List[Tuple[float, float]]:
 	output.
 
 	Returns a list where each element is a tuple of (r_minor_coord, currdens)
+
+	Note: radial co-ordinate is normalised to minor radius, assume minor radius
+	equals greatest radius in data.
 	"""
 	data = np.genfromtxt(filename)
 
@@ -46,10 +49,13 @@ def read_q_profile(filename: str) -> List[Tuple[float, float]]:
     """
     data = np.genfromtxt(filename)
 
-    print(data)
+    #print(data)
     
     psi_n, qs = zip(*data)
     plt.plot(psi_n, qs)
+
+    # Take absolute q values since JOREK outputs negative q for some reason
+    data = list(zip(psi_n, np.abs(qs)))
 
     return data
 
@@ -83,6 +89,13 @@ def q_and_j_from_input_files(filename_psi: str, filename_q: str) -> \
     
     j_r = read_j_profile(filename_psi)
     
+    # Normalise minor radial co-ordinate to minor radius of plasma
+    rs, qs = zip(*q_r)
+    q_r = list(zip(np.array(rs)/np.max(rs), qs))
+
+    rs, js = zip(*j_r)
+    j_r = list(zip(np.array(rs)/np.max(rs), js))
+
     return q_r, j_r
 
 def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
@@ -96,6 +109,14 @@ def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
     
     # Use zj as this seems to be non-normalised compared to currdens and Jphi
     j_r = list(zip(exprs_data['r_minor'], exprs_data['zj']))
+
+    
+    # Normalise minor radial co-ordinate to minor radius of plasma
+    rs, qs = zip(*q_r)
+    q_r = list(zip(np.array(rs)/np.max(rs), qs))
+
+    rs, js = zip(*j_r)
+    j_r = list(zip(np.array(rs)/np.max(rs), js))
 
     return q_r, j_r
 
