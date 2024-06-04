@@ -493,3 +493,43 @@ def energy(psi_rs: float, params: TearingModeParameters, norm_integral: float):
     psi_rs Can either be a float or an np.array.
     """
     return 2.0*np.pi**2 * params.R0 * (psi_rs**2) * norm_integral
+
+# def alfven_frequency(params: TearingModeParameters) -> float:
+#     """
+#     Calculate the Alfven frequency from tearing mode parameters. Contains
+#     pfirsch-schulter inertial correction to the frequency.
+
+#     Parameters
+#     ----------
+#     params : TearingModeParameters
+#         Input parameters for tearing mode model.
+
+#     Returns
+#     -------
+#     float
+#         Alfven frequency in Hz.
+
+#     """
+    
+#     return
+
+# def lundquist_number(params: TearingModeParameters) \
+#     -> float:
+#     """
+#     Calculate the lundquist number from fundamental JOREK parameters
+
+#     Parameters
+#     ----------
+#     params : TearingModeParameters
+#         Input parameters for tearing mode model.
+
+#     Returns
+#     -------
+#     float
+#         Lundquist number (no units).
+
+#     """
+    
+#     S = params.
+    
+#     return 

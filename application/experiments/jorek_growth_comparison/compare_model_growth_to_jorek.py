@@ -14,6 +14,8 @@ from tearing_mode_solver.helpers import (
 )
 from tearing_mode_solver.outer_region_solver import island_width
 from jorek_tools.calc_jorek_growth import growth_rate, _name_time
+from jorek_tools.time_conversion import jorek_to_alfven_time, \
+    jorek_to_alfven_growth
 
 def check_model_t_dependence():
     model_data_filename = "./output/16-05-2024_15:04_jorek_model_(m,n)=(2,1).zip"
@@ -41,8 +43,9 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/16-05-2024_16:33_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/04-06-2024_16:37_jorek_model_(m,n)=(2,1).zip"
     jorek_data_filename = "../../jorek_tools/postproc/magnetic_energies.csv"
+
 
     params, sol = load_sim_from_disk(model_data_filename)
 
@@ -56,14 +59,22 @@ def ql_tm_vs_time():
     model_growth_rate = dpsi_t/psi_t
 
     jorek_data = pd.read_csv(jorek_data_filename)
-    jorek_growth_rate = growth_rate(jorek_data)
-    jorek_times = jorek_data[_name_time]
+    jorek_growth_rate = jorek_to_alfven_growth(
+        growth_rate(jorek_data),
+        params.B0,
+        params.R0
+    )
+    jorek_times = jorek_to_alfven_time(
+        jorek_data[_name_time],
+        params.B0,
+        params.R0
+    )
 
-    min_time = 1e4
+    min_time = 4e5
 
-    model_filt = ((times<1e6) & (times> 1e4))
-    times = times[model_filt]
-    model_growth_rate = model_growth_rate[model_filt]
+    #model_filt = ((times<1e6) & (times> 1e4))
+    #times = times[model_filt]
+    #model_growth_rate = model_growth_rate[model_filt]
 
     jorek_filt = jorek_times>min_time
     jorek_times = jorek_times[jorek_filt]

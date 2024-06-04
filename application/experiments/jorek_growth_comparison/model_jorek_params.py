@@ -15,6 +15,7 @@ from tearing_mode_solver.helpers import (
     sim_to_disk,
     TimeDependentSolution
 )
+from jorek_tools.time_conversion import jorek_to_alfven_time
 
 def plot_growth(times, dpsi_t, psi_t):
     fig_growth, ax_growth = plt.subplots(1, figsize=(4.5,3))
@@ -133,7 +134,7 @@ def ql_tm_vs_time():
     """
     
     if len(sys.argv) < 3:
-        experiment_root = expanduser("~/csd3/jorek_data/intear_ntor3_cylinder/run_53316884/postproc")
+        experiment_root = expanduser("~/csd3/jorek_data/intear_ntor3_cylinder/run_47608261/postproc")
         
         psi_current_prof_filename = join(
             experiment_root, "exprs_averaged_s00000.csv"
@@ -158,12 +159,12 @@ def ql_tm_vs_time():
     #ax[1].plot(rj, js)
     #ax[2].plot(rj, dj_dr_vals)
     
-    t0 = 1.04e4
+
     
     params = TearingModeParameters(
         poloidal_mode_number = 2,
         toroidal_mode_number = 1,
-        lundquist_number = 4.32e6,
+        lundquist_number = 3.73e9,
         initial_flux = 1.336e-12,
         B0=1.0,
         R0=40.0,
@@ -173,7 +174,14 @@ def ql_tm_vs_time():
     
     sol = solve_system(params)
 
-    times = np.linspace(t0, 5e5, 20000)
+    t0 = jorek_to_alfven_time(
+        1.04e4, # This is the jorek time at which the simulation numerically stabilises
+        params.B0, params.R0
+    )
+    times = np.append(
+        np.linspace(t0, 1e6, 10000),
+        np.linspace(1e6, 8e6, 10000)
+    )
 
     
     ql_solution = solve_time_dependent_system(

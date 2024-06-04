@@ -46,7 +46,7 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/28-05-2024_11:57_jorek_model_(m,n)=(2,1).zip"
+    model_data_filename = "./output/04-06-2024_14:27_jorek_model_(m,n)=(2,1).zip"
     jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
     q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
     psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"

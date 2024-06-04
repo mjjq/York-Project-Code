@@ -135,6 +135,28 @@ def magnetic_shear(q_profile: List[Tuple[float, float]],
     
     return r*dq_dr_at_r/q_at_r
 
+def lundquist_number(resistivity: float, r_s: float, mu0_rho0: float) \
+    -> float:
+    """
+    Calculate the lundquist number from fundamental JOREK parameters
+
+    Parameters
+    ----------
+    resistivity : float
+        Resistivity in SI units (Ohm.m).
+    r_s : float
+        Location of rational surface.
+    mu0_rho0_ratio : float
+        sqrt(mu0*rho0) (given in JOREK).
+
+    Returns
+    -------
+    float
+        DESCRIPTION.
+
+    """
+    return 
+
 if __name__=='__main__':
     from matplotlib import pyplot as plt
     
