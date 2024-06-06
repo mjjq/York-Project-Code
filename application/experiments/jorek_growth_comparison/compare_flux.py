@@ -4,6 +4,7 @@ from scipy.interpolate import CloughTocher2DInterpolator, UnivariateSpline
 import os
 import numpy as np
 from typing import List, Tuple
+import sys
 
 import imports
 from tearing_mode_solver.outer_region_solver import rational_surface, magnetic_shear
@@ -49,10 +50,18 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/05-06-2024_16:42_jorek_model_(m,n)=(2,1).zip"
-    jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
-    q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
-    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
+    print(sys.argv)
+    if len(sys.argv)<3:
+        model_data_filename = "./output/05-06-2024_16:42_jorek_model_(m,n)=(2,1).zip"
+        jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
+        q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
+        psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
+    else:
+        model_data_filename = sys.argv[1]
+        jorek_data_filename = sys.argv[2]
+        q_prof_filename = sys.argv[3]
+        psi_current_prof_filename = sys.argv[4]
+
     q_profile, j_profile = q_and_j_from_csv(psi_current_prof_filename, q_prof_filename)
 
     params, sol = load_sim_from_disk(model_data_filename)
