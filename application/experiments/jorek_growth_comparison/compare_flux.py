@@ -198,7 +198,7 @@ def ql_tm_vs_time():
     jorek_flux = jorek_flux[jorek_filt]
 
     plot_fluxes(times, model_flux, jorek_times, jorek_flux)
-    plot_growths(times, model_flux, jorek_times, jorek_flux)
+    # plot_growths(times, model_flux, jorek_times, jorek_flux)
 
     plt.show()
 

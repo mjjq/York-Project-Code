@@ -6,6 +6,7 @@ import sys
 _name_time = r'%time'
 _name_energies = r'E_{mag,01}'
 _name_flux = r'psi_t'
+_name_mag_growth = r'G_{mag,01}'
 
 def growth_rate(df: pd.DataFrame) -> np.array:
 	"""
