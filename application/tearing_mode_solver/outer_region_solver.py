@@ -329,8 +329,10 @@ def growth_rate_scale(q_profile: List[Tuple[float, float]],
     
     s = magnetic_shear(q_profile, r_s)
     
+    ps_corr = (1+2*(m/n)**2)
+
     grs = gamma_scale_factor**(-4/5)* r_s**(4/5) \
-        * (n*s)**(2/5) / S**(3/5)
+        * (n*s)**(2/5) / S**(3/5) / ps_corr**(1/10)
         
     return grs
     

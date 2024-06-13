@@ -44,6 +44,109 @@ def check_model_t_dependence():
 
     plt.show()
 
+def plot_fluxes(model_times: np.array,
+                model_flux: np.array,
+                jorek_times: np.array,
+                jorek_flux: np.array):
+    
+    # Parabolic fitting
+    # min_t2_time = 1.9e5
+    # max_t2_time = 5e5
+    # c_0, c_1, c_2 = get_parab_coefs(params, model_flux_func(min_t2_time))
+
+    # t = np.linspace(min_t2_time, max_t2_time, 100)
+
+    fig, ax = plt.subplots(1, figsize=(5, 4))
+
+    ax.plot(model_times, model_flux, label="Model", color="black")
+    ax.plot(jorek_times, jorek_flux, label="JOREK", color="red")
+
+    #log_times = np.logspace(4, np.log(max(times)), 100)
+    ## ax.plot(log_times, 1.0/log_times, label='2/t dependence')
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    ax.set_xlabel(r"Time ($1/\omega_A$)")
+    ax.set_ylabel(r"Flux at rational surface ($a^2 B_{\phi 0}$)")
+
+    ## ax.plot(
+    ##     t,
+    ##     c_0*(t-min_t2_time)**2 +c_1*(t-min_t2_time) + c_2,
+    ##     color='green', linestyle='--',
+    ##     label=r'$f(t) = at^2 + bt + c$' + \
+    ##         f"\n a={c_0:.2e},\n b={c_1:.2e},\n c={c_2:.2e}"
+    ## )
+
+    ax.legend()
+    fig.tight_layout()
+
+    savefig("flux_comparison_log_log")
+
+    ax.set_xscale('linear')
+    ax.set_xlim(left=0.0, right=max(jorek_times))
+
+    savefig("flux_comparison_lin_log")
+
+    #ax.set_xlim(left=40000, right=1e6)
+    #ax.set_ylim(bottom=1e-9, top=1e-2)
+    #fig.tight_layout()
+
+    #savefig("flux_comparison_log_log_zoom")
+
+    #ax.set_xscale("linear")
+    #ax.set_yscale("linear")
+    #fig.set_size_inches(6, 4.65, forward=True)
+    #ax.set_xlim(left=0, right=4e5)
+    #ax.set_ylim(bottom=0, top=0.00175)
+    #fig.tight_layout()
+
+    #savefig("flux_comparison_lin_lin_early")
+
+    #ax.set_xlim(left=0, right=1e6)
+    #ax.set_ylim(bottom=0, top=0.00175)
+
+    #savefig("flux_comparison_lin_lin")
+
+    #ax.autoscale()
+    #ax.set_yscale("log")
+    #ax.set_xlim(left=0, right=5e5)
+    #savefig("flux_comparison_lin_log")
+
+    #ax.set_xscale("linear")
+    #ax.set_yscale("linear")
+    #ax.set_xlim(left=0, right=8e4)
+    #ax.set_ylim(bottom=0, top=1e-5)
+    #savefig("flux_comparison_linear_regime")
+
+def plot_growths(model_times: np.array,
+                 model_fluxes: np.array,
+                 jorek_times: np.array,
+                 jorek_fluxes: np.array):
+    model_func = UnivariateSpline(model_times, model_fluxes, s=0)
+    model_func_deriv = model_func.derivative()
+    model_dpsi_dt = model_func_deriv(model_times)
+    model_growths = model_dpsi_dt/model_fluxes
+
+    jorek_func = UnivariateSpline(jorek_times, jorek_fluxes, s=0)
+    jorek_func_deriv = jorek_func.derivative()
+    jorek_dpsi_dt = jorek_func_deriv(jorek_times)
+    jorek_growths = jorek_dpsi_dt/jorek_fluxes
+
+    fig, ax = plt.subplots(1)
+    
+    ax.plot(model_times, model_growths, label='model', color='black')
+    ax.plot(jorek_times, jorek_growths, label='JOREK', color='red')
+
+    ax.set_xscale('log')
+    #ax.set_yscale('log')
+    
+    ax.set_xlabel(r"Time ($1/\omega_A$)")
+    ax.set_ylabel(r"Growth rate ($\omega_A$)")
+
+    savefig("growth_rate_comparison")
+
+    return
 
 def ql_tm_vs_time():
     """
@@ -77,8 +180,11 @@ def ql_tm_vs_time():
     jorek_times, jorek_flux = jorek_flux_at_q(jorek_data, q_profile, 2 / 1)
     jorek_times = jorek_to_alfven_time(jorek_times, params.B0, params.R0)
 
-    min_time = np.min(times)  # 1e4
+    min_time = np.min(times[times>0.0])  # 1e4
     max_time = np.max(times)
+
+
+    print(f"Min time: {min_time}")
 
     # Model flux
     model_filt = (times < max_time) & (times > min_time)
@@ -91,70 +197,8 @@ def ql_tm_vs_time():
     jorek_times = jorek_times[jorek_filt]
     jorek_flux = jorek_flux[jorek_filt]
 
-    # Parabolic fitting
-    # min_t2_time = 1.9e5
-    # max_t2_time = 5e5
-    # c_0, c_1, c_2 = get_parab_coefs(params, model_flux_func(min_t2_time))
-
-    # t = np.linspace(min_t2_time, max_t2_time, 100)
-
-    fig, ax = plt.subplots(1, figsize=(5, 4))
-
-    ax.plot(times, model_flux, label="Model", color="black")
-    ax.plot(jorek_times, jorek_flux, label="JOREK", color="red")
-
-    #log_times = np.logspace(4, np.log(max(times)), 100)
-    ## ax.plot(log_times, 1.0/log_times, label='2/t dependence')
-
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-
-    #ax.set_xlabel(r"Time ($1/\omega_A$)")
-    #ax.set_ylabel(r"Flux at rational surface ($a^2 B_{\phi 0}$)")
-
-    ## ax.plot(
-    ##     t,
-    ##     c_0*(t-min_t2_time)**2 +c_1*(t-min_t2_time) + c_2,
-    ##     color='green', linestyle='--',
-    ##     label=r'$f(t) = at^2 + bt + c$' + \
-    ##         f"\n a={c_0:.2e},\n b={c_1:.2e},\n c={c_2:.2e}"
-    ## )
-
-    ax.legend()
-    fig.tight_layout()
-
-    #savefig("flux_comparison_log_log")
-
-    #ax.set_xlim(left=40000, right=1e6)
-    #ax.set_ylim(bottom=1e-9, top=1e-2)
-    #fig.tight_layout()
-
-    #savefig("flux_comparison_log_log_zoom")
-
-    #ax.set_xscale("linear")
-    #ax.set_yscale("linear")
-    #fig.set_size_inches(6, 4.65, forward=True)
-    #ax.set_xlim(left=0, right=4e5)
-    #ax.set_ylim(bottom=0, top=0.00175)
-    #fig.tight_layout()
-
-    #savefig("flux_comparison_lin_lin_early")
-
-    #ax.set_xlim(left=0, right=1e6)
-    #ax.set_ylim(bottom=0, top=0.00175)
-
-    #savefig("flux_comparison_lin_lin")
-
-    #ax.autoscale()
-    #ax.set_yscale("log")
-    #ax.set_xlim(left=0, right=5e5)
-    #savefig("flux_comparison_lin_log")
-
-    #ax.set_xscale("linear")
-    #ax.set_yscale("linear")
-    #ax.set_xlim(left=0, right=8e4)
-    #ax.set_ylim(bottom=0, top=1e-5)
-    #savefig("flux_comparison_linear_regime")
+    plot_fluxes(times, model_flux, jorek_times, jorek_flux)
+    plot_growths(times, model_flux, jorek_times, jorek_flux)
 
     plt.show()
 

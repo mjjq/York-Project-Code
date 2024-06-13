@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import UnivariateSpline
 import os
 import numpy as np
+import sys
 
 import imports
 from tearing_mode_solver.outer_region_solver import (
@@ -43,9 +44,12 @@ def ql_tm_vs_time():
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
-    model_data_filename = "./output/04-06-2024_16:37_jorek_model_(m,n)=(2,1).zip"
-    jorek_data_filename = "../../jorek_tools/postproc/magnetic_energies.csv"
-
+    if len(sys.argv) < 3:
+        model_data_filename = "./output/04-06-2024_16:37_jorek_model_(m,n)=(2,1).zip"
+        jorek_data_filename = "../../jorek_tools/postproc/magnetic_energies.csv"
+    else:
+        model_data_filename = sys.argv[1]
+        jorek_data_filename = sys.argv[2]
 
     params, sol = load_sim_from_disk(model_data_filename)
 

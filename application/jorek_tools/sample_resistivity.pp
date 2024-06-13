@@ -1,7 +1,7 @@
 namelist intear
 si-units
 
-for step 400 do
+for step 1000 do
 
 expressions Psi_N eta_T
 mark_coords 1

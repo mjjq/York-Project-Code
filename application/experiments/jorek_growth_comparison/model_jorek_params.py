@@ -162,7 +162,7 @@ def ql_tm_vs_time():
     params = TearingModeParameters(
         poloidal_mode_number=2,
         toroidal_mode_number=1,
-        lundquist_number=1.119e10,
+        lundquist_number=1.9117e9,
         initial_flux=1.336e-12,
         B0=1.0,
         R0=40.0,
@@ -174,7 +174,7 @@ def ql_tm_vs_time():
 
     t0 = 4.2444e5  # This is the jorek time at which the simulation numerically stabilises
 
-    times = np.linspace(t0, 2e9, 200000)
+    times = np.linspace(t0, 1.2e9, 2000000)
     print(max(times))
 
     ql_solution = solve_time_dependent_system(params, times)

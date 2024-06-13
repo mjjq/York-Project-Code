@@ -15,5 +15,9 @@ qprofname="qprofile_s00000.dat"
 # postproc as a .dat file then converted to .csv
 currprofname="exprs_averaged_s00000.csv"
 
+# Magnetic energy data from JOREK in .csv format.
+# jorekmagenergies="magnetic_energies.csv"
 
 python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_flux.py $modelfname $jorekfname $qprofname $currprofname
+
+# python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_model_growth_to_jorek.py $modelfname $jorekmagenergies
