@@ -152,6 +152,8 @@ def plot_growths(model_times: np.array,
 
 def plot_widths(model_times: np.array,
                 model_fluxes: np.array,
+                model_dpsi_dt: np.array,
+                model_d2psi_dt2: np.array,
                 jorek_times: np.array,
                 jorek_fluxes: np.array,
                 q_profile: np.array,
@@ -168,6 +170,17 @@ def plot_widths(model_times: np.array,
         s
     )
 
+    model_mode_widths = mode_width(
+        model_fluxes,
+        model_dpsi_dt,
+        model_d2psi_dt2,
+        r_s,
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        s,
+        params.lundquist_number
+    )
+
     jorek_island_widths = island_width(
         jorek_fluxes,
         r_s,
@@ -176,16 +189,37 @@ def plot_widths(model_times: np.array,
         s
     )
 
+
+
     fig, ax = plt.subplots(1, figsize=(5, 4))
 
-    ax.plot(model_times, model_island_widths, label="Model", color="black")
-    ax.plot(jorek_times, jorek_island_widths, label="JOREK", color="red")
+    ax.plot(
+        model_times,
+        model_island_widths,
+        label="Model ($w(t)$)",
+        color="black"
+    )
+    ax.plot(
+        model_times,
+        model_mode_widths,
+        label=r"Model ($\delta_{ql}(t)$)",
+        color="blue",
+        linestyle="--"
+    )
+    ax.plot(
+        jorek_times,
+        jorek_island_widths,
+        label="JOREK ($w(t)$)",
+        color="red"
+    )
+
+    ax.legend()
 
     ax.set_xscale("log")
     ax.set_yscale("log")
 
     ax.set_xlabel(r"Time ($1/\omega_A$)")
-    ax.set_ylabel(r"Magnetic island width ($a$)")
+    ax.set_ylabel(r"Width ($a$)")
 
 
 def ql_tm_vs_time():
@@ -238,7 +272,10 @@ def ql_tm_vs_time():
     jorek_flux = jorek_flux[jorek_filt]
 
     plot_fluxes(times, model_flux, jorek_times, jorek_flux)
-    plot_widths(times, model_flux, jorek_times, jorek_flux, q_profile)
+    plot_widths(
+        times, model_flux, jorek_times, jorek_flux,
+        dpsi_t, d2psi_dt2, q_profile
+    )
     # plot_growths(times, model_flux, jorek_times, jorek_flux)
 
     plt.show()
