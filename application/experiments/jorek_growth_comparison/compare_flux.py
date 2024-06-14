@@ -221,6 +221,10 @@ def plot_widths(model_times: np.array,
     ax.set_xlabel(r"Time ($1/\omega_A$)")
     ax.set_ylabel(r"Width ($a$)")
 
+    fig.tight_layout()
+
+    savefig("island_width_comparison")
+
 
 def ql_tm_vs_time():
     """
