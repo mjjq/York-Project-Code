@@ -187,6 +187,10 @@ def plot_widths(model_times: np.array,
     ax.set_xlabel(r"Time ($1/\omega_A$)")
     ax.set_ylabel(r"Magnetic island width ($a$)")
 
+    fig.tight_layout()
+
+    savefig("island_width_comparison")
+
 
 def ql_tm_vs_time():
     """
@@ -238,7 +242,7 @@ def ql_tm_vs_time():
     jorek_flux = jorek_flux[jorek_filt]
 
     plot_fluxes(times, model_flux, jorek_times, jorek_flux)
-    plot_widths(times, model_flux, jorek_times, jorek_flux, q_profile)
+    plot_widths(times, model_flux, jorek_times, jorek_flux, q_profile, params)
     # plot_growths(times, model_flux, jorek_times, jorek_flux)
 
     plt.show()
