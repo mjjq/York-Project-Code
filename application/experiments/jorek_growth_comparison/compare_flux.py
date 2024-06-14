@@ -14,6 +14,7 @@ from tearing_mode_solver.helpers import (
     TimeDependentSolution,
     savefig,
     load_sim_from_disk,
+    TearingModeParameters
 )
 from tearing_mode_solver.outer_region_solver import island_width
 from tearing_mode_solver.algebraic_fitting import get_parab_coefs
@@ -148,13 +149,52 @@ def plot_growths(model_times: np.array,
 
     return
 
+
+def plot_widths(model_times: np.array,
+                model_fluxes: np.array,
+                jorek_times: np.array,
+                jorek_fluxes: np.array,
+                q_profile: np.array,
+                params: TearingModeParameters):
+    q_s = params.poloidal_mode_number/params.toroidal_mode_number
+    r_s = rational_surface(q_profile, q_s)
+    s = magnetic_shear(q_profile, r_s)
+
+    model_island_widths = island_width(
+        model_fluxes,
+        r_s,
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        s
+    )
+
+    jorek_island_widths = island_width(
+        jorek_fluxes,
+        r_s,
+        params.poloidal_mode_number,
+        params.toroidal_mode_number,
+        s
+    )
+
+    fig, ax = plt.subplots(1, figsize=(5, 4))
+
+    ax.plot(model_times, model_island_widths, label="Model", color="black")
+    ax.plot(jorek_times, jorek_island_widths, label="JOREK", color="red")
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    ax.set_xlabel(r"Time ($1/\omega_A$)")
+    ax.set_ylabel(r"Magnetic island width ($a$)")
+
+
 def ql_tm_vs_time():
     """
     Plot various numerically solved variables from a tearing mode solution and
     island width as a function of time from .csv data.
     """
     print(sys.argv)
-    if len(sys.argv)<3:
+    if len(sys.argv) < 3:
         model_data_filename = "./output/05-06-2024_16:42_jorek_model_(m,n)=(2,1).zip"
         jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
         q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
@@ -180,7 +220,7 @@ def ql_tm_vs_time():
     jorek_times, jorek_flux = jorek_flux_at_q(jorek_data, q_profile, 2 / 1)
     jorek_times = jorek_to_alfven_time(jorek_times, params.B0, params.R0)
 
-    min_time = np.min(times[times>0.0])  # 1e4
+    min_time = np.min(times[times > 0.0])  # 1e4
     max_time = np.max(times)
 
 
@@ -198,6 +238,7 @@ def ql_tm_vs_time():
     jorek_flux = jorek_flux[jorek_filt]
 
     plot_fluxes(times, model_flux, jorek_times, jorek_flux)
+    plot_widths(times, model_flux, jorek_times, jorek_flux, q_profile)
     # plot_growths(times, model_flux, jorek_times, jorek_flux)
 
     plt.show()
