@@ -170,7 +170,8 @@ def plot_widths(model_times: np.array,
         s
     )
 
-    model_mode_widths = mode_width(
+    # Add factor of 2**(9/4)*r_s to directly relate mode width to island width
+    model_mode_widths = 2**(9/4) * r_s * mode_width(
         model_fluxes,
         model_dpsi_dt,
         model_d2psi_dt2,
@@ -202,15 +203,16 @@ def plot_widths(model_times: np.array,
     ax.plot(
         model_times,
         model_mode_widths,
-        label=r"Model ($\delta_{ql}(t)$)",
+        label=r"Model ($2^{9/4} r_s \delta_{ql}(t)$)",
         color="blue",
-        linestyle="--"
+        linestyle="dotted"
     )
     ax.plot(
         jorek_times,
         jorek_island_widths,
         label="JOREK ($w(t)$)",
-        color="red"
+        color="red",
+        linestyle="dotted"
     )
 
     ax.legend()
@@ -268,7 +270,9 @@ def ql_tm_vs_time():
     model_filt = (times < max_time) & (times > min_time)
     times = times[model_filt]
     model_flux = psi_t[model_filt]
-    model_flux_func = UnivariateSpline(times, model_flux, s=0)
+    model_dpsi_dt = dpsi_t[model_filt]
+    model_d2psi_dt2 = d2psi_dt2[model_filt]
+    #model_flux_func = UnivariateSpline(times, model_flux, s=0)
 
     # JOREK flux
     jorek_filt = jorek_times > min_time
@@ -277,8 +281,9 @@ def ql_tm_vs_time():
 
     plot_fluxes(times, model_flux, jorek_times, jorek_flux)
     plot_widths(
-        times, model_flux, jorek_times, jorek_flux,
-        dpsi_t, d2psi_dt2, q_profile
+        times, model_flux, model_dpsi_dt, model_d2psi_dt2,
+        jorek_times, jorek_flux,
+        q_profile, params
     )
     # plot_growths(times, model_flux, jorek_times, jorek_flux)
 
