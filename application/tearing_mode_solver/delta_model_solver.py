@@ -89,7 +89,9 @@ def mode_width(psi_rs: float,
 
     non_linear_term = nu(psi_rs, m, S, r_s)
 
-    linear_term = d2psi_dt2/dpsi_dt
+    ps_corr = np.sqrt(1+2*(m/n)**2)
+
+    linear_term = ps_corr * d2psi_dt2/dpsi_dt
 
     pre_factor = (non_linear_term + linear_term)
 
