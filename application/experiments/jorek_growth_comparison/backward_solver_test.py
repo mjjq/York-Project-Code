@@ -54,6 +54,8 @@ if __name__ == '__main__':
     ax.set_xlabel(r"Time ($\omega_A$)")
     ax.set_ylabel(r"Magnetic island width ($a$)")
     
+    ax.legend()
+    
     fig.tight_layout()
 
     savefig("backward_rutherford_solution")
