@@ -414,6 +414,46 @@ def island_width(psi_rs: float,
 
     return 0.0
 
+def delta_prime_nl_yu(tm: OuterRegionSolution,
+                         island_width: float) -> float:
+    """
+    Non-linear discontinuity parameter calculation using the solution of the
+    perturbed flux.
+
+    This uses the Delta' scheme derived in Yu2004, i.e.
+
+    $Delta'_{CL}(w) = Delta'(0) - a_{nl} w$,
+
+    where a_{nl} is a coefficient which is either calculated or
+    assigned as a free parameter to be fit.
+
+    Parameters
+    ----------
+    tm : OuterRegionSolution
+        Solution to the reduced MHD equation obtained from solve_system.
+    island_width : float
+        Width of the magnetic island.
+
+    Returns
+    -------
+    float
+        Delta' value.
+    """
+    a_nl = 44.024 # Placeholder
+
+    r_min = tm.r_s
+    dpsi_dr_min = tm.dpsi_dr_f_func(r_min)
+
+    r_max = tm.r_s
+    dpsi_dr_max = tm.dpsi_dr_b_func(r_max)
+
+    psi_plus = tm.psi_backwards[-1]
+
+    delta_p = (dpsi_dr_max - dpsi_dr_min)/psi_plus - a_nl * island_width
+
+    return delta_p
+
+
 def delta_prime_non_linear(tm: OuterRegionSolution,
                            island_width: float,
                            epsilon: float = 1e-10) -> float:
@@ -452,6 +492,7 @@ def delta_prime_non_linear(tm: OuterRegionSolution,
             (psi_plus={psi_plus}, psi_minus={psi_minus})."""
         )
 
+    return delta_prime_nl_yu(tm, island_width)
 
     r_min = tm.r_s - island_width/2.0
     dpsi_dr_min = tm.dpsi_dr_f_func(r_min)
