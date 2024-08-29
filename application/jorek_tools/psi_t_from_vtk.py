@@ -144,19 +144,24 @@ def jorek_flux_at_q(jorek_data: pd.DataFrame,
 if __name__=='__main__':
 	fnames=sys.argv[1:]
 
-	print(fnames)
+	print(fnames) 
 
 	psi_data = extract_psi_t(fnames)
 
-	psi_data.to_csv("psi_t_data.csv")
+	print("Saving to psi_t_data.csv")
+	try:
+		psi_data.to_csv("psi_t_data.csv")
+		print("Saved successfully!")
+	except Exception as e:
+		print(f"Failed to save. Reason {e}")
 
-	group = psi_data.groupby("time")
-	group.plot(x='r', y='psi_norm')
-	from matplotlib import pyplot as plt
+	#group = psi_data.groupby("time")
+	#group.plot(x='r', y='psi_norm')
+	#from matplotlib import pyplot as plt
 
 	#fig, ax = plt.subplots(1)
 	#ax.plot(times, psi_t, color='black')
 	#ax.set_xlabel(r"Time $(1/\omega_A)$")
 	#ax.set_ylabel(r"Flux $(a^2 B_{\phi 0})$")
 
-	plt.show()
+	#plt.show()
