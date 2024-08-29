@@ -174,7 +174,7 @@ def ql_tm_vs_time():
 
     t0 = 4.2444e5  # This is the jorek time at which the simulation numerically stabilises
 
-    times = np.linspace(t0, 1.2e9, 2000000)
+    times = np.linspace(t0, 1.2e9, 100000)
     print(max(times))
 
     ql_solution = solve_time_dependent_system(params, times)
