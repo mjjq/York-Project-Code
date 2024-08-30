@@ -43,7 +43,7 @@ if __name__ == '__main__':
         td_sol.w_t, 
         color='red', 
         linestyle='--', 
-        label='Backward rutherford equation'
+        label='Backward RE'
     )
 
 
