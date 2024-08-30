@@ -10,9 +10,7 @@ cd ./vtk_no0_iplane1
 
 fname="psi_t_data.csv"
 
-if [ ! -f $fname ]; then
-	python3 $JOREK_TOOLS/psi_t_from_vtk.py *.vtk
-fi
+python3 $JOREK_TOOLS/psi_t_from_vtk.py *.vtk
 
 cp $fname $rootdir/postproc
 

@@ -1,10 +1,12 @@
 import pandas as pd
+import matplotlib
 from matplotlib import pyplot as plt
 from scipy.interpolate import CloughTocher2DInterpolator, UnivariateSpline
 import os
 import numpy as np
 from typing import List, Tuple
 import sys
+import f90nml
 
 import imports
 from tearing_mode_solver.outer_region_solver import rational_surface, magnetic_shear
@@ -45,25 +47,8 @@ def check_model_t_dependence():
 
     plt.show()
 
-def plot_fluxes(model_times: np.array,
-                model_flux: np.array,
-                jorek_times: np.array,
-                jorek_flux: np.array):
-    
-    # Parabolic fitting
-    # min_t2_time = 1.9e5
-    # max_t2_time = 5e5
-    # c_0, c_1, c_2 = get_parab_coefs(params, model_flux_func(min_t2_time))
-
-    # t = np.linspace(min_t2_time, max_t2_time, 100)
-
+def init_flux_fig() -> Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]:
     fig, ax = plt.subplots(1, figsize=(5, 4))
-
-    ax.plot(model_times, model_flux, label="Model", color="black")
-    ax.plot(jorek_times, jorek_flux, label="JOREK", color="red")
-
-    #log_times = np.logspace(4, np.log(max(times)), 100)
-    ## ax.plot(log_times, 1.0/log_times, label='2/t dependence')
 
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -71,13 +56,40 @@ def plot_fluxes(model_times: np.array,
     ax.set_xlabel(r"Time ($1/\omega_A$)")
     ax.set_ylabel(r"Flux at rational surface ($a^2 B_{\phi 0}$)")
 
-    ## ax.plot(
-    ##     t,
-    ##     c_0*(t-min_t2_time)**2 +c_1*(t-min_t2_time) + c_2,
-    ##     color='green', linestyle='--',
-    ##     label=r'$f(t) = at^2 + bt + c$' + \
-    ##         f"\n a={c_0:.2e},\n b={c_1:.2e},\n c={c_2:.2e}"
-    ## )
+    ax.legend()
+    fig.tight_layout()
+
+    return fig, ax
+
+def init_width_fig() -> Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]:
+    fig, ax = plt.subplots(1, figsize=(5, 4))
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    ax.set_xlabel(r"Time ($1/\omega_A$)")
+    ax.set_ylabel(r"Magnetic island width (a)")
+
+    ax.legend()
+    fig.tight_layout()
+
+    return fig, ax
+
+def plot_fluxes(model_times: np.array,
+                model_flux: np.array,
+                jorek_times: np.array,
+                jorek_flux: np.array):
+    
+    fig, ax = plt.subplots(1, figsize=(5, 4))
+
+    ax.plot(model_times, model_flux, label="Model", color="black")
+    ax.plot(jorek_times, jorek_flux, label="JOREK", color="red")
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    ax.set_xlabel(r"Time ($1/\omega_A$)")
+    ax.set_ylabel(r"Flux at rational surface ($a^2 B_{\phi 0}$)")
 
     ax.legend()
     fig.tight_layout()
@@ -88,37 +100,6 @@ def plot_fluxes(model_times: np.array,
     ax.set_xlim(left=0.0, right=max(jorek_times))
 
     savefig("flux_comparison_lin_log")
-
-    #ax.set_xlim(left=40000, right=1e6)
-    #ax.set_ylim(bottom=1e-9, top=1e-2)
-    #fig.tight_layout()
-
-    #savefig("flux_comparison_log_log_zoom")
-
-    #ax.set_xscale("linear")
-    #ax.set_yscale("linear")
-    #fig.set_size_inches(6, 4.65, forward=True)
-    #ax.set_xlim(left=0, right=4e5)
-    #ax.set_ylim(bottom=0, top=0.00175)
-    #fig.tight_layout()
-
-    #savefig("flux_comparison_lin_lin_early")
-
-    #ax.set_xlim(left=0, right=1e6)
-    #ax.set_ylim(bottom=0, top=0.00175)
-
-    #savefig("flux_comparison_lin_lin")
-
-    #ax.autoscale()
-    #ax.set_yscale("log")
-    #ax.set_xlim(left=0, right=5e5)
-    #savefig("flux_comparison_lin_log")
-
-    #ax.set_xscale("linear")
-    #ax.set_yscale("linear")
-    #ax.set_xlim(left=0, right=8e4)
-    #ax.set_ylim(bottom=0, top=1e-5)
-    #savefig("flux_comparison_linear_regime")
 
 def plot_growths(model_times: np.array,
                  model_fluxes: np.array,
@@ -225,7 +206,14 @@ def plot_widths(model_times: np.array,
 
     fig.tight_layout()
 
-    savefig("island_width_comparison")
+    savefig("island_width_comparison_log")
+
+    ax.set_xscale("linear")
+    ax.set_yscale("linear")
+    ax.set_xlim(left=5e5, right=5e6)
+    ax.set_ylim(top=1.0)
+
+    savefig("island_width_comparison_linear")
 
 
 def ql_tm_vs_time():
@@ -234,58 +222,101 @@ def ql_tm_vs_time():
     island width as a function of time from .csv data.
     """
     print(sys.argv)
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
+        jorek_namelist_filename="intear"
         model_data_filename = "./output/05-06-2024_16:42_jorek_model_(m,n)=(2,1).zip"
         jorek_data_filename = "../../jorek_tools/postproc/psi_t_data.csv"
         q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
         psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
     else:
-        model_data_filename = sys.argv[1]
-        jorek_data_filename = sys.argv[2]
-        q_prof_filename = sys.argv[3]
-        psi_current_prof_filename = sys.argv[4]
+        jorek_namelist_filename = sys.argv[1]
+        q_prof_filename = sys.argv[2]
+        psi_current_prof_filename = sys.argv[3]
+        jorek_data_filename = sys.argv[4]
+        model_data_filename = None
+    if len(sys.argv) == 6:
+        model_data_filename = sys.argv[5]
+    
+    poloidal_mode_number = 2.0
+    toroidal_mode_number = 1.0
 
+    fig_flux, ax_flux = init_flux_fig()
+    fig_width, ax_width = init_width_fig()
+
+    # Load profiles
     q_profile, j_profile = q_and_j_from_csv(psi_current_prof_filename, q_prof_filename)
 
-    params, sol = load_sim_from_disk(model_data_filename)
-
-    times = sol.times
-    psi_t = sol.psi_t
-    dpsi_t = sol.dpsi_dt
-    w_t = sol.w_t
-    d2psi_dt2 = sol.d2psi_dt2
-    delta_primes = sol.delta_primes
-
+    # Load jorek data
     jorek_data = pd.read_csv(jorek_data_filename).fillna(0)
     jorek_times, jorek_flux = jorek_flux_at_q(jorek_data, q_profile, 2 / 1)
-    jorek_times = jorek_to_alfven_time(jorek_times, params.B0, params.R0)
 
-    min_time = np.min(times[times > 0.0])  # 1e4
-    max_time = np.max(times)
+
+    jorek_namelist = f90nml.read(jorek_namelist_filename)
+    R0 = jorek_namelist['in1']['r_geo']
+    F0 = jorek_namelist['in1']['f0']
+    B0 = F0/R0
+
+    jorek_times = jorek_to_alfven_time(jorek_times, B0, R0)
+
+    # Load model data if supplied
+    min_time = 0.0
+    if model_data_filename is not None:    
+        params, sol = load_sim_from_disk(model_data_filename)
+        poloidal_mode_number = params.poloidal_mode_number
+        toroidal_mode_number = params.toroidal_mode_number
+
+        times = sol.times
+        psi_t = sol.psi_t
+        dpsi_t = sol.dpsi_dt
+        w_t = sol.w_t
+        d2psi_dt2 = sol.d2psi_dt2
+        delta_primes = sol.delta_primes
+
+        min_time = np.min(times[times > 0.0])  # 1e4
+        max_time = np.max(times)
+
+        # Model flux
+        model_filt = (times < max_time) & (times > min_time)
+        times = times[model_filt]
+        model_flux = psi_t[model_filt]
+        model_dpsi_dt = dpsi_t[model_filt]
+        model_d2psi_dt2 = d2psi_dt2[model_filt]
+
+        ax_flux.plot(times, model_flux, label='model', color='black')
+        ax_width.plot(times, w_t, label='model', color='black')
+
 
 
     print(f"Min time: {min_time}")
 
-    # Model flux
-    model_filt = (times < max_time) & (times > min_time)
-    times = times[model_filt]
-    model_flux = psi_t[model_filt]
-    model_dpsi_dt = dpsi_t[model_filt]
-    model_d2psi_dt2 = d2psi_dt2[model_filt]
-    #model_flux_func = UnivariateSpline(times, model_flux, s=0)
 
     # JOREK flux
     jorek_filt = jorek_times > min_time
     jorek_times = jorek_times[jorek_filt]
     jorek_flux = jorek_flux[jorek_filt]
 
-    plot_fluxes(times, model_flux, jorek_times, jorek_flux)
-    plot_widths(
-        times, model_flux, model_dpsi_dt, model_d2psi_dt2,
-        jorek_times, jorek_flux,
-        q_profile, params
+    r_s = rational_surface(q_profile, poloidal_mode_number/toroidal_mode_number)
+    s = magnetic_shear(q_profile, r_s)
+    jorek_island_widths = island_width(
+        jorek_flux,
+        r_s,
+        poloidal_mode_number,
+        toroidal_mode_number,
+        s
     )
+
+    ax_flux.plot(jorek_times, jorek_flux, label='JOREK', color='red')
+    ax_width.plot(jorek_times, jorek_island_widths, label='JOREK', color='red')
+
+    # plot_fluxes(times, model_flux, jorek_times, jorek_flux)
+    # plot_widths(
+    #     times, model_flux, model_dpsi_dt, model_d2psi_dt2,
+    #     jorek_times, jorek_flux,
+    #     q_profile, params
+    # )
     # plot_growths(times, model_flux, jorek_times, jorek_flux)
+    fig_flux.tight_layout()
+    fig_width.tight_layout()
 
     plt.show()
 

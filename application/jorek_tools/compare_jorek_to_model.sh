@@ -2,8 +2,18 @@
 
 cd postproc
 
+mkdir -p ./output
+
 # Get the latest model simulation from output directory
-modelfname=./output/$(ls ./output/ -Art | grep .zip | tail -n 1)
+modelfname=$(ls ./output/ -Art | grep .zip | tail -n 1)
+
+if [[ $modelfname ]]
+then
+	$modelfname=./output/$modelfname
+fi
+
+# JOREK namelist file
+nmlfname="../intear"
 
 # JOREK psi(r_s, t) data in csv format, should have same filename as always
 jorekfname="psi_t_data.csv"
@@ -18,6 +28,11 @@ currprofname="exprs_averaged_s00000.csv"
 # Magnetic energy data from JOREK in .csv format.
 jorekmaggrowth="magnetic_growth_rates.csv"
 
-python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_flux.py $modelfname $jorekfname $qprofname $currprofname
+python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_flux.py \
+	$nmlfname \
+	$qprofname \
+	$currprofname \
+	$jorekfname \
+	$modelfname
 
-python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_model_growth_to_jorek.py $modelfname $jorekmaggrowth
+# python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_model_growth_to_jorek.py $modelfname $jorekmaggrowth
