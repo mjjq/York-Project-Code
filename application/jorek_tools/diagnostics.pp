@@ -6,7 +6,7 @@ for step 0 do
 
 qprofile
 
-expressions Psi_N currdens pres p_prime_loc FFprime_loc
+expressions Psi_N ne T_i T_e pres FFprime_loc
 mark_coords 1
 set surfaces 200
 average
