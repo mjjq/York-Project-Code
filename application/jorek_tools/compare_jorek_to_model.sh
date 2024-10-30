@@ -9,7 +9,8 @@ modelfname=$(ls ./output/ -Art | grep .zip | tail -n 1)
 
 if [[ $modelfname ]]
 then
-	$modelfname=./output/$modelfname
+	echo "Found $modelfname"
+	modelfname=./output/$modelfname
 fi
 
 # JOREK namelist file
@@ -28,6 +29,7 @@ currprofname="exprs_averaged_s00000.csv"
 # Magnetic energy data from JOREK in .csv format.
 jorekmaggrowth="magnetic_growth_rates.csv"
 
+echo $modelfname
 python3 $JOREK_TOOLS/../experiments/jorek_growth_comparison/compare_flux.py \
 	$nmlfname \
 	$qprofname \

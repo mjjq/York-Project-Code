@@ -265,34 +265,41 @@ def ql_tm_vs_time():
         poloidal_mode_number = params.poloidal_mode_number
         toroidal_mode_number = params.toroidal_mode_number
 
-        times = sol.times
-        psi_t = sol.psi_t
-        dpsi_t = sol.dpsi_dt
-        w_t = sol.w_t
-        d2psi_dt2 = sol.d2psi_dt2
-        delta_primes = sol.delta_primes
+        # Minimum time at which our model start relative to the
+        # JOREK simulation (such that initial flux of the model 
+        # lines up nicely with a flux value in the JOREK run)
+        model_initial_flux = sol.psi_t[0]
+        jorek_flux_arg = np.argmin((jorek_flux-model_initial_flux)**2)
+        jorek_start_time = jorek_times[jorek_flux_arg]
 
-        min_time = np.min(times[times > 0.0])  # 1e4
-        max_time = np.max(times)
+        min_time = np.min(sol.times[sol.times > jorek_start_time])  # 1e4
+        max_time = np.max(sol.times)
 
         # Model flux
-        model_filt = (times < max_time) & (times > min_time)
-        times = times[model_filt]
-        model_flux = psi_t[model_filt]
-        model_dpsi_dt = dpsi_t[model_filt]
-        model_d2psi_dt2 = d2psi_dt2[model_filt]
+        #model_filt = (times < max_time)
+        # times = times[model_filt]
+        # model_flux = psi_t[model_filt]
+        # model_dpsi_dt = dpsi_t[model_filt]
+        # model_d2psi_dt2 = d2psi_dt2[model_filt]
+        # w_t = w_t[model_filt]
 
-        ax_flux.plot(times, model_flux, label='model', color='black')
-        ax_width.plot(times, w_t, label='model', color='black')
+        ax_flux.plot(
+            sol.times, sol.psi_t, label='model', color='black'
+        )
+        ax_width.plot(
+            sol.times, sol.w_t, label='model', color='black'
+        )
+
+        #ax_flux.set_xlim(left=min_time, right=max_time)
+        #ax_width.set_xlim(left=min_time, right=max_time)
 
 
-
-    print(f"Min time: {min_time}")
 
 
     # JOREK flux
     jorek_filt = jorek_times > min_time
-    jorek_times = jorek_times[jorek_filt]
+    # Subtract min_time to re-zero the sim times
+    jorek_times = jorek_times[jorek_filt]-min_time
     jorek_flux = jorek_flux[jorek_filt]
 
     r_s = rational_surface(q_profile, poloidal_mode_number/toroidal_mode_number)
@@ -308,15 +315,10 @@ def ql_tm_vs_time():
     ax_flux.plot(jorek_times, jorek_flux, label='JOREK', color='red')
     ax_width.plot(jorek_times, jorek_island_widths, label='JOREK', color='red')
 
-    # plot_fluxes(times, model_flux, jorek_times, jorek_flux)
-    # plot_widths(
-    #     times, model_flux, model_dpsi_dt, model_d2psi_dt2,
-    #     jorek_times, jorek_flux,
-    #     q_profile, params
-    # )
-    # plot_growths(times, model_flux, jorek_times, jorek_flux)
     fig_flux.tight_layout()
+    savefig("jorek_flux_comparison")
     fig_width.tight_layout()
+    savefig("jorek_width_comparison")
 
     plt.show()
 
