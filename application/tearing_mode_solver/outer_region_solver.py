@@ -492,7 +492,7 @@ def delta_prime_non_linear(tm: OuterRegionSolution,
             (psi_plus={psi_plus}, psi_minus={psi_minus})."""
         )
 
-    return delta_prime_nl_yu(tm, island_width)
+    # return delta_prime_nl_yu(tm, island_width)
 
     r_min = tm.r_s - island_width/2.0
     dpsi_dr_min = tm.dpsi_dr_f_func(r_min)
