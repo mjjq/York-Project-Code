@@ -143,7 +143,7 @@ def load_sim_from_disk(name: str) -> \
         time_data_str = BytesIO(zf.read("time_solution.csv"))
         time_data_class = classFromArgs(
             TimeDependentSolution,
-            pd.read_csv(time_data_str)
+            pd.read_csv(time_data_str).fillna(0)
         )
 
     return params_dataclass, time_data_class
