@@ -10,26 +10,28 @@ class MacroscopicQuantity:
 	JOREK's util/extract_live_data.sh script, converts into
 	a convenient class structure.
 	"""
-	def __init__(self, filename: str, column_name: str):
-		self.column_name: str = column_name
-		self.filename: str = filename
+	def __init__(self, _filename: str):
+		self.column_name: str
+		self.filename: str = _filename
 		self.times: np.ndarray
 		self.column_vals: np.ndarray
 		
-		self.times, self.column_vals = self.load_quantity_from_file(
-			filename, column_name
-		)
+		self.times: np.ndarray
+		self.column_vals: np.ndarray
 
-	def load_quantity_from_file(self, _filename: str, _column_name: str):
+
+	def load_column_by_name(self, _column_name: str):
 		"""
 		Parse a macroscopic variable.dat file generated using JOREK's
 		util/extract_live_data.sh script. Automatically extracts the
 		column requested using column_name.
 		"""
-		mac_quantity_vs_time = np.loadtxt(_filename, skiprows=1)
-		times = mac_quantity_vs_time[:,0]
+		self.column_name = _column_name
+
+		mac_quantity_vs_time = np.loadtxt(self.filename, skiprows=1)
+		self.times = mac_quantity_vs_time[:,0]
 		
-		with open(_filename) as f:
+		with open(self.filename) as f:
 			# Read first line which contains column info, remove
 			# new line delimiter with rstrip()
 			# Remove quote marks from column_names with replace
@@ -39,9 +41,22 @@ class MacroscopicQuantity:
 			# should be unique. However, argwhere returns an array,
 			# so flatten then retrieve first index.
 			col_index = np.argwhere(col_names==_column_name).flatten()[0]
-			col_vals = mac_quantity_vs_time[:,col_index]
+			self.column_vals = mac_quantity_vs_time[:,col_index]
 
-		return times, col_vals
+	def load_column_by_index(self, column_index: int):
+		# Ignore first row since this contains headers
+		mac_quantity_vs_time = np.loadtxt(self.filename, skiprows=1)
+		self.times = mac_quantity_vs_time[:,0]
+		
+		with open(self.filename) as f:
+			# Read first line which contains column info, remove
+			# new line delimiter with rstrip()
+			# Remove quote marks from column_names with replace
+			first_line = f.readline().rstrip().replace('"','')
+			col_names = np.array(list(filter(None, first_line.split(" "))))
+			
+			self.column_vals = mac_quantity_vs_time[:,column_index]
+			self.column_name = col_names[column_index]
 
 
 def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
@@ -67,20 +82,29 @@ if __name__ == "__main__":
 		prog="Macroscopic quantities plotter",
 		description="Plots macroscopic quantity of a given column" \
 			" against time for multiple JOREK runs",
-		epilog="Note: Number of files must match number of columns!"
+		epilog="Note: Number of files must match number of columns! "
+			"Alternatively, use the -ci option to choose a column to "
+			"plot across all files."
 	)
 	parser.add_argument('-f', '--files',  nargs='+')
 	parser.add_argument('-c', '--columns', nargs='+')
-	parser.add_argument('-q', '--quantity')
+	parser.add_argument('-ci', '--column-index', type=int)
+	parser.add_argument('-q', '--quantity', help="Name of y-axis quantity")
 	args = parser.parse_args()
 
-	print(args.files, args.columns)
-
-	assert len(args.files)==len(args.columns), "Number of columns/files mismatch, exiting"
-
 	quantities = []
-	for filename, column_name in zip(args.files, args.columns):
-		quantities.append(MacroscopicQuantity(filename, column_name))
+	if args.columns:
+		assert len(args.files)==len(args.columns), \
+			"Number of columns must equal number of files!"
+		for filename, column_name in zip(args.files, args.columns):
+			mq = MacroscopicQuantity(filename)
+			mq.load_column_by_name(column_name)
+			quantities.append(mq)
+	elif args.column_index:
+		for filename in args.files:
+			mq = MacroscopicQuantity(filename)
+			mq.load_column_by_index(args.column_index)
+			quantities.append(mq)
 
 	plot_macroscopic_quantities(quantities, args.quantity)
 
