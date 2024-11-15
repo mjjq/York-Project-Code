@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from argparse import ArgumentParser
-from typing import List
+from typing import List, Optional
 
 
 class MacroscopicQuantity:
@@ -60,10 +60,15 @@ class MacroscopicQuantity:
 
 
 def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
-								y_axis_label: str):
+								y_axis_label: str,
+								xmin: Optional[float],
+								xmax: Optional[float]):
 	fig, ax = plt.subplots(1)
 	ax.set_xlabel("Time [JOREK units]")
 	ax.set_ylabel(y_axis_label)
+
+	ax.grid(which='both')
+
 
 	for mac_quantity in quantities:
 		ax.plot(
@@ -71,6 +76,11 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 			mac_quantity.column_vals,
 			label=mac_quantity.column_name
 		)
+
+	if xmin:
+		ax.set_xlim(left=xmin)
+	if xmax:
+		ax.set_xlim(right=xmax)
 
 	ax.legend()
 
@@ -89,7 +99,9 @@ if __name__ == "__main__":
 	parser.add_argument('-f', '--files',  nargs='+')
 	parser.add_argument('-c', '--columns', nargs='+')
 	parser.add_argument('-ci', '--column-index', type=int)
-	parser.add_argument('-q', '--quantity', help="Name of y-axis quantity")
+	parser.add_argument('-yl', '--y-label', help="Name of y-axis quantity")
+	parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
+	parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
 	args = parser.parse_args()
 
 	quantities = []
@@ -106,6 +118,12 @@ if __name__ == "__main__":
 			mq.load_column_by_index(args.column_index)
 			quantities.append(mq)
 
-	plot_macroscopic_quantities(quantities, args.quantity)
+
+	plot_macroscopic_quantities(
+		quantities, 
+		args.y_label,
+		args.xmin,
+		args.xmax
+	)
 
 	#mq = MacroscopicQuantity()
