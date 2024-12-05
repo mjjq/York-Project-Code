@@ -61,13 +61,16 @@ class MacroscopicQuantity:
 
 def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								y_axis_label: str,
+								y_scale: str,
 								xmin: Optional[float],
-								xmax: Optional[float]):
+								xmax: Optional[float],
+								output_filename: Optional[str]):
 	fig, ax = plt.subplots(1)
 	ax.set_xlabel("Time [JOREK units]")
 	ax.set_ylabel(y_axis_label)
 
 	ax.grid(which='both')
+	ax.set_yscale(y_scale)
 
 
 	for mac_quantity in quantities:
@@ -83,6 +86,9 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 		ax.set_xlim(right=xmax)
 
 	ax.legend()
+
+	if output_filename:
+		plt.savefig(output_filename, dpi=300)
 
 	plt.show()
 
@@ -102,6 +108,11 @@ if __name__ == "__main__":
 	parser.add_argument('-yl', '--y-label', help="Name of y-axis quantity")
 	parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
 	parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
+	parser.add_argument(
+		'-ys', '--y-scale', choices=['linear','log'], help="Y-axis scale",
+		default='linear'
+	)
+	parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
 	args = parser.parse_args()
 
 	quantities = []
@@ -120,10 +131,12 @@ if __name__ == "__main__":
 
 
 	plot_macroscopic_quantities(
-		quantities, 
+		quantities,
 		args.y_label,
+		args.y_scale,
 		args.xmin,
-		args.xmax
+		args.xmax,
+		args.output_filename
 	)
 
 	#mq = MacroscopicQuantity()
