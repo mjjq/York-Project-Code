@@ -66,7 +66,7 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								xmax: Optional[float],
 								output_filename: Optional[str]):
 	fig, ax = plt.subplots(1)
-	ax.set_xlabel("Time [JOREK units]")
+	ax.set_xlabel("Time (ms)")
 	ax.set_ylabel(y_axis_label)
 
 	ax.grid(which='both')
