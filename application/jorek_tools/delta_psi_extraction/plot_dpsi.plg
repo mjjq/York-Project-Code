@@ -1,0 +1,11 @@
+set margins 20,10,5,5
+
+set xlabel "JOREK timestep"
+set ylabel "$\delta\psi(r_s)$ ($Tm$^2$)"
+
+set logscale y 10
+
+plot filename using 1:3 with lines notitle
+
+
+pause -1
