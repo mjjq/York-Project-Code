@@ -27,8 +27,10 @@ if [ $# -lt 3 ]; then
 fi
 
 # m/n need leading zeros to match 3 digit number format of file
-m=$(printf "%03d" $1)
-n=$(printf "%03d" $2)
+mraw=$1
+nraw=$2
+m=$(printf "%03d" $mraw)
+n=$(printf "%03d" $nraw)
 rs=$3
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -40,7 +42,10 @@ function extract_with_si_time() {
 	timemap="$($SCRIPT_DIR/time.sh log)"
 	cd postproc
 	extracted="$(extract)"
+	echo "\"m=$mraw, n=$nraw\""
 	join <(echo "$extracted") <(echo "$timemap")
+	echo ""
+	echo ""
 	cd ..
 }
 
