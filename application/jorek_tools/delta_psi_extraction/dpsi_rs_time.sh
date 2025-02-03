@@ -26,13 +26,14 @@ if [ $# -lt 3 ]; then
 	exit;
 fi
 
-m=$1
-n=$2
+# m/n need leading zeros to match 3 digit number format of file
+m=$(printf "%03d" $1)
+n=$(printf "%03d" $2)
 rs=$3
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 function extract() {
-	grep -r "m/n=+00$m" -A 100 *absolute_value_n00$n* | awk -v rs=$rs '{ if ($2 > rs-0.005 && $2 < rs+0.005  ) print $1 " " $2 " " $3 }' | sed "s/exprs_four2d_s//" | sed "s/_absolute_value_n00$n.dat-//"
+	grep -r "m/n=+$m" -A 100 *absolute_value_n$n* | awk -v rs=$rs '{ if ($2 > rs-0.005 && $2 < rs+0.005  ) print $1 " " $2 " " $3 }' | sed "s/exprs_four2d_s//" | sed "s/_absolute_value_n$n.dat-//"
 }
 
 function extract_with_si_time() {
