@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function usage() {
 	echo ""
@@ -6,6 +6,8 @@ function usage() {
 	echo "Uses data extracted using postprocs Four2D method"
 	echo "Note: working directory must be in the postproc folder where"
 	echo "Four2D output is stored."
+	echo ""
+	echo "REMARK: Must launch from root of simulation output"
 	echo ""
 	echo "Usage: `basename $0` <poloidal mode number> <toroidal mode number> <rs> [options]"
 	echo ""
@@ -27,9 +29,18 @@ fi
 m=$1
 n=$2
 rs=$3
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 function extract() {
 	grep -r "m/n=+00$m" -A 100 *absolute_value_n00$n* | awk -v rs=$rs '{ if ($2 > rs-0.005 && $2 < rs+0.005  ) print $1 " " $2 " " $3 }' | sed "s/exprs_four2d_s//" | sed "s/_absolute_value_n00$n.dat-//"
+}
+
+function extract_with_si_time() {
+	timemap="$($SCRIPT_DIR/time.sh log)"
+	cd postproc
+	extracted="$(extract)"
+	join <(echo "$extracted") <(echo "$timemap")
+	cd ..
 }
 
 plot=0
@@ -42,11 +53,11 @@ do
 done
 
 if [ $plot == 1 ]; then
-	outfile=dpsi_vs_time_m"$m"_n"$n"_rs"$rs".dat
-	extract>$outfile
-	gnuplotcmd="plot '$(echo $outfile)' using 1:3 with lines"
-	SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+	outfile="dpsi_temp.dat"
+	extract_with_si_time>$outfile
+	echo $outfile
 	gnuplot -e "filename='$(echo $outfile)'" $SCRIPT_DIR/plot_dpsi.plg --persist
+	rm "$outfile"
 else
-	extract
+	extract_with_si_time
 fi
