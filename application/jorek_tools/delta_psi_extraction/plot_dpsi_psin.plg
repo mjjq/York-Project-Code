@@ -1,0 +1,13 @@
+set margins 20,20,5,5
+
+set xlabel "Normalised psi"
+set ylabel "Perturbed flux (Tm^2)"
+
+#set logscale y 10
+set key outside
+
+stats filename
+
+plot for [i=1:STATS_blocks] filename index (i-1) using 1:2 with lines lw 3 notitle
+
+pause -1
