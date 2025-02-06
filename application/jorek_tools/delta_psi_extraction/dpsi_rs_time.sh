@@ -39,7 +39,7 @@ function extract() {
 }
 
 function extract_with_si_time() {
-	timemap="$($SCRIPT_DIR/time.sh log)"
+	timemap="$(sort -k1 <($SCRIPT_DIR/time.sh log*))"
 	cd postproc
 	extracted="$(extract)"
 	echo "\"m=$mraw, n=$nraw\""

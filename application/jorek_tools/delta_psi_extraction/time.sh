@@ -13,27 +13,31 @@ if [ $# -lt 1 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	exit;
 fi
 
-logfile=$1
+logfiles=$@
 
 function extract_time_from_log() {
-	grep -r "t_now" $logfile | sed 's/After step //' | sed 's/(t_now= //' | sed 's/)://'
+	grep -r "t_now" $1 | sed 's/After step //' | sed 's/(t_now= //' | sed 's/)://'
 }
 
 function extract_abs_step_from_log() {
-	grep -E "time step" $logfile | awk '{ printf("%05d %05d\n", $6, $7) }'
+	grep -E "time step" $1 | awk '{ printf("%05d %05d\n", $6, $7) }'
 }
 
 function abs_time_from_log() {
-	join <(extract_abs_step_from_log) <(extract_time_from_log) | awk '{ print $2 " " $3 }'
+	join <(extract_abs_step_from_log $1) <(extract_time_from_log $1) | awk '{ print $2 " " $3 }'
 }
 
 function extract_mu0_rho0_from_log() {
-	grep -r "mu0\*rho0" $logfile | awk 'NF>1{print $NF}'
+	grep -r "mu0\*rho0" $1 | awk 'NF>1{print $NF}'
 }
 
 
 function extract_time_to_si() {
-	abs_time_from_log | awk -v t=$(extract_mu0_rho0_from_log) '{print $1 " " t*$2}'
+	abs_time_from_log $1 | awk -v t=$(extract_mu0_rho0_from_log $1) '{print $1 " " t*$2}'
 }
 
-extract_time_to_si
+for logfile in $logfiles
+do
+	#echo $logfile
+	extract_time_to_si $logfile
+done
