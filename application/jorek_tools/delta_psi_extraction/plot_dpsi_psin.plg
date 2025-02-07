@@ -8,6 +8,6 @@ set key outside
 
 stats filename
 
-plot for [i=1:STATS_blocks] filename index (i-1) using 1:2 with lines lw 3 notitle
+plot for [i=1:STATS_blocks] filename index (i-1) using 1:2 with lines lw 3 title columnheader(1)
 
 pause -1
