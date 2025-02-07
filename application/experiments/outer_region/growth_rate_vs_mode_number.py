@@ -1,9 +1,16 @@
-from matplotlib import pyplot as plt
 import sys
 
 import imports
-from tearing_mode_solver.outer_region_solver import *
+from tearing_mode_solver.outer_region_solver import (
+    solve_system, 
+    alfven_frequency_STEP, 
+    TearingModeParameters, 
+    rational_surface, 
+    growth_rate, 
+    ps_correction
+)
 from tearing_mode_solver.profiles import generate_j_profile, generate_q_profile
+from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
 
 def growth_rate_vs_mode_number():
     """
@@ -20,16 +27,18 @@ def growth_rate_vs_mode_number():
     ]
     lundquist_number = 1e8
 
-    fig, ax = plt.subplots(1)
-
     results = []
 
     alfven_frequency = alfven_frequency_STEP()
 
-    q_prof = generate_q_profile(1.0, 2.0)
-    j_prof = generate_j_profile(2.0)
-
-    
+    if len(sys.argv) < 3:
+        q_prof = generate_q_profile(1.0, 2.0)
+        j_prof = generate_j_profile(2.0)
+    else:
+        q_prof, j_prof = q_and_j_from_csv(
+            sys.argv[1],
+            sys.argv[2]
+        )
 
     for m,n in modes:
         try:
