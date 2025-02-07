@@ -1,7 +1,9 @@
 from matplotlib import pyplot as plt
+import sys
 
 import imports
 from tearing_mode_solver.outer_region_solver import *
+from tearing_mode_solver.profiles import generate_j_profile, generate_q_profile
 
 def growth_rate_vs_mode_number():
     """
@@ -13,15 +15,8 @@ def growth_rate_vs_mode_number():
     """
     modes = [
         (2,1),
-        (3,2),
-        (4,2),
-        (4,3),
-        (5,2),
-        (5,3),
-        (5,4),
-        (6,3),
-        (6,4),
-        (6,5)
+        (3,1),
+        (4,1)
     ]
     lundquist_number = 1e8
 
@@ -31,28 +26,49 @@ def growth_rate_vs_mode_number():
 
     alfven_frequency = alfven_frequency_STEP()
 
+    q_prof = generate_q_profile(1.0, 2.0)
+    j_prof = generate_j_profile(2.0)
+
+    
+
     for m,n in modes:
-        delta_p, gr = growth_rate(m,n,lundquist_number)
+        try:
+            params = TearingModeParameters(
+                poloidal_mode_number=m,
+                toroidal_mode_number=n,
+                lundquist_number=lundquist_number,
+                initial_flux=1e-12,
+                B0=1,
+                R0=40,
+                q_profile=q_prof,
+                j_profile=j_prof
+            )
+            outer_sol = solve_system(params)
 
-        alfven_corrected = ps_correction(alfven_frequency, m, n)
+            r_s = rational_surface(q_prof, m/n)
 
-        abs_growth = gr*alfven_corrected
+            delta_p, gr = growth_rate(m, n, lundquist_number, q_prof, outer_sol)
 
-        linear_layer_width = layer_width(m,n,lundquist_number)
+            alfven_corrected = ps_correction(alfven_frequency, m, n)
 
-        results.append(
-            (delta_p, gr, alfven_corrected, abs_growth, linear_layer_width)
-        )
+            abs_growth = gr*alfven_corrected
 
-    print(f"mode & delta_p & gamma/omega & omega_bar & gamma & lin_growth")
-    for i,mode in enumerate(modes):
-        m, n = mode
-        (delta_p, growth, af_corrected,
-         abs_growth, linear_layer_width) = results[i]
+            #linear_layer_width = layer_width(m,n,lundquist_number, q_prof)
+
+            results.append(
+                (m, n, delta_p, r_s*delta_p, gr, alfven_corrected, abs_growth)
+            )
+        except ValueError as e:
+            print(e, file=sys.stderr)
+
+    print(f"\# m n Delta' r_s*Delta' gamma/omega omega_bar gamma")
+    for res in results:
+        (m, n, delta_p, r_sdelta_p, growth, af_corrected,
+         abs_growth) = res
         print(
-            f"{m} & {n} & {delta_p:.2f} & ${growth:.2e}$ & "
-            f"${af_corrected:.2e}$ & ${abs_growth:.2e}$ & "
-            f"${linear_layer_width:.2e}$"+r"\\")
+            f"{m} {n} {delta_p:.2f} {r_sdelta_p:.2f} {growth:.2e} "
+            f"{af_corrected:.2e} ${abs_growth:.2e}$"
+        )
 
 if __name__=='__main__':
     growth_rate_vs_mode_number()
