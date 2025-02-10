@@ -37,7 +37,8 @@ def growth_rate_vs_mode_number():
     else:
         q_prof, j_prof = q_and_j_from_csv(
             sys.argv[1],
-            sys.argv[2]
+            sys.argv[2],
+            normalise_j=True
         )
 
     for m,n in modes:

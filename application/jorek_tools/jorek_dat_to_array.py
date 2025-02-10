@@ -5,6 +5,8 @@ from scipy.interpolate import UnivariateSpline
 from matplotlib import pyplot as plt
 from typing import List, Tuple
 
+from jorek_tools.dat_to_pandas import dat_to_pandas
+
 def read_psi_profile(filename: str) -> List[Tuple[float, float]]:
     """
     Get raw minor radius values as a function of Psi_N from postproc output.
@@ -98,10 +100,10 @@ def q_and_j_from_input_files(filename_psi: str, filename_q: str) -> \
 
     return q_r, j_r
 
-def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
+def q_and_j_from_csv(filename_exprs: str, filename_q:str, normalise_j: bool = False) -> \
     Tuple[ List[Tuple[float, float]], List[Tuple[float, float]] ]:
         
-    exprs_data: pd.DataFrame = pd.read_csv(filename_exprs)
+    exprs_data: pd.DataFrame = dat_to_pandas(filename_exprs)
     q_data = read_q_profile(filename_q)
     
     psi_n_data = list(zip(exprs_data['Psi_N'],exprs_data['r_minor']))
@@ -116,6 +118,8 @@ def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
     q_r = list(zip(np.array(rs)/np.max(rs), qs))
 
     rs, js = zip(*j_r)
+    if normalise_j:
+        js = np.array(js)/js[0]
     j_r = list(zip(np.array(rs)/np.max(rs), js))
 
     return q_r, j_r
@@ -124,7 +128,7 @@ def main():
     import sys
 
     if len(sys.argv) < 3:
-        filename_exprs = "./postproc/exprs_averaged_s00000.csv"
+        filename_exprs = "./postproc/exprs_averaged_s00000.dat"
         filename_q = "./postproc/qprofile_s00000.dat"
     else:
         filename_exprs = sys.argv[1]
