@@ -85,7 +85,7 @@ if [ $plot == 1 ]; then
 	extract_with_si_time>$outfile
 	echo $outfile
 	gnuplot -e "filename='$(echo $outfile)'" $SCRIPT_DIR/plot_dpsi.plg --persist
-	rm "$outfile"
+#	rm "$outfile"
 else
 	extract_with_si_time
 fi
