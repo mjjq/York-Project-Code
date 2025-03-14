@@ -71,6 +71,10 @@ function extract_with_si_time() {
 	echo ""
 }
 
+function growth_rate() {
+	extract_with_si_time | awk 'NR>1 {print $1 " " $2 " " $3 " " (1.0-prevw/$2)/($3-prevt)} {prevw=$2; prevt=$3}'
+}
+
 plot=0
 
 for var in "$@"
@@ -80,12 +84,29 @@ do
 	fi
 done
 
+growthrate=0
+
+for var in "$@"
+do
+	if [ "$var" == "-g" ]; then
+		growthrate=1
+	fi
+done
+
+if [ $growthrate == 0 ]; then
+	tmpdata="$(extract_with_si_time)"
+	plotscript="plot_w_time.plg"
+else
+	tmpdata="$(growth_rate)"
+	plotscript="plot_w_growth.plg"
+fi
+
 if [ $plot == 1 ]; then
 	outfile="dpsi_temp.dat"
-	extract_with_si_time>$outfile
+	echo "$tmpdata" >$outfile
 	echo $outfile
-	gnuplot -e "filename='$(echo $outfile)'" $SCRIPT_DIR/plot_w_time.plg --persist
+	gnuplot -e "filename='$(echo $outfile)'" $SCRIPT_DIR/$plotscript --persist
 #	rm "$outfile"
 else
-	extract_with_si_time
+	echo "$tmpdata"
 fi
