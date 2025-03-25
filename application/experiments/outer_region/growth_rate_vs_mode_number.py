@@ -12,7 +12,7 @@ from tearing_mode_solver.outer_region_solver import (
 from tearing_mode_solver.profiles import generate_j_profile, generate_q_profile
 from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
 
-def growth_rate_vs_mode_number():
+def linear_growth_rate_vs_mode_number():
     """
     Generate a table of data of the growth rate for different tearing modes
     in the linear regime.
@@ -81,4 +81,4 @@ def growth_rate_vs_mode_number():
         )
 
 if __name__=='__main__':
-    growth_rate_vs_mode_number()
+    linear_growth_rate_vs_mode_number()
