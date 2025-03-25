@@ -2,6 +2,6 @@ namelist inmastu
 
 set surfaces 400
 
-for step 5000 do
+for step 2000 do
 qprofile
 done
