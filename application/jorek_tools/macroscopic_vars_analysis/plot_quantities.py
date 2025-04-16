@@ -78,15 +78,23 @@ class MacroscopicQuantity:
 
 def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								labels: Optional[List[str]],
-								x_axis_label: str,
-								y_axis_label: str,
+								x_axis_label: Optional[str],
+								y_axis_label: Optional[str],
 								y_scale: str,
 								xmin: Optional[float],
 								xmax: Optional[float],
 								output_filename: Optional[str]):
 	fig, ax = plt.subplots(1)
-	ax.set_xlabel(x_axis_label)
-	ax.set_ylabel(y_axis_label)
+	
+	xlabel = x_axis_label
+	if xlabel is None:
+		xlabel = quantities[0].x_val_name
+	ylabel = y_axis_label
+	if ylabel is None:
+		ylabel = quantities[0].y_val_name
+
+	ax.set_xlabel(xlabel)
+	ax.set_ylabel(ylabel)
 
 	ax.grid(which='both')
 	ax.set_yscale(y_scale)
@@ -105,7 +113,8 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 	if xmax:
 		ax.set_xlim(right=xmax)
 
-	ax.legend()
+	if len(quantities) > 1:
+		ax.legend()
 
 	if output_filename:
 		plt.savefig(output_filename, dpi=300)
@@ -123,12 +132,11 @@ if __name__ == "__main__":
 			"plot across all files."
 	)
 	parser.add_argument('-f', '--files',  nargs='+')
-	parser.add_argument('-xi', '--xcolumn', type=int, default=0)
-	parser.add_argument('-c', '--columns', nargs='+')
-	parser.add_argument('-ci', '--column-index', type=int)
+	parser.add_argument('-xi', '--xcolumn-index', type=int, default=0)
+	#parser.add_argument('-c', '--columns', nargs='+')
+	parser.add_argument('-yi', '--ycolumn-index', type=int, default=1)
 	parser.add_argument(
-		'-xl', '--x-label', help="Name of x-axis quantity", default="Time (ms)"
-	)
+		'-xl', '--x-label', help="Name of x-axis quantity")
 	parser.add_argument('-yl', '--y-label', help="Name of y-axis quantity")
 	parser.add_argument(
 		'-l', '--labels', nargs='+', help="Legend labels for each input file"
@@ -143,19 +151,19 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	quantities = []
-	if args.columns:
-		assert len(args.files)==len(args.columns), \
-			"Number of columns must equal number of files!"
-		for filename, column_name in zip(args.files, args.columns):
-			mq = MacroscopicQuantity(filename)
-			mq.load_x_values_by_index(args.xcolumn)
-			mq.load_y_values_by_name(column_name)
-			quantities.append(mq)
-	elif args.column_index:
+	# if args.columns:
+	# 	assert len(args.files)==len(args.columns), \
+	# 		"Number of columns must equal number of files!"
+	# 	for filename, column_name in zip(args.files, args.columns):
+	# 		mq = MacroscopicQuantity(filename)
+	# 		mq.load_x_values_by_index(args.xcolumn)
+	# 		mq.load_y_values_by_name(column_name)
+	# 		quantities.append(mq)
+	if args.ycolumn_index:
 		for filename in args.files:
 			mq = MacroscopicQuantity(filename)
-			mq.load_x_values_by_index(args.xcolumn)
-			mq.load_y_values_by_index(args.column_index)
+			mq.load_x_values_by_index(args.xcolumn_index)
+			mq.load_y_values_by_index(args.ycolumn_index)
 			quantities.append(mq)
 
 	labels = None
