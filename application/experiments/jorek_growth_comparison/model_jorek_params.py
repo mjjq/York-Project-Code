@@ -1,7 +1,8 @@
 import numpy as np
-from matplotlib import pyplot as plt
 from os.path import join, expanduser
 import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from matplotlib import pyplot as plt
 
 #import imports
 
@@ -143,26 +144,65 @@ def ql_tm_vs_time():
     Numerically solve the quasi-linear time-dependent tearing mode problem
     and plot the perturbed flux and layer width as functions of time.
     """
+    parser = ArgumentParser(
+		prog="python3 model_jorek_params.py",
+		description="Solves quasi-linear tearing mode equations" \
+			" to describe tearing mode growth as a function of time. "\
+            "Automatically output data into .zip format. ",
+        epilog="Run this script in the `postproc` folder of the simulation " \
+            "run to avoid locating exprs_averaged and qprofile files " \
+            "manually. Need to run ./jorek2_postproc < get_flux.pp first.",
+        formatter_class=ArgumentDefaultsHelpFormatter
+	)
+    parser.add_argument(
+        '-ex', '--exprs-averaged',  type=str, default="exprs_averaged_s00000.dat",
+        help="Path to exprs_averaged...dat postproc file (Optional)"
+    )
+    parser.add_argument(
+        '-q', '--q-profile', type=str, default="qprofile_s00000.dat",
+        help="Path to qprofile...dat file (Optional)"
+    )
+    parser.add_argument(
+        '-m', '--poloidal-mode-number', type=int, default=2,
+        help="Poloidal mode number of the tearing mode"
+    )
+    parser.add_argument(
+        '-n', '--toroidal-mode-number', type=int, default=1,
+        help="Toroidal mode number of the tearing mode"
+    )
+    parser.add_argument(
+        '-p0', '--psi-init', type=float, default=1e-12, 
+        help="Default initial perturbed flux"
+    )
+    parser.add_argument(
+        '-t0', '--initial-time', type=float, default=4.2444e5,
+        help="Initial simulation time (to align with JOREK initial)"
+    )
+    parser.add_argument(
+        '-t1', 
+        '--final-time', 
+        help="Final simulation time"
+    )
+    parser.add_argument(
+        '-s', '--n-steps', type=int, default=10000, 
+        help='Number of simulation steps'
+    )
+    parser.add_argument(
+        '-p', '--plot-result', action='store_true',
+        help="Choose whether to plot the results"
+    )
+    args = parser.parse_args()
 
-    if len(sys.argv) < 3:
-        #experiment_root = expanduser(
-        #    "~/csd3/jorek_data/intear_ntor3_cylinder/run_47608261/postproc"
-        #)
-        experiment_root = "./"
-
-        psi_current_prof_filename = join(experiment_root, "exprs_averaged_s00000.dat")
-        q_prof_filename = join(experiment_root, "qprofile_s00000.dat")
-    else:
-        psi_current_prof_filename = sys.argv[1]
-        q_prof_filename = sys.argv[2]
+    psi_current_prof_filename = args.exprs_averaged
+    q_prof_filename = args.q_profile
 
     q_profile, j_profile = q_and_j_from_csv(psi_current_prof_filename, q_prof_filename)
 
-    poloidal_mode_number = 2
-    toroidal_mode_number = 1
-    init_flux = 1.3e-12 # JOREK flux at which the simulation numerically stabilises
-    t0 = 4.2444e5  # This is the jorek time at which the simulation numerically stabilises
-    nsteps = 10000
+    poloidal_mode_number = args.poloidal_mode_number
+    toroidal_mode_number = args.toroidal_mode_number
+    init_flux = args.psi_init # JOREK flux at which the simulation numerically stabilises
+    t0 = args.initial_time  # This is the jorek time at which the simulation numerically stabilises
+    nsteps = args.n_steps
 
     r_minor = read_r_minor(psi_current_prof_filename)
     # q_profile is a function of r/r_minor, so multiply by r_minor
@@ -195,6 +235,9 @@ def ql_tm_vs_time():
 
     # Typically, several lundquist numbers needed to reach saturation
     t1 = t0 + 2.0*lundquist_number
+    if args.final_time:
+        t1 = args.final_time
+
     times = np.linspace(t0, t1, nsteps)
     print(max(times))
 
@@ -204,48 +247,51 @@ def ql_tm_vs_time():
     dpsi_t = ql_solution.dpsi_dt
     w_t = ql_solution.w_t
 
-    print(times)
-    print(ql_solution.psi_t)
+    #print(times)
+    #print(ql_solution.psi_t)
     # plt.plot(w_t)
     # plt.show()
 
     # print("lgr: ", lin_growth_rate)
     # print("Threshold: ", ql_threshold)
     # print(psi_t)
-
-    fig, ax = plt.subplots(1, figsize=(4, 3.5))
-    ax2 = ax.twinx()
-
-    ax.plot(times, psi_t, label="Flux", color="black")
-
-    ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
-    ax.set_ylabel(r"Normalised perturbed flux ($\delta \psi^{(1)}$)")
-
-    ax2.plot(times, w_t, label="Normalised island width", color="red")
-    ax2.set_ylabel(r"Normalised electrostatic modal width ($\hat{\delta}_{ql}$)")
-    ax2.yaxis.label.set_color("red")
-
-    ax.legend(prop={"size": 7}, loc="lower right")
-
-    # ax.set_yscale('log')
-    # ax2.set_yscale('log')
-    ax.set_xscale("log")
-    ax2.set_xscale("log")
-    ax.set_yscale("log")
-    ax2.set_yscale("log")
-
-    fig.tight_layout()
-    # plt.show()
-
-    fname = f"jorek_model_(m,n)=({params.poloidal_mode_number},{params.toroidal_mode_number})"
-    savefig(fname)
+    
+    fname = f"jorek_model_m{params.poloidal_mode_number}_n{params.toroidal_mode_number}"
     sim_to_disk(fname, params, ql_solution)
 
-    plot_growth(times, dpsi_t, psi_t)
-    plot_delta_prime(sol, ql_solution)
-    plot_energy(params, ql_solution, sol)
+    if args.plot_result:
 
-    plt.show()
+        fig, ax = plt.subplots(1, figsize=(4, 3.5))
+        ax2 = ax.twinx()
+
+        ax.plot(times, psi_t, label="Flux", color="black")
+
+        ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+        ax.set_ylabel(r"Normalised perturbed flux ($\delta \psi^{(1)}$)")
+
+        ax2.plot(times, w_t, label="Normalised island width", color="red")
+        ax2.set_ylabel(r"Normalised electrostatic modal width ($\hat{\delta}_{ql}$)")
+        ax2.yaxis.label.set_color("red")
+
+        ax.legend(prop={"size": 7}, loc="lower right")
+
+        # ax.set_yscale('log')
+        # ax2.set_yscale('log')
+        ax.set_xscale("log")
+        ax2.set_xscale("log")
+        ax.set_yscale("log")
+        ax2.set_yscale("log")
+
+        fig.tight_layout()
+        # plt.show()
+
+        savefig(fname)
+
+        plot_growth(times, dpsi_t, psi_t)
+        plot_delta_prime(sol, ql_solution)
+        plot_energy(params, ql_solution, sol)
+
+        plt.show()
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 
 def savefile_fullpath(name: str):
-    date_time = datetime.now().strftime("%d-%m-%Y_%H:%M")
+    date_time = datetime.now().strftime("%d%m%Y_%H%M")
 
     p = Path("./output")
     try:
