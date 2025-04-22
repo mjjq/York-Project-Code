@@ -1,4 +1,4 @@
-namelist intear
+namelist inmastu
 for step 0 do
 
 qprofile
