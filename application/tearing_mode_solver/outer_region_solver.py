@@ -541,42 +541,20 @@ def energy(psi_rs: float, params: TearingModeParameters, norm_integral: float):
     """
     return 2.0*np.pi**2 * params.R0 * (psi_rs**2) * norm_integral
 
-# def alfven_frequency(params: TearingModeParameters) -> float:
-#     """
-#     Calculate the Alfven frequency from tearing mode parameters. Contains
-#     pfirsch-schulter inertial correction to the frequency.
 
-#     Parameters
-#     ----------
-#     params : TearingModeParameters
-#         Input parameters for tearing mode model.
+def eta_to_lundquist_number(r_s: float, 
+                            B_tor: float, 
+                            eta: float) -> float:
+    """
+    Calculate the Lundquist number from JOREK resistivity.
 
-#     Returns
-#     -------
-#     float
-#         Alfven frequency in Hz.
+    See lab book eq:new-lundquist for derivation.
 
-#     """
-    
-#     return
+    :param r_s: Minor radius of rational surface (metres)
+    :param B_tor: Toroidal magnetic field (Tesla)
+    :param eta: Resistivity at rational surface (r_s),
+        [JOREK units]
 
-# def lundquist_number(params: TearingModeParameters) \
-#     -> float:
-#     """
-#     Calculate the lundquist number from fundamental JOREK parameters
-
-#     Parameters
-#     ----------
-#     params : TearingModeParameters
-#         Input parameters for tearing mode model.
-
-#     Returns
-#     -------
-#     float
-#         Lundquist number (no units).
-
-#     """
-    
-#     S = params.
-    
-#     return 
+    :return Lundquist number (unitless)
+    """
+    return r_s*B_tor/eta

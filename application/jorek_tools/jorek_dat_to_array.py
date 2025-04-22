@@ -61,6 +61,40 @@ def read_q_profile(filename: str) -> List[Tuple[float, float]]:
 
     return data
 
+def read_eta_profile_r_minor(postproc_exprs_filename: str) -> List[Tuple[float, float]]:
+    """
+    Get resistivity from postproc output as a function of minor radius
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(zip(exprs_data['r_minor'], exprs_data['eta_T']))
+
+
+def read_R0(postproc_exprs_filename: str) -> float:
+    """
+    Get Major radius (geometric, r_minor=0) from postproc output
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(exprs_data['R'])[0]
+
+def read_Btor(postproc_exprs_filename: str) -> float:
+    """
+    Get on-axis toroidal field from postproc output
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(exprs_data['Btor'])[0]
+
+def read_r_minor(postproc_exprs_filename: str) -> float:
+    """
+    Get minor radius of the plasma from postproc output
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(exprs_data['r_minor'])[-1]
+
+
 def map_q_to_rminor(psi_n_data: List[Tuple[float, float]],
 		    q_data: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
 	"""

@@ -3,7 +3,7 @@ for step 0 do
 
 qprofile
 
-expressions Psi_N r_minor Jtor zj currdens eta_T
+expressions Psi_N r_minor Jtor zj currdens eta_T R Btor
 mark_coords 1
 set surfaces 200
 average

@@ -3,15 +3,23 @@ from matplotlib import pyplot as plt
 from os.path import join, expanduser
 import sys
 
-import imports
+#import imports
 
-from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
+from jorek_tools.jorek_dat_to_array import (
+    q_and_j_from_csv, 
+    read_eta_profile_r_minor,
+    read_Btor,
+    read_R0,
+    read_r_minor
+)
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
 from tearing_mode_solver.outer_region_solver import (
     solve_system,
     OuterRegionSolution,
     normalised_energy_integral,
     energy,
+    rational_surface,
+    eta_to_lundquist_number
 )
 from tearing_mode_solver.helpers import (
     savefig,
@@ -137,11 +145,12 @@ def ql_tm_vs_time():
     """
 
     if len(sys.argv) < 3:
-        experiment_root = expanduser(
-            "~/csd3/jorek_data/intear_ntor3_cylinder/run_47608261/postproc"
-        )
+        #experiment_root = expanduser(
+        #    "~/csd3/jorek_data/intear_ntor3_cylinder/run_47608261/postproc"
+        #)
+        experiment_root = "./"
 
-        psi_current_prof_filename = join(experiment_root, "exprs_averaged_s00000.csv")
+        psi_current_prof_filename = join(experiment_root, "exprs_averaged_s00000.dat")
         q_prof_filename = join(experiment_root, "qprofile_s00000.dat")
     else:
         psi_current_prof_filename = sys.argv[1]
@@ -149,32 +158,44 @@ def ql_tm_vs_time():
 
     q_profile, j_profile = q_and_j_from_csv(psi_current_prof_filename, q_prof_filename)
 
-    # rq, q = zip(*q_profile)
-    # q = np.array(q)/q[0]
-    # rj, js = zip(*j_profile)
-    # js = 10.0*np.array(js)
-    # j_profile = list(zip(rj, 40.0*np.array(js)))
-    # fig, ax = plt.subplots(3)
-    # ax[0].plot(rq, q)
-    # ax[1].plot(rj, js)
-    # ax[2].plot(rj, dj_dr_vals)
+    poloidal_mode_number = 2
+    toroidal_mode_number = 1
+    init_flux = 1.3e-12 # JOREK flux at which the simulation numerically stabilises
+    t0 = 4.2444e5  # This is the jorek time at which the simulation numerically stabilises
+    nsteps = 10000
+
+    r_minor = read_r_minor(psi_current_prof_filename)
+    # q_profile is a function of r/r_minor, so multiply by r_minor
+    # to get SI
+    r_s_si = r_minor*rational_surface(q_profile, poloidal_mode_number/toroidal_mode_number)
+
+    eta_profile = read_eta_profile_r_minor(psi_current_prof_filename)
+    r_vals, eta_vals = zip(*eta_profile)
+    eta_at_rs = np.interp(r_s_si, r_vals, eta_vals)
+    B_tor = read_Btor(psi_current_prof_filename)
+    lundquist_number = eta_to_lundquist_number(
+        r_s_si,
+        B_tor,
+        eta_at_rs
+    )
+    R_0 = read_R0(psi_current_prof_filename)
 
     params = TearingModeParameters(
-        poloidal_mode_number=2,
-        toroidal_mode_number=1,
-        lundquist_number=1.9117e9,
-        initial_flux=1.336e-12,
-        B0=1.0,
-        R0=40.0,
+        poloidal_mode_number=poloidal_mode_number,
+        toroidal_mode_number=toroidal_mode_number,
+        lundquist_number=lundquist_number,
+        initial_flux=init_flux,
+        B0=B_tor,
+        R0=R_0,
         q_profile=q_profile,
         j_profile=j_profile,
     )
 
     sol = solve_system(params)
 
-    t0 = 4.2444e5  # This is the jorek time at which the simulation numerically stabilises
-
-    times = np.linspace(t0, 1.2e9, 100000)
+    # Typically, several lundquist numbers needed to reach saturation
+    t1 = t0 + 2.0*lundquist_number
+    times = np.linspace(t0, t1, nsteps)
     print(max(times))
 
     ql_solution = solve_time_dependent_system(params, times)
