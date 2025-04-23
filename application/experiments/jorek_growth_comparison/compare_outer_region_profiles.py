@@ -3,9 +3,9 @@ from matplotlib import pyplot as plt
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
 
-import imports
-
-from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
+from jorek_tools.jorek_dat_to_array import (
+    q_and_j_from_csv, read_four2d_profile_filter, Four2DProfile
+)
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
 from tearing_mode_solver.outer_region_solver import (
     solve_system, normalised_energy_integral, energy
@@ -32,7 +32,7 @@ def plot_growth(times, dpsi_t, psi_t):
     #savefig(f"{orig_fname}_growth_rate")
 
 def plot_outer_region_solution(params: TearingModeParameters, 
-                               jorek_psi_data: pd.DataFrame):
+                               jorek_psi_data: Four2DProfile):
     tm = solve_system(params)
     
     fig, axs = plt.subplots(2)
@@ -58,8 +58,8 @@ def plot_outer_region_solution(params: TearingModeParameters,
     )
     
     
-    jorek_rs = jorek_psi_data['arc_length']
-    jorek_psi = jorek_psi_data['Psi']
+    jorek_rs = jorek_psi_data.r_minor/np.max(jorek_psi_data.r_minor)
+    jorek_psi = jorek_psi_data.psi
     ax.plot(
         jorek_rs, jorek_psi/max(jorek_psi), color='red', 
         label='JOREK', linestyle='--'
@@ -101,16 +101,17 @@ def ql_tm_vs_time():
     and plot the perturbed flux and layer width as functions of time.
     """
     
-    psi_current_prof_filename = "../../jorek_tools/postproc/exprs_averaged_s00000.csv"
-    q_prof_filename = "../../jorek_tools/postproc/qprofile_s00000.dat"
-    jorek_psi_filename = "../../jorek_tools/postproc/outer_region.csv"
+    psi_current_prof_filename = "exprs_averaged_s00000.dat"
+    q_prof_filename = "qprofile_s00000.dat"
+    jorek_psi_filename = "exprs_four2d_s00250_absolute_value_n001.dat"
     
     q_profile, j_profile = q_and_j_from_csv(
         psi_current_prof_filename, q_prof_filename
     )
     
+    poloidal_mode_number=2
     params = TearingModeParameters(
-        poloidal_mode_number = 2,
+        poloidal_mode_number = poloidal_mode_number,
         toroidal_mode_number = 1,
         lundquist_number = 4.32e6,
         initial_flux = 3e-9,
@@ -120,9 +121,10 @@ def ql_tm_vs_time():
         j_profile = j_profile
     )
 
-    times = np.linspace(0.0, 1e7, 100)
-    
-    jorek_psi_data = pd.read_csv(jorek_psi_filename)
+    jorek_psi_data = read_four2d_profile_filter(
+        jorek_psi_filename,
+        poloidal_mode_number
+    )
 
     plot_outer_region_solution(params, jorek_psi_data)
 

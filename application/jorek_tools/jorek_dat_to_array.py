@@ -4,6 +4,10 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline
 from matplotlib import pyplot as plt
 from typing import List, Tuple
+import os
+import re
+from io import StringIO
+from dataclasses import dataclass
 
 from jorek_tools.dat_to_pandas import dat_to_pandas
 
@@ -95,6 +99,15 @@ def read_r_minor(postproc_exprs_filename: str) -> float:
     return list(exprs_data['r_minor'])[-1]
 
 
+def read_rho0(postproc_exprs_filename: str) -> float:
+    """
+    Get central mass density of the plasma from postproc output
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(exprs_data['rho'])[0]
+
+
 def map_q_to_rminor(psi_n_data: List[Tuple[float, float]],
 		    q_data: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
 	"""
@@ -134,7 +147,7 @@ def q_and_j_from_input_files(filename_psi: str, filename_q: str) -> \
 
     return q_r, j_r
 
-def q_and_j_from_csv(filename_exprs: str, filename_q:str, normalise_j: bool = False) -> \
+def q_and_j_from_csv(filename_exprs: str, filename_q:str) -> \
     Tuple[ List[Tuple[float, float]], List[Tuple[float, float]] ]:
         
     exprs_data: pd.DataFrame = dat_to_pandas(filename_exprs)
@@ -143,7 +156,8 @@ def q_and_j_from_csv(filename_exprs: str, filename_q:str, normalise_j: bool = Fa
     psi_n_data = list(zip(exprs_data['Psi_N'],exprs_data['r_minor']))
     q_r = map_q_to_rminor(psi_n_data, q_data)
     
-    # Use zj as this seems to be non-normalised compared to currdens and Jphi
+    # Use JOREK's normalised zj (non-SI units). Tested this numerically
+    # in lab book in 2024, section "On the appropriateness of zj"
     j_r = list(zip(exprs_data['r_minor'], exprs_data['zj']))
 
     
@@ -152,24 +166,83 @@ def q_and_j_from_csv(filename_exprs: str, filename_q:str, normalise_j: bool = Fa
     q_r = list(zip(np.array(rs)/np.max(rs), qs))
 
     rs, js = zip(*j_r)
-    if normalise_j:
-        js = np.array(js)/js[0]
-    j_r = list(zip(np.array(rs)/np.max(rs), js))
+
+    j_r = list(zip(np.array(rs)/np.max(rs), np.abs(js)))
 
     return q_r, j_r
+
+@dataclass
+class Four2DProfile:
+    poloidal_mode_number: int
+    toroidal_mode_number: int
+    psi_norm: np.ndarray
+    r_minor: np.ndarray
+    psi: np.ndarray
+
+def read_four2d_profile(four2d_filename: str) -> List[Four2DProfile]:
+    """
+    Read a four2D output file and return arrays of 
+    Psi_N vs Psi for all mode numbers present.
+    """
+    split_data = []
+    with open(four2d_filename, 'r') as f:
+        raw_data = f.read()
+
+        # Data for each m/n mode is split by a 
+        # double line-break separated by a space
+        # i.e. "\n \n"
+        split_data = raw_data.split("\n \n")
+
+    ret: List[Four2DProfile] = []
+    for raw_profile in split_data:
+        # Some regex magic.
+        poloidal_mode_str, toroidal_mode_str = re.findall(
+            r'[+-]\d{3}', raw_profile
+        )
+
+        profile_data = np.loadtxt(StringIO(raw_profile))
+        psi_n_data = profile_data[:,0]
+        r_minor_data = profile_data[:,1]
+        psi_data = profile_data[:,2]
+
+        profile: Four2DProfile = Four2DProfile(
+            poloidal_mode_number=int(poloidal_mode_str),
+            toroidal_mode_number=int(toroidal_mode_str),
+            r_minor=r_minor_data,
+            psi_norm=psi_n_data,
+            psi=psi_data
+        )
+
+        ret.append(profile)
+
+    return ret
+
+def read_four2d_profile_filter(four2d_filename: str,
+                               poloidal_mode_number: int):
+    try:
+        return list(filter(
+            lambda x: x.poloidal_mode_number==poloidal_mode_number,
+            read_four2d_profile(four2d_filename)
+        ))[0]
+    except IndexError:
+        raise ValueError(
+            f"Could not find data for m={poloidal_mode_number}"
+        )
+
 
 def main():
     import sys
 
-    if len(sys.argv) < 3:
-        filename_exprs = "./postproc/exprs_averaged_s00000.dat"
-        filename_q = "./postproc/qprofile_s00000.dat"
-    else:
-        filename_exprs = sys.argv[1]
-        filename_q = sys.argv[2]
-    q_r, j_r = q_and_j_from_csv(filename_exprs, filename_q)
-    
-    print(q_r, j_r)
+    four2d_filename = sys.argv[1]
+
+    from matplotlib import pyplot as plt
+    prof = list(filter(
+        lambda x: x.poloidal_mode_number==2,
+        read_four2d_profile(four2d_filename)
+    ))[0]
+
+    plt.plot(prof.psi_norm, prof.psi)
+    plt.show()
 
 def read_q_profile_temporal(q_filename: str) -> pd.DataFrame:
     #data = np.genfromtxt(q_filename, comments=None)
