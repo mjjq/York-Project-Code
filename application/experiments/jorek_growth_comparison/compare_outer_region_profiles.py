@@ -8,7 +8,7 @@ from jorek_tools.jorek_dat_to_array import (
 )
 from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
 from tearing_mode_solver.outer_region_solver import (
-    solve_system, normalised_energy_integral, energy
+    solve_system, normalised_energy_integral, energy, delta_prime, magnetic_shear
 )
 from tearing_mode_solver.helpers import (
     savefig, 
@@ -34,7 +34,13 @@ def plot_growth(times, dpsi_t, psi_t):
 def plot_outer_region_solution(params: TearingModeParameters, 
                                jorek_psi_data: Four2DProfile):
     tm = solve_system(params)
-    
+
+    dp = delta_prime(tm)
+    print(f"r_s Delta' = {tm.r_s * dp}")
+    s = magnetic_shear(params.q_profile, tm.r_s)
+    print(f"Shear at r_s = {s}")
+    print(f"r_s = {tm.r_s}")
+
     fig, axs = plt.subplots(2)
     ax, ax_dpsi_dr = axs
     
@@ -129,6 +135,8 @@ def ql_tm_vs_time():
     plot_outer_region_solution(params, jorek_psi_data)
 
     test_energy_calculation(params)
+
+    
     
     plt.show()
 
