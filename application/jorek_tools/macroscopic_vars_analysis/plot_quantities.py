@@ -63,7 +63,12 @@ class MacroscopicQuantity:
 			col_names = np.array(list(filter(None, first_line.split(" "))))
 			
 			values = mac_quantity[:,column_index]
-			column_name = col_names[column_index]
+
+			try:
+				column_name = col_names[column_index]
+			except IndexError:
+				print(f"Couldn't get column name for index {column_index}")
+				column_name = "None"
 
 			return column_name, values
 		
@@ -115,6 +120,8 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 
 	if len(quantities) > 1:
 		ax.legend()
+
+	plt.tight_layout()
 
 	if output_filename:
 		plt.savefig(output_filename, dpi=300)
