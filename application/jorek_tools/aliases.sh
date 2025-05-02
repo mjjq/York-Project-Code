@@ -21,3 +21,6 @@ batchplotgrowth() {
         plq -f $(cat useful_runs.txt | xargs find | grep magnetic_growth) -yi 2 -xl "Time (ms)" -yl "Magnetic growth rate (1/s)" -l $(getbetas | sed s'/^/$\\beta_p=$/')
 }
 
+batchdiagnostic() {
+	cat useful_runs.txt | parallel 'cd {}; ./jorek2_postproc < $JOREK_TOOLS/diagnostics.pp'
+}
