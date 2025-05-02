@@ -1,5 +1,10 @@
 #!/bin/bash
 
+chease_cols_psin_convert() {
+	chease_col_filename=$1
+	awk 'NR == 1 { print $0; next } {$1 = $1^2; print}' $1 | sed 's/S-MESH/Psi_N/'
+}
+
 get_profile() {
 	profile_name=$1
 	sed -n "/$1/,/^\s*$/p" chease_output.out | sed -E 's/^[[:space:]]+//g' | sed -E 's/[[:space:]]+/\n/g'
