@@ -28,9 +28,11 @@ chease_ffprime() {
 }
 
 chease_temperature() {
-	# Take pressure profile (col 6), multiply by mu_0 to convert to JOREK unit temperature
+	# Take pressure profile (col 6). The CHEASE output file is in terms
+	# of CHEASE units. This implies CHEASE pressure is exactly equal
+	# to JOREK temperature, assuming B0EXP=1 (see lab book).
 	# Assuming rho=1 over the profile. May need to change later.
 	# Also, limit minimum temperature to 1e-8
         chease_col_filename=$1
-        chease_profile $chease_col_filename "4*atan2(0,-1)*1e-7*\$6" | awk '{print $1 " " ($2 > 1e-8 ? $2 : 1e-8)}'
+        chease_profile $chease_col_filename "\$6" | awk '{print $1 " " ($2 > 1e-8 ? $2 : $2)}'
 }
