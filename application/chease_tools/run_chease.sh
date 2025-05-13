@@ -9,6 +9,9 @@ echo "Generating profiles..."
 
 ./eqdsk2jorek < EQDSK_COCOS_02.OUT
 
+mv jorek_temperature jorek_temperature_orig
+cat jorek_temperature_orig | awk '{print $1 " " ($2 < 1e-6 ? 1e-6 : $2)}' > jorek_temperature
+
 ./o.chease_to_cols chease_output.out chease_cols.out
 
 #source $CHEASE_TOOLS/aliases.sh
