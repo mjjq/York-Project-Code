@@ -88,6 +88,7 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								y_scale: str,
 								xmin: Optional[float],
 								xmax: Optional[float],
+								marker_style: str,
 								output_filename: Optional[str]):
 	fig, ax = plt.subplots(1)
 	
@@ -110,6 +111,7 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 		ax.plot(
 			mac_quantity.x_values,
 			mac_quantity.y_values,
+			marker_style,
 			label=label
 		)
 
@@ -154,6 +156,10 @@ if __name__ == "__main__":
 		'-ys', '--y-scale', choices=['linear','log'], help="Y-axis scale",
 		default='linear'
 	)
+	parser.add_argument(
+		'-t', '--marker-type', 
+		help="Plotting marker type (x, -, etc)", default='-'
+	)
 	parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
 	args = parser.parse_args()
 
@@ -185,6 +191,7 @@ if __name__ == "__main__":
 		args.y_scale,
 		args.xmin,
 		args.xmax,
+		args.marker_type,
 		args.output_filename
 	)
 
