@@ -11,4 +11,4 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 cd postproc
 
-python3 -m application.experiments.jorek_growth_comparison.model_jorek_params
+python3 -m experiments.jorek_growth_comparison.model_jorek_params
