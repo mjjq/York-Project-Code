@@ -6,8 +6,9 @@
 # in model_jorek_params.py inside the experiments subfolder of the tearing
 # mode solver code.
 
-./jorek2_postproc < $JOREK_TOOLS/quasi_linear_model/get_flux.pp
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+./jorek2_postproc < $SCRIPT_DIR/get_flux.pp
 
 cd postproc
 
-python3 -m experiments.jorek_growth_comparison.model_jorek_params
+python3 -m application.experiments.jorek_growth_comparison.model_jorek_params
