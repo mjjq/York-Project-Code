@@ -3,10 +3,12 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "application"
+name = "quasilineartools"
 version = "0.1.0"
 description = "Quasi-linear tearing mode solver"
 authors = ["Marcus Quantrill <mjjq500@york.ac.uk>"]
+# See https://stackoverflow.com/a/77868255
+packages = [{include="*", from="application"}]
 
 [tool.poetry.dependencies]
 contourpy="1.3.1"
