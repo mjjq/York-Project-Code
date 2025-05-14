@@ -18,10 +18,9 @@ def extract_dr_from_cols(filename: str, q: float) -> float:
 	# D_R column located at index -7
 	dr_column = cols_data[:,-7]
 
-	print(q_column)
-	print(dr_column)
-
-	d_r_at_q = interp(q, q_column, dr_column)
+	# RESISTIVE INTERCHANGE column gives -D_R
+	# Hence, must negate to get D_R
+	d_r_at_q = -interp(q, q_column, dr_column)
 
 	return d_r_at_q
 
@@ -31,7 +30,7 @@ if __name__=='__main__':
 		description='Get D_R term at a given safety factor from CHEASE column data'
 	)
 
-	parser.add_argument('filename', type=str, help='Name of chease_cols file')
+	parser.add_argument('filename', type=str, nargs='+', help='Name of chease_cols file')
 	parser.add_argument(
 		'-q', '--safety-factor', type=float,
 		help='Safety factor at which to evaluate D_R'
@@ -39,4 +38,5 @@ if __name__=='__main__':
 
 	args = parser.parse_args()
 
-	print(extract_dr_from_cols(args.filename, args.safety_factor))
+	for fname in args.filename:
+		print(extract_dr_from_cols(fname, args.safety_factor))
