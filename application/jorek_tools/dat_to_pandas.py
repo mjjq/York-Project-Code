@@ -3,6 +3,8 @@ import numpy as np
 import sys
 from typing import List
 
+from debug.log import logger
+
 def get_parameter_names_from_dat(filename: str) -> List[str]:
 	names = []
 	with open(filename, 'r') as file:
@@ -21,8 +23,8 @@ def dat_to_pandas(filename: str) -> pd.DataFrame:
 	#print(data)
 	num_columns = data.shape[1]
 	if len(names) == num_columns + 1:
-		print(f"Warning: {num_columns} Columns and {len(names)} column names")
-		print("Removing first name (likely hash delimiter)")
+		logger.warning(f"{num_columns} Columns and {len(names)} column names")
+		logger.warning("Removing first name (likely hash delimiter)")
 		names = names[1:]
 	elif (len(names) > num_columns+1) or (len(names) < num_columns):
 		raise ValueError(

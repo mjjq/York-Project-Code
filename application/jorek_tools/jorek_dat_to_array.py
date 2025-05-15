@@ -107,6 +107,26 @@ def read_rho0(postproc_exprs_filename: str) -> float:
 
     return list(exprs_data['rho'])[0]
 
+def read_chi_perp_profile_rminor(postproc_exprs_filename: str) \
+    -> List[Tuple[float, float]]:
+    """
+    Get perpendicular heat diffusivity profile in terms of minor radius
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(zip(exprs_data['r_minor'], exprs_data['zkprof']))
+
+
+def read_chi_par_profile_rminor(postproc_exprs_filename: str) \
+    -> List[Tuple[float, float]]:
+    """
+    Get parallel heat diffusivity profile in terms of minor radius
+    """
+    exprs_data = dat_to_pandas(postproc_exprs_filename)
+
+    return list(zip(exprs_data['r_minor'], exprs_data['zkpar_T']))
+
+
 
 def map_q_to_rminor(psi_n_data: List[Tuple[float, float]],
 		    q_data: List[Tuple[float, float]]) -> List[Tuple[float, float]]:

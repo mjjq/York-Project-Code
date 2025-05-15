@@ -135,6 +135,24 @@ def magnetic_shear(q_profile: List[Tuple[float, float]],
     
     return r*dq_dr_at_r/q_at_r
 
+def value_at_r(input_profile: List[Tuple[float, float]],
+               target_r: float) -> float:
+    """
+    Given a profile in terms of minor radius, find the value at a 
+    target minor radius.
+
+    Interpolates between values if target_r does not match an
+    element in the data. Uses np.interp
+
+    :param input_profile: Input profile map (r_minor(m) to value)
+    :param target_r: Target minor radius (m)
+
+    :return: Value of profile at given minor radius
+    """
+    r_values, prof_values = zip(*input_profile)
+
+    return np.interp(target_r, r_values, prof_values)
+
 def lundquist_number(resistivity: float, r_s: float, mu0_rho0: float) \
     -> float:
     """

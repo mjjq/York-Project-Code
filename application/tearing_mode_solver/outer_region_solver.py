@@ -181,7 +181,6 @@ def solve_system(params: TearingModeParameters,
     r_vals, q_vals = zip(*q_profile)
     q_func = UnivariateSpline(r_vals, q_vals, s=0.0)
     
-    print(j_profile)
     r_vals, j_vals = zip(*j_profile)
     j_func = UnivariateSpline(r_vals, j_vals, s=0.0)
     dj_dr_func = j_func.derivative()
@@ -360,6 +359,48 @@ def growth_rate(poloidal_mode: int,
     growth_rate = grs*complex(delta_p)**(4/5)
 
     return delta_p, growth_rate.real
+
+
+def diffusion_width(chi_perp: float,
+                    chi_parallel: float,
+                    r_s: float,
+                    aspect_ratio: float,
+                    toroidal_mode_number: int,
+                    magnetic_shear: float) -> float:
+    """
+    Calculate diffusion length scale as per Lutjens 2001, pp. 4268.
+    We normalise the length scale to the plasma minor radius a.
+
+    :param chi_perp: Perpendicular diffusion coefficient (arb units,
+        must be identical to chi_parallel units)
+    :param chi_parallel: Parallel diffusion coefficent (arb units)
+    :param r_s: Normalised radius of rational surface (normalised to a)
+    :param aspect_ratio: Aspect ratio of the plasma
+    :param toroidal_mode_number: Toroidal mode number
+    :param magnetic_shear: Magnetic shear at r_s
+
+    :return: Diffusion length scale normalised to plasma minor radius a.
+    """
+    return (64*chi_perp/chi_parallel)**(1/4) * \
+        (aspect_ratio*r_s/(toroidal_mode_number*magnetic_shear))**1/2
+
+def curvature_stabilisation(diff_width: float,
+                            resistive_interchange: float) -> float:
+    """
+    Calculate the curvature stabilisation modification to Delta'
+    (Lutjens 2001, eq 3)
+
+    The convention here is to normalise to minor radius for consistency
+    with delta_prime() above. I.e. a*Delta'
+
+    :param diff_width: Diffusion width (normalised to minor radius)
+    :param resistive_interchange: Resistive interchange parameter D_R
+
+    :return: Curvature stabilisation term normalised to minor radius
+    """
+    return np.sqrt(2)*np.pi**1.5 * resistive_interchange/diff_width
+
+
 
 def layer_width(poloidal_mode: int,
                 toroidal_mode: int,
@@ -542,7 +583,8 @@ def energy(psi_rs: float, params: TearingModeParameters, norm_integral: float):
     return 2.0*np.pi**2 * params.R0 * (psi_rs**2) * norm_integral
 
 
-def eta_to_lundquist_number(r_s: float, 
+def eta_to_lundquist_number(a: float, 
+                            R_0: float,
                             B_tor: float, 
                             eta: float) -> float:
     """
@@ -550,11 +592,29 @@ def eta_to_lundquist_number(r_s: float,
 
     See lab book eq:new-lundquist for derivation.
 
-    :param r_s: Minor radius of rational surface (metres)
+    :param a: Minor radius of plasma (metres)
+    :param R_0: Major radius of plasma (metres)
     :param B_tor: Toroidal magnetic field (Tesla)
     :param eta: Resistivity at rational surface (r_s),
         [JOREK units]
 
     :return Lundquist number (unitless)
     """
-    return r_s*B_tor/eta
+    return a**2 * B_tor/(eta*R_0)
+
+
+def alfven_frequency(R_0: float,
+                     B_tor: float,
+                     rho0: float) -> float:
+    """
+    Calculate the alfven frequency from plasma parameters
+
+    :param R_0: Major radius of plasma (metres)
+    :param B_tor: Toroidal magnetic field (Tesla)
+    :param rho0: Central mass density of plasma (kg/m^3)
+    """
+
+    # Vacuum permeability
+    mu0 = 4.0*np.pi*1e-7
+
+    return B_tor/(R_0*(mu0*rho0)**0.5)
