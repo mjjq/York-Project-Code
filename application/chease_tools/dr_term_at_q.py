@@ -39,4 +39,4 @@ if __name__=='__main__':
 	args = parser.parse_args()
 
 	for fname in args.filename:
-		print(extract_dr_from_cols(fname, args.safety_factor))
+		print(f"{extract_dr_from_cols(fname, args.safety_factor):.10f}")

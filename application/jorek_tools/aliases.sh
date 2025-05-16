@@ -28,3 +28,13 @@ batchplotqprof() {
 batchdiagnostic() {
 	cat useful_runs.txt | parallel 'cd {}; ./jorek2_postproc < $JOREK_TOOLS/diagnostics.pp'
 }
+
+datarun() {
+	runnumber=$1
+	find $PROJ_HOME/jorek_data $PROJ_HOME_OLD/jorek_data -name "*run_$1*" -type d
+}
+
+cdrun() {
+	runnumber=$1
+	cd "$(datarun $1)"
+}

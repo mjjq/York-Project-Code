@@ -39,6 +39,10 @@ if __name__=='__main__':
         formatter_class=ArgumentDefaultsHelpFormatter
 	)
     parser.add_argument(
+        'resistive_interchange', nargs='+', type=float,
+        help="List of resistive interchange values"
+    )
+    parser.add_argument(
         '-ex', '--exprs-averaged',  type=str, default="exprs_averaged_s00000.dat",
         help="Path to exprs_averaged...dat postproc file (Optional)"
     )
@@ -53,10 +57,6 @@ if __name__=='__main__':
     parser.add_argument(
         '-n', '--toroidal-mode-number', type=int, default=1,
         help="Toroidal mode number of the tearing mode"
-    )
-    parser.add_argument(
-        '-dr', '--resistive-interchange', nargs='+', type=float,
-        help="List of resistive interchange values"
     )
     parser.add_argument(
         '-cm', '--central-mass', type=float,
