@@ -305,36 +305,42 @@ def gamma_constant() -> float:
     where Y(X) = 0.5X\int_0^1 \exp(-0.5\mu X^2)/(1-\mu^2)^{1/4} d\mu
     """
     return 2.1236482729819393256107565
-
-def growth_rate_scale(q_profile: List[Tuple[float, float]],
-                      lundquist_number: float,
-                      poloidal_mode: float,
-                      toroidal_mode: float) -> float:
-    """
-    Given some of the plasma paramters, calculate the value that multiplies
-    by (Delta')^{4/5} to give the linear growth rate.
-
-    I.e. \gamma/\omega_A = growth_rate_scale(...)*(Delta')^{4/5}
-    """
-   
-    # Equivalent to 2*pi*Gamma(3/4)/Gamma(1/4)
-    gamma_scale_factor = gamma_constant()
     
+
+def growth_rate_full(poloidal_mode: int,
+                     toroidal_mode: int,
+                     lundquist_number: float,
+                     r_s: float,
+                     mag_shear: float,
+                     delta_p: float) -> float:
+    """
+    Calculate the growth rate of a tearing mode in the linear regime.
+
+    :param poloidal_mode: Poloidal mode number
+    :param toroidal_mode: Toroidal mode number
+    :param lundquist_number: Lundquist number (tau_R/tau_A)
+    :param r_s: Radius of rational surface (normalised to a)
+    :param mag_shear: Magnetic shear
+    :param delta_p: Delta' (normalised to a, i.e. a*Delta'[SI])
+
+    :return: Growth rate normalised to Alfven frequency, gamma/omega_A
+    """
     m = poloidal_mode
     n = toroidal_mode
+    s = mag_shear
     S = lundquist_number
-    
-    r_s = rational_surface(q_profile, poloidal_mode/toroidal_mode)
-    
-    s = magnetic_shear(q_profile, r_s)
     
     ps_corr = (1+2*(m/n)**2)
 
+    gamma_scale_factor = gamma_constant()
+
     grs = gamma_scale_factor**(-4/5)* r_s**(4/5) \
-        * (n*s)**(2/5) / S**(3/5) / ps_corr**(1/10)
-        
-    return grs
-    
+        * (n*s)**(2/5) / S**(3/5) / ps_corr**(1/5)
+
+    growth_rate = grs*complex(delta_p)**(4/5)
+
+    return growth_rate.real
+
 
 def growth_rate(poloidal_mode: int,
                 toroidal_mode: int,
@@ -354,11 +360,13 @@ def growth_rate(poloidal_mode: int,
     
     delta_p = delta_prime(tm)
     
-    grs = growth_rate_scale(q_profile, S, m, n)
+    gr = growth_rate_full(
+        m, n, S, q_profile, delta_p 
+    )
 
-    growth_rate = grs*complex(delta_p)**(4/5)
+    return delta_p, gr
 
-    return delta_p, growth_rate.real
+
 
 
 def diffusion_width(chi_perp: float,

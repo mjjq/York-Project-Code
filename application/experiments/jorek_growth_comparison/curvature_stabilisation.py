@@ -21,7 +21,7 @@ from tearing_mode_solver.outer_region_solver import (
     diffusion_width,
     curvature_stabilisation,
     magnetic_shear,
-    growth_rate_scale,
+    growth_rate_full,
     alfven_frequency
 )
 from tearing_mode_solver.helpers import (
@@ -124,13 +124,14 @@ if __name__=='__main__':
     chi_par_profile = read_chi_par_profile_rminor(args.exprs_averaged)
     chi_par_rs = value_at_r(chi_par_profile, r_s_si)
 
+    mag_shear = magnetic_shear(q_profile, outer_solution.r_s)
     diff_width = diffusion_width(
         chi_perp_rs,
         chi_par_rs,
         outer_solution.r_s,
         R_0/r_minor,
         params.toroidal_mode_number,
-        magnetic_shear(q_profile, outer_solution.r_s)
+        mag_shear
     )
 
     resistive_interchange_values = args.resistive_interchange
@@ -140,19 +141,19 @@ if __name__=='__main__':
     n0_normalisation = 1e20
     rho0 = args.central_mass * args.central_density * n0_normalisation * m_proton
 
-    grs = growth_rate_scale(
-        params.q_profile,
-        lundquist_number,
-        poloidal_mode_number,
-        toroidal_mode_number
-    )
-
     alfven_freq = alfven_frequency(R_0, B_tor, rho0)
 
     for d_r in resistive_interchange_values:
         curv_stabilisation = curvature_stabilisation(diff_width, d_r)
         delta_p_eff = delta_p + curv_stabilisation
 
-        growth_rate = alfven_freq*grs*delta_p_eff
+        gr = growth_rate_full(
+            poloidal_mode_number,
+            toroidal_mode_number,
+            lundquist_number,
+            outer_solution.r_s,
+            mag_shear,
+            delta_p_eff
+        )
 
-        print(growth_rate)
+        print(gr*alfven_freq)
