@@ -92,9 +92,8 @@ def rational_surface(q_profile: List[Tuple[float, float]],
     Compute the location of the rational surface of the q-profile defined in q().
     """
     r, q = zip(*q_profile)
-    func_r_of_q = UnivariateSpline(q, r, s=0)
     
-    return func_r_of_q(target_q)
+    return np.interp(target_q, q, r)
 
 def rational_surface_of_mode(q_profile: List[Tuple[float, float]],
                              poloidal_mode: int,

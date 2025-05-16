@@ -213,12 +213,13 @@ def ql_tm_vs_time():
     r_vals, eta_vals = zip(*eta_profile)
     eta_at_rs = np.interp(r_s_si, r_vals, eta_vals)
     B_tor = read_Btor(psi_current_prof_filename)
+    R_0 = read_R0(psi_current_prof_filename)
     lundquist_number = eta_to_lundquist_number(
-        r_s_si,
+        r_minor,
+        R_0,
         B_tor,
         eta_at_rs
     )
-    R_0 = read_R0(psi_current_prof_filename)
 
     params = TearingModeParameters(
         poloidal_mode_number=poloidal_mode_number,
