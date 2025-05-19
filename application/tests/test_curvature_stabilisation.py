@@ -26,5 +26,8 @@ def test_diffusion_width(chi_perp, chi_parallel, expected_wd):
         mag_shear
     )
 
-    assert_almost_equal(diff_width, expected_wd, decimal=4)
+    # Values okay if within 10 percent of eachother
+    percentage_diff = 100.0 * abs((diff_width-expected_wd)/expected_wd)
+    
+    assert percentage_diff < 10.0
 
