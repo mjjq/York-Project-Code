@@ -16,6 +16,14 @@ getbetas() {
         cat useful_runs.txt | xargs find | grep log | xargs grep -m 1 betap | awk '{printf "%.3f\n", $5}'
 }
 
+batchqlinputs() {
+	cat useful_runs.txt | parallel 'cd {}; ./jorek2_postproc < $JOREK_TOOLS/quasi_linear_model/get_flux.pp'
+}
+
+batchqlgrowth() {
+	cat useful_runs.txt | parallel -k 'cd {}/postproc; python3 -m experiments.jorek_growth_comparison.curvature_stabilisation 0.0 -si'
+}
+
 batchplotgrowth() {
         batchgrowth
         plq -f $(cat useful_runs.txt | xargs find | grep magnetic_growth) -yi 2 -xl "Time (ms)" -yl "Magnetic growth rate (1/s)" -l $(getbetas | sed s'/^/$\\beta_p=$/')
