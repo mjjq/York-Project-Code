@@ -68,6 +68,12 @@ if __name__=='__main__':
         help="Central number density of plasma (10^20/m^3)",
         default=1.0
     )
+    parser.add_argument(
+        '-si', '--si-units', action='store_true',
+        help="Enable this flag to print with SI units. Otherwise, "\
+        "results are printed normalised to Alfven frequency",
+        default=False
+    )
 
     args = parser.parse_args()
 
@@ -141,7 +147,9 @@ if __name__=='__main__':
     n0_normalisation = 1e20
     rho0 = args.central_mass * args.central_density * n0_normalisation * m_proton
 
-    alfven_freq = alfven_frequency(R_0, B_tor, rho0)
+    gr_conversion = 1.0
+    if args.si_units:
+        gr_conversion = alfven_frequency(R_0, B_tor, rho0)
 
     for d_r in resistive_interchange_values:
         curv_stabilisation = curvature_stabilisation(diff_width, d_r)
@@ -156,4 +164,4 @@ if __name__=='__main__':
             delta_p_eff
         )
 
-        print(gr*alfven_freq)
+        print(gr*gr_conversion)
