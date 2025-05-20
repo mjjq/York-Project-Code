@@ -359,9 +359,10 @@ def growth_rate(poloidal_mode: int,
     S = lundquist_number
     
     delta_p = delta_prime(tm)
+    mag_shear = magnetic_shear(q_profile, tm.r_s)
     
     gr = growth_rate_full(
-        m, n, S, q_profile, delta_p 
+        m, n, S, tm.r_s, mag_shear, delta_p 
     )
 
     return delta_p, gr
