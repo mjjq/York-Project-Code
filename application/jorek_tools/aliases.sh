@@ -38,3 +38,7 @@ cdrun() {
 	runnumber=$1
 	cd "$(datarun $1)"
 }
+
+cdl() {
+	cd $(realpath $1 | xargs dirname)
+}
