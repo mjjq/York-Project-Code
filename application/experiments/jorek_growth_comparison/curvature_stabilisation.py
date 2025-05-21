@@ -4,14 +4,11 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from debug.log import logger
 
 from jorek_tools.jorek_dat_to_array import (
-    q_and_j_from_csv, 
-    read_eta_profile_r_minor,
-    read_Btor,
-    read_R0,
     read_r_minor,
     read_chi_par_profile_rminor,
     read_chi_perp_profile_rminor
 )
+from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
 from tearing_mode_solver.profiles import value_at_r
 from tearing_mode_solver.outer_region_solver import (
     solve_system,
@@ -77,52 +74,22 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    psi_current_prof_filename = args.exprs_averaged
-    q_prof_filename = args.q_profile
-
-    q_profile, j_profile = q_and_j_from_csv(
-        psi_current_prof_filename, q_prof_filename
+    params = get_parameters(
+        args.exprs_averaged,
+        args.q_profile,
+        args.poloidal_mode_number,
+        args.toroidal_mode_number
     )
-
-    poloidal_mode_number = args.poloidal_mode_number
-    toroidal_mode_number = args.toroidal_mode_number
-
-    r_minor = read_r_minor(psi_current_prof_filename)
-    # q_profile is a function of r/r_minor, so multiply by r_minor
-    # to get SI
-    r_s_si = r_minor*rational_surface(
-        q_profile, poloidal_mode_number/toroidal_mode_number
-    )
-
-    eta_profile = read_eta_profile_r_minor(psi_current_prof_filename)
-    eta_at_rs = value_at_r(eta_profile, r_s_si)
-    B_tor = read_Btor(psi_current_prof_filename)
-    R_0 = read_R0(psi_current_prof_filename)
-    logger.debug(f"{r_minor}, {R_0}, {B_tor}, {eta_at_rs}")
-    lundquist_number = eta_to_lundquist_number(
-        r_minor,
-        R_0,
-        B_tor,
-        eta_at_rs
-    )
-    logger.debug(f"Lundquist number: {lundquist_number}")
-
-    params = TearingModeParameters(
-        poloidal_mode_number=poloidal_mode_number,
-        toroidal_mode_number=toroidal_mode_number,
-        lundquist_number=lundquist_number,
-        initial_flux=0.0, # Not solving time-dependent system, don't care what this is
-        B0=B_tor,
-        R0=R_0,
-        q_profile=q_profile,
-        j_profile=j_profile,
-    )
-    logger.debug(params)
 
     outer_solution = solve_system(params)
 
     delta_p = delta_prime(outer_solution)
 
+    r_minor = read_r_minor(args.exprs_averaged)
+    r_s_si = r_minor*rational_surface(
+        params.q_profile, 
+        params.poloidal_mode_number/params.toroidal_mode_number
+    )
 
     chi_perp_profile = read_chi_perp_profile_rminor(args.exprs_averaged)
     chi_perp_rs = value_at_r(chi_perp_profile, r_s_si)
@@ -130,12 +97,12 @@ if __name__=='__main__':
     chi_par_profile = read_chi_par_profile_rminor(args.exprs_averaged)
     chi_par_rs = value_at_r(chi_par_profile, r_s_si)
 
-    mag_shear = magnetic_shear(q_profile, outer_solution.r_s)
+    mag_shear = magnetic_shear(params.q_profile, outer_solution.r_s)
     diff_width = diffusion_width(
         chi_perp_rs,
         chi_par_rs,
         outer_solution.r_s,
-        R_0/r_minor,
+        params.R0/r_minor,
         params.toroidal_mode_number,
         mag_shear
     )
@@ -149,16 +116,16 @@ if __name__=='__main__':
 
     gr_conversion = 1.0
     if args.si_units:
-        gr_conversion = alfven_frequency(R_0, B_tor, rho0)
+        gr_conversion = alfven_frequency(params.R0, params.B0, rho0)
 
     for d_r in resistive_interchange_values:
         curv_stabilisation = curvature_stabilisation(diff_width, d_r)
         delta_p_eff = delta_p + curv_stabilisation
 
         gr = growth_rate_full(
-            poloidal_mode_number,
-            toroidal_mode_number,
-            lundquist_number,
+            params.poloidal_mode_number,
+            params.toroidal_mode_number,
+            params.lundquist_number,
             outer_solution.r_s,
             mag_shear,
             delta_p_eff
