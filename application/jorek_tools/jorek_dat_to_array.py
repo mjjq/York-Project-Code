@@ -1,10 +1,7 @@
 import numpy as np
-import sys
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
-from matplotlib import pyplot as plt
 from typing import List, Tuple
-import os
 import re
 from io import StringIO
 from dataclasses import dataclass
@@ -58,7 +55,6 @@ def read_q_profile(filename: str) -> List[Tuple[float, float]]:
     #print(data)
     
     psi_n, qs = zip(*data)
-    plt.plot(psi_n, qs)
 
     # Take absolute q values since JOREK outputs negative q for some reason
     data = list(zip(psi_n, np.abs(qs)))

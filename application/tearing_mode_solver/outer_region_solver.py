@@ -410,6 +410,28 @@ def curvature_stabilisation(diff_width: float,
     return np.sqrt(2)*np.pi**1.5 * resistive_interchange/diff_width
 
 
+def curvature_stabilisation_non_linear(diff_width: float,
+                                       resistive_interchange: float,
+                                       magnetic_island_width: float) -> float:
+    """
+    Calculate the non-linear curvature stabilisation modification to Delta'
+    (Lutjens 2001, eq 4)
+
+    The convention here is to normalise to minor radius for consistency
+    with delta_prime() above. I.e. a*Delta'
+
+    :param diff_width: Diffusion width (normalised to minor radius)
+    :param resistive_interchange: Resistive interchange parameter D_R
+    :param magnetic_island_width: Magnetic island width (normalised to minor radius)
+
+    :return: Curvature stabilisation term normalised to minor radius
+    """
+    return 6.35 * (
+        resistive_interchange/
+        (diff_width**2 + 0.65*magnetic_island_width**2)**0.5
+    )
+
+
 
 def layer_width(poloidal_mode: int,
                 toroidal_mode: int,
