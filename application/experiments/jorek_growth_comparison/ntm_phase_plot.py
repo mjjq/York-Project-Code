@@ -128,7 +128,7 @@ if __name__=='__main__':
         ) for w in w_range])
         delta_ps_eff = delta_ps_classical + delta_ps_curv
 
-        ax.plot(w_range, delta_ps_eff, label=f'$D_R={d_r:.2f}$')
+        ax.plot(w_range, delta_ps_eff, label=f'$D_R={d_r:.3f}, w_d/a={diff_width:.4f}$')
 
     ax.legend()
     ax.set_xlabel("w/a")
