@@ -428,7 +428,7 @@ def curvature_stabilisation_non_linear(diff_width: float,
     """
     return 6.35 * (
         resistive_interchange/
-        (diff_width**2 + 0.65*magnetic_island_width**2)**0.5
+        (0.65*diff_width**2 + magnetic_island_width**2)**0.5
     )
 
 
