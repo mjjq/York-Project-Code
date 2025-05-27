@@ -2,20 +2,16 @@ import numpy as np
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from matplotlib import pyplot as plt
 
-from jorek_tools.jorek_dat_to_array import (
-    read_r_minor,
-    read_chi_par_profile_rminor,
-    read_chi_perp_profile_rminor
+from jorek_tools.quasi_linear_model.get_tm_parameters import (
+    get_parameters
 )
-from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
-from tearing_mode_solver.profiles import value_at_r
+from jorek_tools.quasi_linear_model.get_diffusion_width import (
+    get_diffusion_width
+)
 from tearing_mode_solver.outer_region_solver import (
     solve_system,
-    rational_surface,
     delta_prime_non_linear,
-    diffusion_width,
     curvature_stabilisation_non_linear,
-    magnetic_shear,
 )
 
 if __name__=='__main__':
@@ -76,26 +72,11 @@ if __name__=='__main__':
     outer_solution = solve_system(params)
 
 
-    r_minor = read_r_minor(args.exprs_averaged)
-    r_s_si = r_minor*rational_surface(
-        params.q_profile, 
-        params.poloidal_mode_number/params.toroidal_mode_number
-    )
-
-    chi_perp_profile = read_chi_perp_profile_rminor(args.exprs_averaged)
-    chi_perp_rs = value_at_r(chi_perp_profile, r_s_si)
-
-    chi_par_profile = read_chi_par_profile_rminor(args.exprs_averaged)
-    chi_par_rs = value_at_r(chi_par_profile, r_s_si)
-
-    mag_shear = magnetic_shear(params.q_profile, outer_solution.r_s)
-    diff_width = diffusion_width(
-        chi_perp_rs,
-        chi_par_rs,
-        outer_solution.r_s,
-        params.R0/r_minor,
-        params.toroidal_mode_number,
-        mag_shear
+    diff_width = get_diffusion_width(
+        args.exprs_averaged,
+        args.q_profile,
+        args.poloidal_mode_number,
+        args.toroidal_mode_number
     )
 
     # m_proton = 1.6726e-27
