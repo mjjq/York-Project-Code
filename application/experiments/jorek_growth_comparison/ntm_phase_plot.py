@@ -59,6 +59,11 @@ if __name__=='__main__':
         "results are printed normalised to Alfven frequency",
         default=False
     )
+    parser.add_argument(
+        '-wd', '--diffusion-width', nargs='+', type=float,
+        help="Custom array of diffusion widths",
+        default=[]
+    )
 
     args = parser.parse_args()
 
@@ -71,13 +76,16 @@ if __name__=='__main__':
 
     outer_solution = solve_system(params)
 
-
-    diff_width = get_diffusion_width(
-        args.exprs_averaged,
-        args.q_profile,
-        args.poloidal_mode_number,
-        args.toroidal_mode_number
-    )
+    if args.diffusion_width:
+        diff_width = args.diffusion_width
+    else:
+        # Must be in array format
+        diff_width = [get_diffusion_width(
+            args.exprs_averaged,
+            args.q_profile,
+            args.poloidal_mode_number,
+            args.toroidal_mode_number
+        )]
 
     # m_proton = 1.6726e-27
     # # See https://www.jorek.eu/wiki/doku.php?id=normalization
@@ -96,20 +104,20 @@ if __name__=='__main__':
     )
     ax.grid()
 
+    for w_d in diff_width:
+        for d_r in args.resistive_interchange:
+            delta_ps_classical = np.array([delta_prime_non_linear(
+                outer_solution, 
+                w
+            ) for w in w_range])
+            delta_ps_curv = np.array([curvature_stabilisation_non_linear(
+                w_d, 
+                d_r, 
+                w
+            ) for w in w_range])
+            delta_ps_eff = delta_ps_classical + delta_ps_curv
 
-    for d_r in args.resistive_interchange:
-        delta_ps_classical = np.array([delta_prime_non_linear(
-            outer_solution, 
-            w
-        ) for w in w_range])
-        delta_ps_curv = np.array([curvature_stabilisation_non_linear(
-            diff_width, 
-            d_r, 
-            w
-        ) for w in w_range])
-        delta_ps_eff = delta_ps_classical + delta_ps_curv
-
-        ax.plot(w_range, delta_ps_eff, label=f'$D_R={d_r:.3f}, w_d/a={diff_width:.4f}$')
+            ax.plot(w_range, delta_ps_eff, label=f'$D_R={d_r:.3f}, w_d/a={w_d:.4f}$')
 
     ax.legend()
     ax.set_xlabel("w/a")
