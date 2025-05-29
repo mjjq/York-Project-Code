@@ -14,6 +14,8 @@ class MacroscopicQuantity:
 		self.filename: str = _filename
 		self.x_values: np.ndarray
 		self.y_values: np.ndarray
+		self.x_errors: np.ndarray = None
+		self.y_errors: np.ndarray = None
 
 		self.x_val_name: str
 		self.y_val_name: str
@@ -62,7 +64,11 @@ class MacroscopicQuantity:
 			first_line = f.readline().rstrip().replace('"','')
 			col_names = np.array(list(filter(None, first_line.split(" "))))
 			
-			values = mac_quantity[:,column_index]
+			try:
+				values = mac_quantity[:,column_index]
+			except IndexError:
+				print(f"Couldn't get data for index {column_index}")
+				values = None
 
 			try:
 				column_name = col_names[column_index]
@@ -79,6 +85,18 @@ class MacroscopicQuantity:
 
 	def load_y_values_by_index(self, column_index: int):
 		self.y_val_name, self.y_values = self._get_column_by_index(column_index)
+
+	def load_x_errors_by_index(self, column_index: int):
+		try:
+			_, self.x_errors = self._get_column_by_index(column_index)
+		except ValueError:
+			self.x_errors = None
+
+	def load_y_errors_by_index(self, column_index: int):
+		try:
+			_, self.y_errors = self._get_column_by_index(column_index)
+		except ValueError:
+			self.y_errors = None
 
 
 def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
@@ -108,11 +126,14 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 	if labels is None:
 		labels = [mq.y_val_name for mq in quantities]
 	for label, mac_quantity in zip(labels, quantities):
-		ax.plot(
+		ax.errorbar(
 			mac_quantity.x_values,
 			mac_quantity.y_values,
-			marker_style,
-			label=label
+			fmt=marker_style,
+			xerr=mac_quantity.x_errors,
+			yerr=mac_quantity.y_errors,
+			label=label,
+			capsize=2.0
 		)
 
 	if xmin:
@@ -144,6 +165,8 @@ if __name__ == "__main__":
 	parser.add_argument('-xi', '--xcolumn-index', type=int, default=0)
 	#parser.add_argument('-c', '--columns', nargs='+')
 	parser.add_argument('-yi', '--ycolumn-index', type=int, default=1)
+	parser.add_argument('-xerr', '--x-error-index', type=int, default=None)
+	parser.add_argument('-yerr', '--y-error-index', type=int, default=None)
 	parser.add_argument(
 		'-xl', '--x-label', help="Name of x-axis quantity")
 	parser.add_argument('-yl', '--y-label', help="Name of y-axis quantity")
@@ -177,6 +200,10 @@ if __name__ == "__main__":
 			mq = MacroscopicQuantity(filename)
 			mq.load_x_values_by_index(args.xcolumn_index)
 			mq.load_y_values_by_index(args.ycolumn_index)
+			if args.x_error_index is not None:
+				mq.load_x_errors_by_index(args.x_error_index)
+			if args.y_error_index is not None:
+				mq.load_y_errors_by_index(args.y_error_index)
 			quantities.append(mq)
 
 	labels = None
