@@ -121,15 +121,16 @@ if __name__=='__main__':
 
     # For plotting secondary axis. See 
     # https://matplotlib.org/stable/gallery/subplots_axes_and_figures/secondary_axis.html
-    secax = ax.secondary_xaxis(
-        'top',
-        functions=(
-            lambda x : np.interp(x, diff_width, chi_ratios),
-            lambda x : np.interp(x, chi_ratios, diff_width)
-        )
-    )
-    secax.set_xscale('log')
-    secax.set_xlabel("$\chi_\perp/\chi_\parallel$")
+    # secax = ax.secondary_xaxis(
+    #     'top',
+    #     functions=(
+    #         lambda x : np.interp(x, diff_width, chi_ratios),
+    #         lambda x : np.interp(x, chi_ratios, diff_width)
+    #     )
+    # )
+    # secax.set_xticks(chi_ratios)
+    # secax.set_xscale('log')
+    # secax.set_xlabel("$\chi_\perp/\chi_\parallel$")
 
     for d_r in args.resistive_interchange:
             delta_ps_classical = delta_prime_non_linear(
