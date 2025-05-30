@@ -393,6 +393,26 @@ def diffusion_width(chi_perp: float,
     return (64*chi_perp/chi_parallel)**(1/4) * \
         (aspect_ratio*r_s/(toroidal_mode_number*magnetic_shear))**(1/2)
 
+def chi_perp_ratio(diff_width: float,
+                   r_s: float,
+                   aspect_ratio: float,
+                   toroidal_mode_number: int,
+                   magnetic_shear: float) -> float:
+    """
+    Calculate the inverse of diffusion_width to solve for 
+    chi_perp/chi_parallel
+
+    See :func:`tearing_mode_solver.outer_region_solver.diffusion_width`
+
+    :param diff_width: Diffusion width (normalised to a)
+    :param aspect_ratio: Aspect ratio of the plasma
+    :param toroidal_mode_number: Toroidal mode number
+    :param magnetic_shear: Magnetic shear
+
+    :return The ratio chi_perp/chi_parallel
+    """
+    return (diff_width**4/64)/(aspect_ratio*r_s/(toroidal_mode_number*magnetic_shear))**2
+
 def curvature_stabilisation(diff_width: float,
                             resistive_interchange: float) -> float:
     """
