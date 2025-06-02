@@ -22,7 +22,7 @@ from tearing_mode_solver.helpers import (
     TearingModeParameters
 )
 from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
-
+from tearing_mode_plotter.plot_magnetic_island_width import phase_plot
 
 
 def island_width_from_jorek(psi_current_prof_filename: str,
@@ -72,35 +72,6 @@ def island_width_from_jorek(psi_current_prof_filename: str,
         w_t=island_widths,
         delta_primes=None
     )
-
-
-def phase_plot(ts: TimeDependentSolution):
-    fig, axs = plt.subplots(3, figsize=(5,6))
-    ax_w, ax_dw_dt, ax_phase = axs
-
-    ax_w.plot(ts.times, ts.w_t)
-    ax_w.set_xlabel("Time (s)")
-    ax_w.set_ylabel("Magnetic island width (a)")
-
-    dw_vec = np.diff(ts.w_t)
-    dt_vec = np.diff(ts.times)
-
-    dwdt = dw_vec/dt_vec
-
-    ax_dw_dt.plot(ts.times[:-1], dwdt)
-    ax_dw_dt.set_yscale('log')
-    ax_dw_dt.set_xlabel("Time (s)")
-    ax_dw_dt.set_ylabel("dw/dt (a/s)")
-
-    ax_phase.plot(ts.w_t[:-1], dwdt)
-    ax_phase.set_xlabel("Magnetic island width (a)")
-    ax_phase.set_ylabel("dw/dt (a/s)")
-
-    ax_w.set_yscale('log')
-
-    fig.tight_layout()
-
-    plt.show()
 
 
 if __name__=='__main__':

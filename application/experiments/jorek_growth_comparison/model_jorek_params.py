@@ -28,7 +28,9 @@ from tearing_mode_solver.helpers import (
     sim_to_disk,
     TimeDependentSolution,
 )
-from jorek_tools.time_conversion import jorek_to_alfven_time
+from tearing_mode_solver.outer_region_solver import alfven_frequency
+from jorek_tools.quasi_linear_model.central_density_si import central_density_si
+from tearing_mode_plotter.plot_magnetic_island_width import phase_plot
 
 def plot_growth(times, dpsi_t, psi_t):
     fig_growth, ax_growth = plt.subplots(1, figsize=(4.5, 3))
@@ -181,6 +183,7 @@ def ql_tm_vs_time():
     parser.add_argument(
         '-t1', 
         '--final-time', 
+        type=float,
         help="Final simulation time"
     )
     parser.add_argument(
@@ -190,6 +193,22 @@ def ql_tm_vs_time():
     parser.add_argument(
         '-p', '--plot-result', action='store_true',
         help="Choose whether to plot the results"
+    )
+    parser.add_argument(
+        '-si', '--si-time', action='store_true',
+        help="Choose whether to plot time in SI units " \
+        "If left false, time is given in terms of Alfven time" \
+        "Note, data is still saved in terms of Alfven time"
+    )
+    parser.add_argument(
+        '-cm', '--central-mass', type=float,
+        help="Central mass (as per JOREK namelist, unitless)",
+        default=2.0
+    )
+    parser.add_argument(
+        '-cd', '--central-density', type=float,
+        help="Central number density of plasma (10^20/m^3)",
+        default=1.0
     )
     args = parser.parse_args()
 
@@ -243,10 +262,20 @@ def ql_tm_vs_time():
     print(max(times))
 
     ql_solution = solve_time_dependent_system(params, times)
-    times = ql_solution.times
-    psi_t = ql_solution.psi_t
-    dpsi_t = ql_solution.dpsi_dt
-    w_t = ql_solution.w_t
+
+    time_factor = 1.0
+    time_label = r"Time $(\tau_A)$"
+    if args.si_time:
+        rho0 = central_density_si(
+            args.central_mass,
+            args.central_density
+        )
+        time_factor = 1.0/alfven_frequency(
+            params.R0,
+            params.B0,
+            rho0
+        )
+        time_label = r"Time (s)"
 
     #print(times)
     #print(ql_solution.psi_t)
@@ -261,16 +290,20 @@ def ql_tm_vs_time():
     sim_to_disk(fname, params, ql_solution)
 
     if args.plot_result:
+        # Convert to SI for plotting purposes
+        ql_solution.times = ql_solution.times * time_factor
+
+        phase_plot(ql_solution)
 
         fig, ax = plt.subplots(1, figsize=(4, 3.5))
         ax2 = ax.twinx()
 
-        ax.plot(times, psi_t, label="Flux", color="black")
+        ax.plot(ql_solution.times, ql_solution.psi_t, label="Flux", color="black")
 
-        ax.set_xlabel(r"Normalised time ($\bar{\omega}_A t$)")
+        ax.set_xlabel(time_label)
         ax.set_ylabel(r"Normalised perturbed flux ($\delta \psi^{(1)}$)")
 
-        ax2.plot(times, w_t, label="Normalised island width", color="red")
+        ax2.plot(ql_solution.times, ql_solution.w_t, label="Normalised island width", color="red")
         ax2.set_ylabel(r"Normalised electrostatic modal width ($\hat{\delta}_{ql}$)")
         ax2.yaxis.label.set_color("red")
 
@@ -288,9 +321,9 @@ def ql_tm_vs_time():
 
         savefig(fname)
 
-        plot_growth(times, dpsi_t, psi_t)
-        plot_delta_prime(sol, ql_solution)
-        plot_energy(params, ql_solution, sol)
+        #plot_growth(times, dpsi_t, psi_t)
+        #plot_delta_prime(sol, ql_solution)
+        #plot_energy(params, ql_solution, sol)
 
         plt.show()
 
