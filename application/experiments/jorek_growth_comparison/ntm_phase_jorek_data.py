@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import UnivariateSpline
 from argparse import ArgumentParser
 import glob
-from typing import List
+from typing import List, Tuple
 
 from jorek_tools.h5_extractor import get_si_timesteps
 from jorek_tools.jorek_dat_to_array import (
@@ -23,14 +23,15 @@ from tearing_mode_solver.helpers import (
 )
 from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
 from tearing_mode_plotter.plot_magnetic_island_width import phase_plot
-
+from tearing_mode_solver.helpers import sim_to_disk
 
 def island_width_from_jorek(psi_current_prof_filename: str,
                             q_prof_filename: str,
                             jorek_fourier_filenames: List[str],
                             jorek_h5_filenames: List[str],
                             poloidal_mode_number: int,
-                            toroidal_mode_number: int) -> TimeDependentSolution:
+                            toroidal_mode_number: int) -> \
+                                Tuple[TearingModeParameters, TimeDependentSolution]:
     params = get_parameters(
         psi_current_prof_filename,
         q_prof_filename,
@@ -64,7 +65,7 @@ def island_width_from_jorek(psi_current_prof_filename: str,
 
     time_data = get_si_timesteps(jorek_h5_filenames)
 
-    return TimeDependentSolution(
+    return params, TimeDependentSolution(
         time_data.t_si_vals,
         psi_rs,
         dpsi_dt=None,
@@ -109,6 +110,12 @@ if __name__=='__main__':
         help="toroidal mode number",
         default=1
     )
+    parser.add_argument(
+        '-p', '--plot',
+        action="store_true",
+        help="Whether to plot the data immediately",
+        default=False
+    )
     args = parser.parse_args()
 
     
@@ -122,7 +129,7 @@ if __name__=='__main__':
 
     h5_filenames = sorted(glob.glob(args.h5_filename_pattern))
 
-    jorek_island_data = island_width_from_jorek(
+    params, jorek_island_data = island_width_from_jorek(
         psi_current_prof_filename,
         q_prof_filename,
         fourier_file_list,
@@ -131,4 +138,7 @@ if __name__=='__main__':
         toroidal_mode_number
     )
 
-    phase_plot(jorek_island_data)
+    sim_to_disk("jorek_island_data", params, jorek_island_data)
+
+    if args.plot:
+        phase_plot(jorek_island_data)

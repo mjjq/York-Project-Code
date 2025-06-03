@@ -117,7 +117,14 @@ if __name__=='__main__':
             ) for w in w_range])
             delta_ps_eff = delta_ps_classical + delta_ps_curv
 
-            ax.plot(w_range, delta_ps_eff, label=f'$D_R={d_r:.3f}, w_d/a={w_d:.4f}$')
+            d_r_label=""
+            if len(args.resistive_interchange) > 1:
+                d_r_label = f'$D_R={d_r:.3f}$'
+            w_d_label=""
+            if len(diff_width) > 1:
+                w_d_label = f'$w_d/a={w_d:.4f}$'
+
+            ax.plot(w_range, delta_ps_eff, label=f'{d_r_label} {w_d_label}')
 
     ax.legend()
     ax.set_xlabel("w/a")
