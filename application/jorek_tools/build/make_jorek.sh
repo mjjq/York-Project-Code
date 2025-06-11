@@ -4,8 +4,8 @@ mkdir -p ./build
 rm -r ./build/*
 
 make clean && make -j 32
-make jorek2_postproc
-make jorek2vtk
+make -j 32 jorek2_postproc
+make -j 32 jorek2vtk
 
 mv jorek_model* ./build/jorek_model
 mv jorek2_postproc jorek2vtk ./build
