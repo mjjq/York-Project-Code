@@ -9,12 +9,14 @@ alias j2vtkno0="$JOREK_UTIL/convert2vtk.sh -no0 -j 32 ./jorek2vtk ./inmastu"
 
 alias plq="python3 $JOREK_TOOLS/macroscopic_vars_analysis/plot_quantities.py"
 
+alias grept="grep -riI"
+
 batchgrowth() {
-        cat useful_runs.txt | parallel 'cd {}; $JOREK_UTIL/extract_live_data.sh -si magnetic_growth_rates > magnetic_growth_rates.dat'
+        cat useful_runs.txt | parallel 'cd {}; $JOREK_UTIL/extract_live_data.sh $1 magnetic_growth_rates > magnetic_growth_rates.dat'
 }
 
 batchenergies() {
-        cat useful_runs.txt | parallel 'cd {}; $JOREK_UTIL/extract_live_data.sh -si magnetic_energies > magnetic_energies.dat'
+        cat useful_runs.txt | parallel "cd {}; $JOREK_UTIL/extract_live_data.sh $1 magnetic_energies > magnetic_energies.dat"
 }
 
 
@@ -37,15 +39,27 @@ getlabels() {
 }
 
 batchplotgrowth() {
-        batchgrowth
+        batchgrowth $1
 	labelsarg="$(getlabels)"
-        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_growth) -yi 2 -xl "Time (ms)" -yl "Magnetic growth rate (1/s)" $labelsarg
+	if [[ $1 == '-si' ]]; then
+	        timelabel="Time (ms)"
+		growth_label="Magnetic growth rate (1/s)"
+	else
+	        timelabel="Time [JOREK units]"
+		growth_label="Magnetic growth rate [JOREK units]"
+	fi
+        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_growth) -yi 2 -xl "$timelabel" -yl "$growth_label" $labelsarg
 }
 
 batchplotenergies() {
-        batchenergies
+        batchenergies $1
 	labelsarg="$(getlabels)"
-        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_energies) -yi 2 -xl "Time (ms)" -yl "Normalised magnetic energy (arb)" $labelsarg -ys log
+	if [[ $1 == '-si' ]]; then
+		timelabel="Time (ms)"
+	else
+		timelabel="Time [JOREK units]"
+	fi
+        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_energies) -yi 2 -xl "$timelabel" -yl "Normalised magnetic energy (arb)" $labelsarg -ys log
 }
 
 
@@ -59,7 +73,7 @@ batchdiagnostic() {
 
 datarun() {
 	runnumber=$1
-	find $PROJ_HOME/jorek_data $PROJ_HOME_OLD/jorek_data -name "*run_$1*" -type d
+	find $PROJ_HOME/jorek_data $PROJ_HOME_OLD/jorek_data -name "*run_$1*" -type d | sort | head -n 1
 }
 
 cdrun() {
@@ -69,4 +83,17 @@ cdrun() {
 
 cdl() {
 	cd $(realpath $1 | xargs dirname)
+}
+
+get_latest_h5_in_folder() {
+	find $1 | grep -P 'jorek[0-9].*\.h5' | sort -r | head -n 1
+}
+
+gather_restart_files() {
+	id=0
+	for run in $(cat restart_runs.txt)
+	do
+		ln -s $(get_latest_h5_in_folder $run) ./jorek_restart_$id.h5
+		id=$[$id+1]
+	done
 }
