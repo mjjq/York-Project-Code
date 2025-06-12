@@ -91,7 +91,7 @@ get_latest_h5_in_folder() {
 
 gather_restart_files() {
 	id=0
-	for run in $(cat restart_runs.txt)
+	for run in $(cat $1)
 	do
 		ln -s $(get_latest_h5_in_folder $run) ./jorek_restart_$id.h5
 		id=$[$id+1]
