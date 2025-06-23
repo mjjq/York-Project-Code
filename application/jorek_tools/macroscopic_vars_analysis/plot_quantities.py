@@ -103,6 +103,7 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								labels: Optional[List[str]],
 								x_axis_label: Optional[str],
 								y_axis_label: Optional[str],
+								x_scale: str,
 								y_scale: str,
 								xmin: Optional[float],
 								xmax: Optional[float],
@@ -122,6 +123,7 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 
 	ax.grid(which='both')
 	ax.set_yscale(y_scale)
+	ax.set_xscale(x_scale)
 
 	if labels is None:
 		labels = [mq.y_val_name for mq in quantities]
@@ -176,6 +178,10 @@ if __name__ == "__main__":
 	parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
 	parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
 	parser.add_argument(
+		'-xs', '--x-scale', choices=['linear','log'], help="X-axis scale",
+		default='linear'
+	)
+	parser.add_argument(
 		'-ys', '--y-scale', choices=['linear','log'], help="Y-axis scale",
 		default='linear'
 	)
@@ -215,6 +221,7 @@ if __name__ == "__main__":
 		labels,
 		args.x_label,
 		args.y_label,
+		args.x_scale,
 		args.y_scale,
 		args.xmin,
 		args.xmax,
