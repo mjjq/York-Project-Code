@@ -105,12 +105,13 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								y_axis_label: Optional[str],
 								x_scale: str,
 								y_scale: str,
+								figure_size: Tuple[float, float],
 								xmin: Optional[float],
 								xmax: Optional[float],
 								marker_style: str,
+								marker_size: float,
 								output_filename: Optional[str]):
-	fig, ax = plt.subplots(1)
-	
+	fig, ax = plt.subplots(1, figsize=figure_size)
 	xlabel = x_axis_label
 	if xlabel is None:
 		xlabel = quantities[0].x_val_name
@@ -135,7 +136,8 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 			xerr=mac_quantity.x_errors,
 			yerr=mac_quantity.y_errors,
 			label=label,
-			capsize=2.0
+			capsize=2.0,
+			markersize=marker_size
 		)
 
 	if xmin:
@@ -145,6 +147,11 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 
 	if len(quantities) > 1:
 		ax.legend()
+
+	if 'lin' in x_scale:
+		ax.ticklabel_format(axis='x', style='sci', scilimits=(-2, 2), useOffset=True)
+	if 'lin' in y_scale:
+		ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2), useOffset=True)
 
 	plt.tight_layout()
 
@@ -186,8 +193,16 @@ if __name__ == "__main__":
 		default='linear'
 	)
 	parser.add_argument(
+		'-fs', '--figure-size', nargs=2, type=float, help="Figure size (tuple)",
+		default=(4.0,3.0)
+	)
+	parser.add_argument(
 		'-t', '--marker-type', 
 		help="Plotting marker type (x, -, etc)", default='-'
+	)
+	parser.add_argument(
+		'-ms', '--marker-size', type=float,
+		help="Plotting marker size (x, -, etc)", default=1.0
 	)
 	parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
 	args = parser.parse_args()
@@ -223,9 +238,11 @@ if __name__ == "__main__":
 		args.y_label,
 		args.x_scale,
 		args.y_scale,
+		args.figure_size,
 		args.xmin,
 		args.xmax,
 		args.marker_type,
+		args.marker_size,
 		args.output_filename
 	)
 
