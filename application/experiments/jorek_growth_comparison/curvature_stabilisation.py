@@ -119,7 +119,14 @@ if __name__=='__main__':
         gr_conversion = alfven_frequency(params.R0, params.B0, rho0)
 
     for d_r in resistive_interchange_values:
-        curv_stabilisation = curvature_stabilisation(diff_width, d_r)
+        curv_stabilisation = curvature_stabilisation(
+            params.lundquist_number,
+            d_r,
+            mag_shear,
+            params.poloidal_mode_number,
+            params.toroidal_mode_number,
+            outer_solution.r_s
+        )
         delta_p_eff = delta_p + curv_stabilisation
 
         gr = growth_rate_full(

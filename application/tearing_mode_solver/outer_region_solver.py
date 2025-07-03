@@ -413,8 +413,8 @@ def chi_perp_ratio(diff_width: float,
     """
     return (diff_width**4/64)/(aspect_ratio*r_s/(toroidal_mode_number*magnetic_shear))**2
 
-def curvature_stabilisation(diff_width: float,
-                            resistive_interchange: float) -> float:
+def curvature_stabilisation_kinetic(diff_width: float,
+                            	    resistive_interchange: float) -> float:
     """
     Calculate the curvature stabilisation modification to Delta'
     (Lutjens 2001, eq 3)
@@ -428,6 +428,41 @@ def curvature_stabilisation(diff_width: float,
     :return: Curvature stabilisation term normalised to minor radius
     """
     return np.sqrt(2)*np.pi**1.5 * resistive_interchange/diff_width
+
+
+def curvature_stabilisation(lundquist_number: float,
+			    resistive_interchange: float,
+			    magnetic_shear: float,
+			    poloidal_mode_number: float,
+			    toroidal_mode_number: float,
+			    r_s: float) -> float:
+    """
+	Calculate the curvature stabilisation modification to Delta'
+	(fluid version where diffusion is unimportant (GGJ 1975 result).
+	Full criterion taken from Brunetti's MHD report, eq. 17.56
+
+	Convention the same as in :func curvature_stabilisation_kinetic:
+	
+	:param lundquist_number: The lundquist number at the rational surface
+	:param resistive_interchange: Resistive interchange parameter D_R
+	:param magnetic_shear: Magnetic shear at the rational surface
+	:param poloidal_mode_number: Poloidal mode number
+	:param toroidal_mode_number: Toroidal mode number
+	:param r_s: Radius of rational surface (normalised to minor radius)
+	
+	:return Curvature stabilisation Delta' contribution normalised to minor radius
+    """
+    # Result of 2*pi*Gamma(3/4)/Gamma(1/4) * (pi/4)**(5/6) 
+    #            * cos(pi/4)/cos(pi/8) * (cot(pi/8)**(1/6)
+    const_terms = 1.53929937748165595101
+    q_s = poloidal_mode_number/toroidal_mode_number
+
+    return -(
+        const_terms/r_s *
+        (toroidal_mode_number*magnetic_shear*lundquist_number)**(1/3) /
+        (1+2.0*q_s**2)**(1/6) *
+        (abs(resistive_interchange))**(5/6)
+    )
 
 
 def curvature_stabilisation_non_linear(diff_width: float,
