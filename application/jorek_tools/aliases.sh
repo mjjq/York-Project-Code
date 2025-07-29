@@ -4,12 +4,16 @@ alias analysis-venv="source $PROJ_HOME/jorek_analysis/York-Project-Code/venv/bin
 
 alias plg="$JOREK_UTIL/plot_grids.sh"
 alias pld="$JOREK_UTIL/plot_live_data.sh"
-alias j2vtk="$JOREK_UTIL/convert2vtk.sh -j 32 ./jorek2vtk ./inmastu"
+##alias j2vtk="$JOREK_UTIL/convert2vtk.sh -j 32 ./jorek2vtk ./inmastu"
 alias j2vtkno0="$JOREK_UTIL/convert2vtk.sh -no0 -j 32 ./jorek2vtk ./inmastu"
 
 alias plq="python3 $JOREK_TOOLS/macroscopic_vars_analysis/plot_quantities.py"
 
 alias grept="grep -riI"
+
+jtvtk() {
+        $JOREK_UTIL/convert2vtk.sh -j 32 "$@" ./jorek2vtk ./inmastu
+}
 
 batchgrowth() {
         cat useful_runs.txt | parallel 'cd {}; $JOREK_UTIL/extract_live_data.sh $1 magnetic_growth_rates > magnetic_growth_rates.dat'
@@ -73,7 +77,7 @@ batchdiagnostic() {
 
 datarun() {
 	runnumber=$1
-	find $PROJ_HOME/jorek_data $PROJ_HOME_OLD/jorek_data -name "*run_$1*" -type d | sort | head -n 1
+	find $JOREK_DATA -name "*run_$1*" -type d | sort | head -n 1
 }
 
 cdrun() {
@@ -96,4 +100,8 @@ gather_restart_files() {
 		ln -s $(get_latest_h5_in_folder $run) ./jorek_restart_$id.h5
 		id=$[$id+1]
 	done
+}
+
+cdlr() {
+	cd $(find . -name "run_*" -printf "%T@ %Tc %p\n" | sort -n | tail -1 | awk '{print $NF}')
 }
