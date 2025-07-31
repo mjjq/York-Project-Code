@@ -1,6 +1,4 @@
 import numpy as np
-from os.path import join, expanduser
-import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from matplotlib import pyplot as plt
 
@@ -23,14 +21,13 @@ from tearing_mode_solver.outer_region_solver import (
     eta_to_lundquist_number
 )
 from tearing_mode_solver.helpers import (
-    savefig,
     TearingModeParameters,
     sim_to_disk,
     TimeDependentSolution,
 )
-from tearing_mode_solver.outer_region_solver import alfven_frequency
 from jorek_tools.quasi_linear_model.central_density_si import central_density_si
-from tearing_mode_plotter.plot_magnetic_island_width import phase_plot
+from tearing_mode_plotter.plot_magnetic_island_width import phase_plot, island_width_plot
+from tearing_mode_plotter.plot_quasi_linear_solution import plot_perturbed_flux, plot_growth_rate
 
 def plot_growth(times, dpsi_t, psi_t):
     fig_growth, ax_growth = plt.subplots(1, figsize=(4.5, 3))
@@ -184,7 +181,8 @@ def ql_tm_vs_time():
         '-t1', 
         '--final-time', 
         type=float,
-        help="Final simulation time"
+        help="Final simulation time (in units of lundquist number).",
+	default=0.1
     )
     parser.add_argument(
         '-s', '--n-steps', type=int, default=10000, 
@@ -239,6 +237,12 @@ def ql_tm_vs_time():
         B_tor,
         eta_at_rs
     )
+    print(f"lundquist number: {lundquist_number:.2g}")
+
+    rho0 = central_density_si(
+            args.central_mass,
+            args.central_density
+    )
 
     params = TearingModeParameters(
         poloidal_mode_number=poloidal_mode_number,
@@ -249,81 +253,27 @@ def ql_tm_vs_time():
         R0=R_0,
         q_profile=q_profile,
         j_profile=j_profile,
+        rho0=rho0
     )
 
-    sol = solve_system(params)
-
     # Typically, several lundquist numbers needed to reach saturation
-    t1 = t0 + 2.0*lundquist_number
+    t1 = t0 + 0.1*lundquist_number
     if args.final_time:
-        t1 = args.final_time
+        t1 = t0 + args.final_time*lundquist_number
 
     times = np.linspace(t0, t1, nsteps)
     print(max(times))
 
     ql_solution = solve_time_dependent_system(params, times)
-
-    time_factor = 1.0
-    time_label = r"Time $(\tau_A)$"
-    if args.si_time:
-        rho0 = central_density_si(
-            args.central_mass,
-            args.central_density
-        )
-        time_factor = 1.0/alfven_frequency(
-            params.R0,
-            params.B0,
-            rho0
-        )
-        time_label = r"Time (s)"
-
-    #print(times)
-    #print(ql_solution.psi_t)
-    # plt.plot(w_t)
-    # plt.show()
-
-    # print("lgr: ", lin_growth_rate)
-    # print("Threshold: ", ql_threshold)
-    # print(psi_t)
     
     fname = f"jorek_model_m{params.poloidal_mode_number}_n{params.toroidal_mode_number}"
     sim_to_disk(fname, params, ql_solution)
 
     if args.plot_result:
-        # Convert to SI for plotting purposes
-        ql_solution.times = ql_solution.times * time_factor
-
-        phase_plot(ql_solution)
-
-        fig, ax = plt.subplots(1, figsize=(4, 3.5))
-        ax2 = ax.twinx()
-
-        ax.plot(ql_solution.times, ql_solution.psi_t, label="Flux", color="black")
-
-        ax.set_xlabel(time_label)
-        ax.set_ylabel(r"Normalised perturbed flux ($\delta \psi^{(1)}$)")
-
-        ax2.plot(ql_solution.times, ql_solution.w_t, label="Normalised island width", color="red")
-        ax2.set_ylabel(r"Normalised electrostatic modal width ($\hat{\delta}_{ql}$)")
-        ax2.yaxis.label.set_color("red")
-
-        ax.legend(prop={"size": 7}, loc="lower right")
-
-        # ax.set_yscale('log')
-        # ax2.set_yscale('log')
-        ax.set_xscale("log")
-        ax2.set_xscale("log")
-        ax.set_yscale("log")
-        ax2.set_yscale("log")
-
-        fig.tight_layout()
-        # plt.show()
-
-        savefig(fname)
-
-        #plot_growth(times, dpsi_t, psi_t)
-        #plot_delta_prime(sol, ql_solution)
-        #plot_energy(params, ql_solution, sol)
+        phase_plot(params, ql_solution, args.si_time)
+        plot_perturbed_flux(params, ql_solution, args.si_time)
+        plot_growth_rate(params, ql_solution, args.si_time)
+        island_width_plot(params, ql_solution, args.si_time)
 
         plt.show()
 
