@@ -50,9 +50,13 @@ def find_best_quad_fit_location(t_vals: np.array,
 
     diff = np.abs(dpsi_dt_ratio - xi_ratio[:-1])
 
-    fig, ax = plt.subplots(1)
-    ax.plot(t_vals[:-(comparison_index+1)], diff)
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    ax.plot(t_vals[:-(comparison_index+1)], diff, color='black')
     ax.set_yscale('log')
+    ax.set_xlabel(r"Time ($t_{max}$)")
+    ax.set_ylabel(r"Cost function (arb)")
+    ax.grid()
+    fig.tight_layout()
 
     t_0_arg = np.argmin(diff)
     t_1_arg = t_0_arg + comparison_index
@@ -85,9 +89,9 @@ def fit_quadratic(t_vals: np.array,
     t_vals_filt = t_vals[fit_filter]
     dpsi_vals_filt = delta_psi_vals[fit_filter]
 
-    fig_f, ax_f = plt.subplots(1)
-    ax_f.plot(t_vals_filt, dpsi_vals_filt)
-    ax_f.scatter([t_0], [dpsi_0])
+    # fig_f, ax_f = plt.subplots(1)
+    # ax_f.plot(t_vals_filt, dpsi_vals_filt)
+    # ax_f.scatter([t_0], [dpsi_0])
 
     partial_quadratic = lambda t, c : quadratic(t, t_0, dpsi_0, c)
 
@@ -151,9 +155,9 @@ if __name__=='__main__':
 
     fit_quadratic(t_vals, delta_psi_vals)
 
-    fig, ax = plt.subplots(1)
-    ax.plot(t_vals, delta_psi_vals)
-    ax.set_xscale('log')
-    ax.set_yscale('log')
+    # fig, ax = plt.subplots(1)
+    # ax.plot(t_vals, delta_psi_vals)
+    # ax.set_xscale('log')
+    # ax.set_yscale('log')
 
     plt.show()
