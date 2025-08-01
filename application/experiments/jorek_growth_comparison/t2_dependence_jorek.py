@@ -2,6 +2,7 @@ from scipy.interpolate import CloughTocher2DInterpolator, UnivariateSpline
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.signal import medfilt
 
 from tearing_mode_solver.helpers import savefig
 
@@ -26,28 +27,37 @@ def find_best_quad_fit_location(t_vals: np.array,
     This is what we do here
     """
     
-    dpsi_spline = UnivariateSpline(t_vals, delta_psi_vals)
-    dpsi_dt_spline = dpsi_spline.derivative()
+    # dpsi_spline = UnivariateSpline(t_vals, delta_psi_vals)
+    # dpsi_dt_spline = dpsi_spline.derivative()
 
-    dpsi_dt_vals = dpsi_dt_spline(t_vals)
+    # dpsi_dt_vals = dpsi_dt_spline(t_vals)
 
+    d_delta_psi = np.diff(delta_psi_vals)
+    d_t = np.diff(t_vals)
+
+    dpsi_dt_vals = d_delta_psi/d_t
+
+    comparison_index = int(0.05*len(delta_psi_vals))
     dpsi_dt_ratio = np.array([
-        dpsi_dt_vals[i+1]/dpsi_dt_vals[i] 
-        for i in range(len(dpsi_dt_vals)-1)
+        dpsi_dt_vals[i+comparison_index]/dpsi_dt_vals[i] 
+        for i in range(len(dpsi_dt_vals)-comparison_index)
     ])
 
     xi_ratio = np.array([
-        np.sqrt(delta_psi_vals[i+1]/delta_psi_vals[i])
-        for i in range(len(delta_psi_vals)-1)
+        np.sqrt(delta_psi_vals[i+comparison_index]/delta_psi_vals[i])
+        for i in range(len(delta_psi_vals)-comparison_index)
     ])
 
-    diff = np.abs(dpsi_dt_ratio - xi_ratio)
+    diff = np.abs(dpsi_dt_ratio - xi_ratio[:-1])
 
     fig, ax = plt.subplots(1)
-    ax.plot(t_vals[:-1], diff)
+    ax.plot(t_vals[:-(comparison_index+1)], diff)
     ax.set_yscale('log')
 
-    return t_vals[np.argmin(diff)]
+    t_0_arg = np.argmin(diff)
+    t_1_arg = t_0_arg + comparison_index
+
+    return t_vals[t_0_arg], t_vals[t_1_arg]
 
 
 def quadratic(t, t_0, delta_psi_0, c): 
@@ -57,13 +67,27 @@ def quadratic(t, t_0, delta_psi_0, c):
 def fit_quadratic(t_vals: np.array,
                   delta_psi_vals: np.array):
     t_vals = t_vals/np.max(t_vals)
-    t_0 = find_best_quad_fit_location(t_vals, delta_psi_vals)
-    print(t_0)
+    initialisation_t_cutoff = 0.3
+    saturation_t_cutoff = 0.9
+
+    cutoff_filter = (t_vals>initialisation_t_cutoff) & (t_vals<saturation_t_cutoff)
+
+    t_0,t_1 = find_best_quad_fit_location(
+        t_vals[cutoff_filter], 
+        delta_psi_vals[cutoff_filter]
+    )
+    print(t_0, t_1)
 
     dpsi_0 = np.interp(t_0, t_vals, delta_psi_vals)
 
-    t_vals_filt = t_vals[(t_vals>=t_0)]
-    dpsi_vals_filt = delta_psi_vals[(t_vals>=t_0)]
+    fit_filter = (t_vals>=t_0) & (t_vals<t_1)
+
+    t_vals_filt = t_vals[fit_filter]
+    dpsi_vals_filt = delta_psi_vals[fit_filter]
+
+    fig_f, ax_f = plt.subplots(1)
+    ax_f.plot(t_vals_filt, dpsi_vals_filt)
+    ax_f.scatter([t_0], [dpsi_0])
 
     partial_quadratic = lambda t, c : quadratic(t, t_0, dpsi_0, c)
 
@@ -71,17 +95,13 @@ def fit_quadratic(t_vals: np.array,
         partial_quadratic, 
         t_vals_filt, 
         dpsi_vals_filt,
-        bounds=([0.0], [np.inf]),
-        p0=[1.0],
-        method='trf'
+        p0=[5.0]
     )
     c_fit = popt[0]
     c_std = np.sqrt(np.diag(pcov))[0]
     t2_results = partial_quadratic(t_vals, *popt)
     t2_results_min = partial_quadratic(t_vals, c_fit-c_std)
     t2_results_max = partial_quadratic(t_vals, c_fit+c_std)
-
-    print(c_fit)
     
     fig, ax = plt.subplots(1, figsize=(4,3))
     ax.plot(
@@ -96,11 +116,14 @@ def fit_quadratic(t_vals: np.array,
         linestyle='--', color='red',
         label=r"$t^2$ fit: "f"C={c_fit:.3f}"
     )
+    ax.scatter(
+        [t_0], [dpsi_0], marker='x', color='red'
+    )
 
     #ax.set_xscale('log')
     ax.set_yscale('log')
 
-    dpsi_plot_min = 0.1*max(delta_psi_vals)
+    dpsi_plot_min = 0.1*dpsi_0
     t_plot_min = t_vals[np.argmin(np.abs(dpsi_plot_min-delta_psi_vals))]
 
     ax.set_xlim(left=t_plot_min, right=1.05)
@@ -113,7 +136,7 @@ def fit_quadratic(t_vals: np.array,
 
     fig.tight_layout()
 
-    savefig("quadratic_fit")
+    #savefig("quadratic_fit")
 
 
 if __name__=='__main__':
