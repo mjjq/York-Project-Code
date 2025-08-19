@@ -105,3 +105,20 @@ gather_restart_files() {
 cdlr() {
 	cd $(find . -name "run_*" -printf "%T@ %Tc %p\n" | sort -n | tail -1 | awk '{print $NF}')
 }
+
+
+alias fzf='~/applications/fzf'
+gg() {
+  git grep --line-number --untracked . \
+  | fzf --ansi --delimiter : \
+        --preview '
+          FILE=$(echo {} | cut -d: -f1);
+          LINE=$(echo {} | cut -d: -f2);
+          START=$((LINE - 10));
+          [ $START -lt 1 ] && START=1;
+          END=$((LINE + 10));
+          sed -n "${START},${END}p" "$FILE" 2>/dev/null
+        ' \
+        --preview-window=up:60% \
+        --bind 'enter:execute(${EDITOR:-vim} +{2} {1})'
+}

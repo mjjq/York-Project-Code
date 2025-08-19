@@ -7,7 +7,7 @@ set debug true
 set surfaces 200
 set rad_range_max 0.97
 
-for step 0 do
+for step 6300 do
 
 qprofile
 
