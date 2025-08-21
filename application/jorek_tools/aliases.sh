@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Note: Must have the relevant environment variables ($PROJ_HOME etc) specified in ~/.bashrc
 
 alias analysis-venv="source $PROJ_HOME/jorek_analysis/York-Project-Code/venv/bin/activate"
@@ -10,6 +12,11 @@ alias j2vtkno0="$JOREK_UTIL/convert2vtk.sh -no0 -j 32 ./jorek2vtk ./inmastu"
 alias plq="python3 $JOREK_TOOLS/macroscopic_vars_analysis/plot_quantities.py"
 
 alias grept="grep -riI"
+
+load_jorek_mod_csd() {
+	module purge
+	module load rhel8/default-icl intel-oneapi-tbb intel-oneapi-mkl fftw
+}
 
 jtvtk() {
         $JOREK_UTIL/convert2vtk.sh -j 32 "$@" ./jorek2vtk ./inmastu
@@ -37,14 +44,14 @@ batchqlgrowth() {
 }
 
 getlabels() {
-	labelsarg="-l $(cat useful_runs.txt)"
-	test -n "$(cat useful_runs_labels.txt)" && labelsarg="-l $(cat useful_runs_labels.txt)"
+	labelsarg="$(cat useful_runs.txt)"
+	test -n "$(cat useful_runs_labels.txt)" && labelsarg="$(cat useful_runs_labels.txt)"
 	echo "$labelsarg"
 }
 
 batchplotgrowth() {
         batchgrowth $1
-	labelsarg="$(getlabels)"
+	mapfile -t label_arr <<< "$(getlabels)"
 	if [[ $1 == '-si' ]]; then
 	        timelabel="Time (ms)"
 		growth_label="Magnetic growth rate (1/s)"
@@ -52,18 +59,18 @@ batchplotgrowth() {
 	        timelabel="Time [JOREK units]"
 		growth_label="Magnetic growth rate [JOREK units]"
 	fi
-        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_growth) -yi 2 -xl "$timelabel" -yl "$growth_label" $labelsarg
+        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_growth) -yi 2 -xl "$timelabel" -yl "$growth_label" -l "${label_arr[@]}"
 }
 
 batchplotenergies() {
         batchenergies $1
-	labelsarg="$(getlabels)"
+	mapfile -t label_arr <<< "$(getlabels)"
 	if [[ $1 == '-si' ]]; then
 		timelabel="Time (ms)"
 	else
 		timelabel="Time [JOREK units]"
 	fi
-        plq -f $(cat useful_runs.txt | xargs find | grep magnetic_energies) -yi 2 -xl "$timelabel" -yl "Normalised magnetic energy (arb)" $labelsarg -ys log
+	plq -f $(cat useful_runs.txt | xargs find | grep magnetic_energies) -yi 2 -xl "$timelabel" -yl "Normalised magnetic energy (arb)" -l "${label_arr[@]}" -ys log
 }
 
 
