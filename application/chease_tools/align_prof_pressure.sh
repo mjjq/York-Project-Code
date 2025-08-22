@@ -3,13 +3,14 @@
 get_chease_beta() {
 	chease_out_filename=$1
 
-	# Multiply by 100 to convert to percentage
-	grep "BETA-AXIS=" $chease_out_filename | awk '{print 100*$NF}'
+	grep "BETA-AXIS=" $chease_out_filename | awk '{ printf("%.10f\n", $NF) }'
 }
 
 get_prof_beta() {
 	prof_out_filename=$1
-	grep -m 1 "beta total (%)" $prof_out_filename | awk '{print $NF}'
+	
+	# Divide by 100 to convert from percentage to abs value
+	grep -m 1 "beta total (%)" $prof_out_filename | awk '{ printf("%.10f\n", $NF/100) }'
 }
 
 approx_equal() {
@@ -17,7 +18,7 @@ approx_equal() {
 	cmp=$2
 	tolerance="0.001"
 
-	echo "sqrt(($val-$cmp)^2) < $tolerance" | bc -l
+	echo "sqrt(($val/$cmp-1.0)^2) < $tolerance" | bc -l
 }
 
 betas_approx_equal() {
