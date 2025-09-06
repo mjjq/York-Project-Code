@@ -7,7 +7,8 @@ from tearing_mode_solver.delta_model_solver import solve_time_dependent_system
 from tearing_mode_solver.outer_region_solver import (
     solve_system,
     OuterRegionSolution,
-    growth_rate
+    growth_rate,
+    delta_prime_non_linear
 )
 from tearing_mode_solver.helpers import (
     TearingModeParameters,
@@ -148,6 +149,20 @@ def ql_tm_vs_time():
         q_profile,
         outer_sol
     )
+
+    fig, ax = plt.subplots(1)
+    ax.plot(outer_sol.r_range_bkwd, outer_sol.psi_backwards)
+    ax.plot(outer_sol.r_range_fwd, outer_sol.psi_forwards)
+
+    w_vals = np.linspace(1e-6, 0.025, 100)
+    delta_p_vals = delta_prime_non_linear(
+        outer_sol,
+        w_vals
+    )
+
+    fig2, ax2 = plt.subplots(1)
+    ax2.plot(w_vals, delta_p_vals)
+    plt.show()
 
     print(f"Delta'(0)={delta_p:.2g}")
 
