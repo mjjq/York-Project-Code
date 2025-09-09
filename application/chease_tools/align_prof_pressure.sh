@@ -34,7 +34,7 @@ betas_approx_equal() {
 get_cpress() {
 	prof_namelist_filename=$1
 
-	grep cpress $prof_namelist_filename | grep -v "!" | tail -1 | grep -Eo '[+-]?[0-9]+([.][0-9]+)?'
+	grep -a cpress $prof_namelist_filename | grep -v "!" | tail -1 | grep -Eo '[+-]?[0-9]+([.][0-9]+)?'
 }
 
 calc_new_cpress() {
@@ -45,11 +45,11 @@ calc_new_cpress() {
 	chease_beta=$(get_chease_beta $chease_out_filename)
 	prof_beta=$(get_prof_beta $prof_out_filename)
 
-	correction_factor=$(echo "$prof_beta/$chease_beta" | bc -l)
+	correction_factor=$(echo "$prof_beta $chease_beta" | awk '{printf "%f\n", $1/$2}')
 	
 	old_cpress=$(get_cpress $prof_namelist_filename)
 
-	echo "$old_cpress*$correction_factor" | bc -l
+	echo "$old_cpress $correction_factor" | awk '{printf "%f\n", $1*$2}'
 }
 
 update_cpress() {
@@ -74,6 +74,8 @@ align_prof_pressure() {
 
 loop_prof_pressure() {
 	run_prof_chease
+
+	cp prof_namelist prof_namelist.bak
 
 	until [ $(betas_approx_equal chease_output.out prof_output.out) -eq 1 ]
 	do
