@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
-from tearing_mode_solver.helpers import TimeDependentSolution, savefig, TearingModeParameters
+from tearing_mode_solver.helpers import TimeDependentSolution, savefig, TearingModeParameters, load_sim_from_disk
 from tearing_mode_solver.conversions import time_unit_label, solution_time_scale
 
 def plot_perturbed_flux(params: TearingModeParameters,
@@ -47,3 +47,16 @@ def plot_growth_rate(params: TearingModeParameters,
     fig_g.tight_layout()
 
     savefig(f"growth_rate")
+
+if __name__=='__main__':
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: plot_quasi_linear_solution.py <path/to/solution/zipfile>")
+        quit()
+
+    fname = sys.argv[1]
+    params, tm = load_sim_from_disk(fname)
+    plot_perturbed_flux(params, tm, True)
+    plot_growth_rate(params, tm, True)
+
+    plt.show()
