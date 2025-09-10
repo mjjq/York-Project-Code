@@ -5,18 +5,23 @@ from scipy.interpolate import UnivariateSpline
 
 @np.vectorize
 def j(radial_coordinate: float,
-      shaping_exponent: float) -> float:
+      shaping_exponent: float,
+      axis_q: float) -> float:
     """
     Current profile function
     
     Current normalised to the on-axis current J_0.
     Radial co-ordinate normalised to the minor radius a.
 
+    Need to constrain J_0 and q_0 to satisfy respective definitions.
+    This requires J_0 = 2/q_0 assuming B_0=R_0=mu_0=1. See
+    labbook eq:on-axis-result
+
     """
     r = radial_coordinate
     nu = shaping_exponent
     
-    return (1-r**2)**nu
+    return 2.0/axis_q*(1-r**2)**nu
     
     
 @np.vectorize
@@ -33,14 +38,19 @@ def dj_dr(radial_coordinate: float,
 
     return -2*nu*(r) * (1-r**2)**(nu-1)
 
-def generate_j_profile(shaping_exponent: float) -> List[Tuple[float, float]]:
+def generate_j_profile(axis_q: float,
+                       shaping_exponent: float) -> List[Tuple[float, float]]:
     """
     Generate a current profile from the j() function defined above
 
     Parameters
     ----------
     shaping_exponent : float
-        DESCRIPTION.
+        Current profile peaking factor.
+
+    axis_q: float
+        On-axis safety factor associated with this current density
+        profile. See :func j:
 
     Returns
     -------
@@ -49,7 +59,7 @@ def generate_j_profile(shaping_exponent: float) -> List[Tuple[float, float]]:
 
     """
     r_values = np.linspace(0.0, 1.0, 100)
-    j_values = j(r_values, shaping_exponent)
+    j_values = j(r_values, shaping_exponent, axis_q)
     
     return list(zip(r_values, j_values))
     

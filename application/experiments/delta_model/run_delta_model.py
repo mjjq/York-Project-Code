@@ -102,8 +102,8 @@ def ql_tm_vs_time():
 
     #q_profile, j_profile = q_and_j_from_csv(psi_current_prof_filename, q_prof_filename)
 
-    q_profile = generate_q_profile(axis_q=1.5, shaping_exponent=2.0)
-    j_profile = generate_j_profile(2.0)
+    q_profile = generate_q_profile(axis_q=1.0, shaping_exponent=2.0)
+    j_profile = generate_j_profile(axis_q=1.0, shaping_exponent=2.0)
 
     poloidal_mode_number = args.poloidal_mode_number
     toroidal_mode_number = args.toroidal_mode_number
@@ -163,6 +163,8 @@ def ql_tm_vs_time():
     fig2, ax2 = plt.subplots(1)
     ax2.plot(w_vals, delta_p_vals)
     plt.show()
+
+    return
 
     print(f"Delta'(0)={delta_p:.2g}")
 
