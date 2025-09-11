@@ -300,7 +300,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
     dpsi_dt = [dpsi_dt_t0]
     d2psi_dt2 = [0.0]
     delta_primes = [delta_prime]
-    times = [0.0]
+    times = [t0]
 
     # Loop through time range and integrate after each time. The island width
     # is updated outside of the derivative function as it relies on the

@@ -150,22 +150,6 @@ def ql_tm_vs_time():
         outer_sol
     )
 
-    fig, ax = plt.subplots(1)
-    ax.plot(outer_sol.r_range_bkwd, outer_sol.psi_backwards)
-    ax.plot(outer_sol.r_range_fwd, outer_sol.psi_forwards)
-
-    w_vals = np.linspace(1e-6, 0.025, 100)
-    delta_p_vals = delta_prime_non_linear(
-        outer_sol,
-        w_vals
-    )
-
-    fig2, ax2 = plt.subplots(1)
-    ax2.plot(w_vals, delta_p_vals)
-    plt.show()
-
-    return
-
     print(f"Delta'(0)={delta_p:.2g}")
 
     ql_solution = solve_time_dependent_system(params, times)
