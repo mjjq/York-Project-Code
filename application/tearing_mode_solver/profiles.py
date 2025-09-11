@@ -58,7 +58,7 @@ def generate_j_profile(axis_q: float,
         List containing elements of the form (minor_radial_coord, j_at_coord).
 
     """
-    r_values = np.linspace(0.0, 1.0, 100)
+    r_values = np.linspace(0.0, 1.0, 20000)
     j_values = j(r_values, shaping_exponent, axis_q)
     
     return list(zip(r_values, j_values))
@@ -91,7 +91,7 @@ def generate_q_profile(axis_q: float,
         List containing elements of the form (minor_radial_coord, q_at_coord).
 
     """
-    r_values = np.linspace(0.0, 1.0, 100)
+    r_values = np.linspace(0.0, 1.0, 20000)
     q_values = q(r_values, axis_q, shaping_exponent)
     
     return list(zip(r_values, q_values))

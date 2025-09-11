@@ -179,9 +179,27 @@ def solve_system(params: TearingModeParameters,
     R0 = params.R0
 
     r_vals, q_vals = zip(*q_profile)
+
+    min_dr = np.min(np.diff(r_vals))
+    if min_dr >= r_s_thickness:
+        print(
+            "WARNING: Radial q-profile resolution less than "
+            "thickness of rational surface. Check Delta'(w) "
+            "for accuracy."
+        )
+
     q_func = UnivariateSpline(r_vals, q_vals, s=0.0)
     
     r_vals, j_vals = zip(*j_profile)
+
+    min_dr = np.min(np.diff(r_vals))
+    if min_dr >= r_s_thickness:
+        print(
+            "WARNING: Radial j-profile resolution less than "
+            "thickness of rational surface. Check Delta'(w) "
+            "for accuracy."
+        )
+
     j_func = UnivariateSpline(r_vals, j_vals, s=0.0)
     dj_dr_func = j_func.derivative()
 
