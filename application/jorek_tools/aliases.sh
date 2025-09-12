@@ -2,6 +2,8 @@
 
 # Note: Must have the relevant environment variables ($PROJ_HOME etc) specified in ~/.bashrc
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 alias analysis-venv="source $PROJ_HOME/jorek_analysis/York-Project-Code/venv/bin/activate"
 
 alias plg="$JOREK_UTIL/plot_grids.sh"
@@ -141,3 +143,5 @@ gg() {
         --preview-window=up:60% \
         --bind 'enter:execute(${EDITOR:-vim} +{2} {1})'
 }
+
+source $SCRIPT_DIR/delta_psi_extraction/delta_psi_main.sh
