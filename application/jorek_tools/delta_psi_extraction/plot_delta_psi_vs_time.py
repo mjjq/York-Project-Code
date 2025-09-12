@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from jorek_tools.jorek_dat_to_array import (
     read_four2d_profile, filter_four2d_mode,
-    Four2DProfile, read_q_profile
+    Four2DProfile, read_q_profile, read_timestep_map
 )
 from tearing_mode_solver.outer_region_solver import rational_surface
 
@@ -29,7 +29,7 @@ if __name__=='__main__':
         type=str
     )
     parser.add_argument(
-        '-t', '-time-map-filename',
+        '-t', '--time-map-filename',
         help='Location of file containing map between timestep and SI time',
         type=str
     )
@@ -37,18 +37,17 @@ if __name__=='__main__':
         '-m', '--poloidal-modes',
         help="List of poloidal mode numbers to evaluate",
         nargs='+',
-        default=[1,2,3,4,5]
+        default=[1,2,3,4,5],
+        type=int
     )
     parser.add_argument(
         '-n', '--toroidal-mode', type=int,
         help='Toroidal mode number',
-        default=1
+        default=1,
     )
 
     args = parser.parse_args()
 
-    print(args.qprofile_filename)
-    print(args.fourier_data)
 
     rational_surfaces = [0.5 for m in args.poloidal_modes]
     if args.qprofile_filename:
@@ -60,7 +59,12 @@ if __name__=='__main__':
 
     print(f"Rational surfaces (psi_N): {rational_surfaces}")
 
+    tstep_map = None
+    if args.time_map_filename:
+        tstep_map = read_timestep_map(args.time_map_filename)
+
     dpsi_vs_time_data = []
+    times = []
 
     for prof_timeslice in args.fourier_data:
         modes: List[Four2DProfile] = read_four2d_profile(prof_timeslice)
@@ -73,17 +77,30 @@ if __name__=='__main__':
             psi_at_rs_timeslice.append(psi_at_rs)
 
         dpsi_vs_time_data.append(psi_at_rs_timeslice)
+        
+        if tstep_map:
+            times.append(
+                np.interp(
+                    modes[0].timestep, 
+                    tstep_map.time_steps, 
+                    tstep_map.times
+                )
+            )
+        else:
+            times.append(modes[0].timestep)
 
 
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 
     dpsi_vs_time_data = np.array(dpsi_vs_time_data)
     for i,mode in enumerate(args.poloidal_modes):
         psi_vs_time = dpsi_vs_time_data[:,i]
-        ax.plot(psi_vs_time, label=f'm={mode}')
+        ax.plot(times, psi_vs_time, label=f'm={mode}')
 
     ax.legend()
+    ax.grid()
     ax.set_xlabel('Time')
     ax.set_ylabel(r"$\delta\psi$ (arb)")
 

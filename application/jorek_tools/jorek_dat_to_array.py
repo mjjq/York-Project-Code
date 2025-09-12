@@ -194,12 +194,20 @@ class Four2DProfile:
     psi_norm: np.ndarray
     r_minor: np.ndarray
     psi: np.ndarray
+    timestep: int
 
 def read_four2d_profile(four2d_filename: str) -> List[Four2DProfile]:
     """
     Read a four2D output file and return arrays of 
     Psi_N vs Psi for all mode numbers present.
     """
+    timestep=-1
+    # Extract the timestep from the filename using regex
+    match = re.search(r's(\d+)', four2d_filename)
+    if match:
+        timestep = int(match.group(1))
+        
+
     split_data = []
     with open(four2d_filename, 'r') as f:
         raw_data = f.read()
@@ -226,7 +234,8 @@ def read_four2d_profile(four2d_filename: str) -> List[Four2DProfile]:
             toroidal_mode_number=int(toroidal_mode_str),
             r_minor=r_minor_data,
             psi_norm=psi_n_data,
-            psi=psi_data
+            psi=psi_data,
+            timestep=timestep
         )
 
         ret.append(profile)
@@ -314,6 +323,18 @@ def read_q_profile_temporal(q_filename: str) -> pd.DataFrame:
     #plt.show()
 
     return profiles
+
+@dataclass
+class TimestepMap:
+    time_steps: List[int]
+    times: List[float]
+
+def read_timestep_map(map_filename: str) -> TimestepMap:
+    data=np.genfromtxt(map_filename)
+
+    tsteps, times = zip(*data)
+
+    return TimestepMap(tsteps, times)
 
 def plot_profiles(profiles: pd.DataFrame):
     #print(profiles)
