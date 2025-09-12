@@ -57,7 +57,7 @@ if __name__=='__main__':
             for m in args.poloidal_modes
         ]
 
-    print(f"Rational surfaces (psi_N): {rational_surfaces}")
+    print(f"Rational surfaces (psi_N): {['{:.3g}'.format(i) for i in rational_surfaces]}")
 
     tstep_map = None
     if args.time_map_filename:
@@ -105,7 +105,7 @@ if __name__=='__main__':
     ax.set_xlabel('Time step (arb)')
     if tstep_map:
         ax.set_xlabel("Time (s)")
-        
+
     ax.set_ylabel(r"$\delta\psi$ (arb)")
 
     fig.tight_layout()
