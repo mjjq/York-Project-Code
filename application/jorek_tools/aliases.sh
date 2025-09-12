@@ -8,9 +8,6 @@ alias analysis-venv="source $PROJ_HOME/jorek_analysis/York-Project-Code/venv/bin
 
 alias plg="$JOREK_UTIL/plot_grids.sh"
 alias pld="$JOREK_UTIL/plot_live_data.sh"
-##alias j2vtk="$JOREK_UTIL/convert2vtk.sh -j 32 ./jorek2vtk ./inmastu"
-alias j2vtkno0="$JOREK_UTIL/convert2vtk.sh -no0 -j 32 ./jorek2vtk ./inmastu"
-
 alias plq="python3 $JOREK_TOOLS/macroscopic_vars_analysis/plot_quantities.py"
 
 alias grept="grep -riI"
