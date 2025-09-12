@@ -1,13 +1,12 @@
 import argparse
-from typing import List, Tuple
+from typing import List
 import numpy as np
 from matplotlib import pyplot as plt
 
 from jorek_tools.jorek_dat_to_array import (
     read_four2d_profile, filter_four2d_mode,
-    Four2DProfile, read_q_profile, read_timestep_map
+    Four2DProfile
 )
-from tearing_mode_solver.outer_region_solver import rational_surface
 
 def get_psi_at_psi_s(prof: Four2DProfile,
                      psi_s: float) -> float:
