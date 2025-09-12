@@ -3,7 +3,7 @@ namelist inmastu
 si-units
 
 set surfaces 100
-set rad_range_max 0.97
+set rad_range_max 0.945
 
 expressions Psi_N Psi
 mark_coords 1

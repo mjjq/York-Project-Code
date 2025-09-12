@@ -233,17 +233,24 @@ def read_four2d_profile(four2d_filename: str) -> List[Four2DProfile]:
 
     return ret
 
-def read_four2d_profile_filter(four2d_filename: str,
-                               poloidal_mode_number: int):
+def filter_four2d_mode(four2d_list: List[Four2DProfile],
+                       poloidal_mode_number: int) -> Four2DProfile:
     try:
         return list(filter(
             lambda x: x.poloidal_mode_number==poloidal_mode_number,
-            read_four2d_profile(four2d_filename)
+            four2d_list
         ))[0]
     except IndexError:
         raise ValueError(
             f"Could not find data for m={poloidal_mode_number}"
         )
+
+def read_four2d_profile_filter(four2d_filename: str,
+                               poloidal_mode_number: int) -> Four2DProfile:
+    return filter_four2d_mode(
+        read_four2d_profile(four2d_filename),
+        poloidal_mode_number
+    )
 
 
 def main():
