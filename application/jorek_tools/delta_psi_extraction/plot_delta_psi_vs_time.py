@@ -101,7 +101,11 @@ if __name__=='__main__':
 
     ax.legend()
     ax.grid()
-    ax.set_xlabel('Time')
+
+    ax.set_xlabel('Time step (arb)')
+    if tstep_map:
+        ax.set_xlabel("Time (s)")
+        
     ax.set_ylabel(r"$\delta\psi$ (arb)")
 
     fig.tight_layout()
