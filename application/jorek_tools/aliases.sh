@@ -142,3 +142,7 @@ gg() {
 }
 
 source $SCRIPT_DIR/delta_psi_extraction/delta_psi_main.sh
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source $SCRIPT_DIR/postproc_wrapper.sh
