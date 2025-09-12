@@ -5,12 +5,8 @@ from matplotlib import pyplot as plt
 
 from jorek_tools.jorek_dat_to_array import (
     read_four2d_profile, filter_four2d_mode,
-    Four2DProfile
+    Four2DProfile, read_timestep_map
 )
-
-def get_psi_at_psi_s(prof: Four2DProfile,
-                     psi_s: float) -> float:
-    return np.interp(psi_s, prof.psi_norm, prof.psi)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
@@ -34,10 +30,19 @@ if __name__=='__main__':
         help='Toroidal mode number',
         default=1,
     )
+    parser.add_argument(
+        '-t', '--time-map-filename',
+        help='Location of file containing map between timestep and SI time',
+        type=str
+    )
 
     args = parser.parse_args()
 
     modes: List[Four2DProfile] = read_four2d_profile(args.fourier_data)
+
+    tstep_map = None
+    if args.time_map_filename:
+        tstep_map = read_timestep_map(args.time_map_filename)
 
     fig, ax = plt.subplots(1, figsize=(4,3))
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
@@ -47,6 +52,15 @@ if __name__=='__main__':
         prof = filter_four2d_mode(modes, poloidal_mode_number)
         ax.plot(prof.psi_norm, prof.psi, label=f'm={poloidal_mode_number}')
 
+
+    title=f"Time step: {modes[0].timestep}"
+    if tstep_map:
+        time = np.interp(
+            modes[0].timestep, tstep_map.time_steps, tstep_map.times
+        )
+        title = f"Time: {time:.2g} s"
+
+    ax.set_title(title)
     ax.legend()
     ax.grid()
     ax.set_xlabel(r'$\psi_N$')
