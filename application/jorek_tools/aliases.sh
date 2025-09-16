@@ -2,7 +2,9 @@
 
 # Note: Must have the relevant environment variables ($PROJ_HOME etc) specified in ~/.bashrc
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+get_script_dir() {
+	cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd
+}
 
 alias analysis-venv="source $PROJ_HOME/jorek_analysis/York-Project-Code/venv/bin/activate"
 
@@ -141,8 +143,6 @@ gg() {
         --bind 'enter:execute(${EDITOR:-vim} +{2} {1})'
 }
 
-source $SCRIPT_DIR/delta_psi_extraction/delta_psi_main.sh
+source $(get_script_dir)/delta_psi_extraction/delta_psi_main.sh
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
-source $SCRIPT_DIR/postproc_wrapper.sh
+source $(get_script_dir)/postproc_wrapper.sh
