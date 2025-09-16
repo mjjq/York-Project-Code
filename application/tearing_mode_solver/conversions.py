@@ -39,6 +39,34 @@ def solution_time_scale(params: TearingModeParameters,
 
     return ret
 
+def flux_scale_factor(params: TearingModeParameters,
+                      si_units: bool) -> float:
+    if si_units:
+        return params.B0 * params.r_minor**2
+
+    return 1.0
+
+def solution_flux_scale(params: TearingModeParameters,
+                        ql_sol: TimeDependentSolution,
+                        si_units: bool) -> TimeDependentSolution:
+    """
+    Convert flux units in TimeDependentSolution from normalised
+    to SI units (Tm^2)
+    """
+    if not si_units:
+        return ql_sol
+    
+    ret: TimeDependentSolution = copy.deepcopy(ql_sol)
+
+    scale_fac = flux_scale_factor(params, si_units)
+
+    ret.psi_t = scale_fac*ql_sol.psi_t
+    ret.dpsi_dt = scale_fac*ql_sol.dpsi_dt
+    ret.d2psi_dt2 = scale_fac*ql_sol.d2psi_dt2
+
+    return ret
+
+
 
 def time_unit_label(si_units: bool) -> str:
     """
