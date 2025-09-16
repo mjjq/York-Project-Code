@@ -4,6 +4,55 @@ import numpy as np
 from jorek_tools.macroscopic_vars_analysis.plot_quantities import (
     MacroscopicQuantity, plot_macroscopic_quantities
 )
+from tearing_mode_solver.helpers import TimeDependentSolution
+
+def jorek_energy_to_dpsi(jorek_energy_data: MacroscopicQuantity,
+                         delta_psi_0=1e-12) -> TimeDependentSolution:
+    """
+    Take loaded magnetic energy data from a JOREK run, convert it to delta_psi
+    normalised to delta_psi_0. delta_psi_0 marks the "t=0" point of the simulation,
+    i.e. all times are shifted such that t=0 corresponds to delta_psi_0.
+
+    Note: This assumes that there is only one dominant poloidal mode in the plasma,
+    i.e. a 2/1 tearing mode. 
+
+    :param jorek_energy_data: Data loaded from magnetic_energies.dat generated
+    from JOREK
+    :param delta_psi_0: Reference "beginning" point of the simulation. 
+    """
+    # Load times on the x-axis (index 0)
+    jorek_energy_data.load_x_values_by_index(0)
+    # Load n=1 energies on y-axis (index 2)
+    jorek_energy_data.load_y_values_by_index(2)
+
+    times = jorek_energy_data.x_values
+    # Convert from energy to some value propto \delta\psi
+    # by taking square root
+    delta_psi = jorek_energy_data.y_values**0.5 / delta_psi_0
+
+    t0 = np.interp(
+        1.0, delta_psi, times
+    )
+
+    times = times - t0
+
+    filt = times > 0.0
+    times = times[filt]
+    delta_psi = delta_psi[filt]
+    dpsi_dt = np.diff(delta_psi)/np.diff(times)
+    d2psi_dt2 = np.diff(dpsi_dt)/np.diff(times)[:-1]
+
+    return TimeDependentSolution(
+        times,
+        delta_psi,
+        dpsi_dt,
+        d2psi_dt2,
+        None,
+        None
+    )
+
+
+
 
 if __name__=='__main__':
     parser = ArgumentParser(
