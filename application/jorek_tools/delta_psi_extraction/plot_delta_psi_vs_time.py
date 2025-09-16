@@ -1,17 +1,98 @@
 import argparse
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import numpy as np
 from matplotlib import pyplot as plt
 
 from jorek_tools.jorek_dat_to_array import (
     read_four2d_profile, filter_four2d_mode,
-    Four2DProfile, read_q_profile, read_timestep_map
+    Four2DProfile, read_q_profile, read_timestep_map,
+    TimestepMap
 )
 from tearing_mode_solver.outer_region_solver import rational_surface
+from tearing_mode_solver.helpers import TimeDependentSolution
 
 def get_psi_at_psi_s(prof: Four2DProfile,
                      psi_s: float) -> float:
     return np.interp(psi_s, prof.psi_norm, prof.psi)
+
+def get_psi_vs_time_for_mode(four2d_prof_filenames: List[str],
+                             poloidal_mode_numbers: List[int],
+                             toroidal_mode_number: int,
+                             qprofile_filename: Optional[str],
+                             timestep_map_filename: Optional[str]) -> List[TimeDependentSolution]:
+    """
+    Get delta_psi(r_s) as a function of time from a set of fourier
+    decomposed JOREK .dat files.
+
+    Each element in the return list corresponds to delta_psi(t) for
+    the corresponding element in poloidal_mode_numbers.
+
+    If qprofile_filename is not specified, delta_psi is evaluated
+    at psi_N=0.5.
+
+    If timestep_map_filename is not specified, the time axis is mapped
+    to JOREK time step instead.
+
+    """
+    rational_surfaces = [0.5 for m in poloidal_mode_numbers]
+    if qprofile_filename:
+        q_prof = read_q_profile(qprofile_filename)
+        rational_surfaces = [
+            rational_surface(q_prof, m/toroidal_mode_number)
+            for m in poloidal_mode_numbers
+        ]
+
+    print(f"Rational surfaces (psi_N): {['{:.3g}'.format(i) for i in rational_surfaces]}")
+
+    tstep_map = None
+    if timestep_map_filename:
+        tstep_map = read_timestep_map(timestep_map_filename)
+
+    dpsi_vs_time_data = []
+    times = []
+
+    for prof_timeslice in four2d_prof_filenames:
+        modes: List[Four2DProfile] = read_four2d_profile(prof_timeslice)
+
+        psi_at_rs_timeslice = []
+        for i,poloidal_mode_number in enumerate(poloidal_mode_numbers):
+            prof = filter_four2d_mode(modes, poloidal_mode_number)
+            psi_at_rs = get_psi_at_psi_s(prof, rational_surfaces[i])
+
+            psi_at_rs_timeslice.append(psi_at_rs)
+
+        dpsi_vs_time_data.append(psi_at_rs_timeslice)
+        
+        if tstep_map:
+            times.append(
+                np.interp(
+                    modes[0].timestep, 
+                    tstep_map.time_steps, 
+                    tstep_map.times
+                )
+            )
+        else:
+            times.append(modes[0].timestep)
+
+    sols: List[TimeDependentSolution] = []
+
+    dpsi_vs_time_data = np.array(dpsi_vs_time_data)
+    for i,mode in enumerate(poloidal_mode_numbers):
+        psi_t = dpsi_vs_time_data[:,i]
+        dpsi_dt = np.diff(psi_t)/np.diff(times)
+        d2psi_dt2 = np.diff(dpsi_dt)/np.diff(times[:-1])
+        
+        sols.append(TimeDependentSolution(
+            times=times,
+            psi_t=psi_t,
+            dpsi_dt=dpsi_dt,
+            d2psi_dt2=d2psi_dt2,
+            w_t=None,
+            delta_primes=None
+        ))
+
+    return sols
+
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
@@ -49,61 +130,26 @@ if __name__=='__main__':
     args = parser.parse_args()
 
 
-    rational_surfaces = [0.5 for m in args.poloidal_modes]
-    if args.qprofile_filename:
-        q_prof = read_q_profile(args.qprofile_filename)
-        rational_surfaces = [
-            rational_surface(q_prof, m/args.toroidal_mode)
-            for m in args.poloidal_modes
-        ]
+    sols = get_psi_vs_time_for_mode(
+        args.fourier_data,
+        args.poloidal_modes,
+        args.toroidal_mode,
+        args.qprofile_filename,
+        args.time_map_filename
+    )
 
-    print(f"Rational surfaces (psi_N): {['{:.3g}'.format(i) for i in rational_surfaces]}")
+    fig, ax = plt.subplots(1)
 
-    tstep_map = None
-    if args.time_map_filename:
-        tstep_map = read_timestep_map(args.time_map_filename)
-
-    dpsi_vs_time_data = []
-    times = []
-
-    for prof_timeslice in args.fourier_data:
-        modes: List[Four2DProfile] = read_four2d_profile(prof_timeslice)
-
-        psi_at_rs_timeslice = []
-        for i,poloidal_mode_number in enumerate(args.poloidal_modes):
-            prof = filter_four2d_mode(modes, poloidal_mode_number)
-            psi_at_rs = get_psi_at_psi_s(prof, rational_surfaces[i])
-
-            psi_at_rs_timeslice.append(psi_at_rs)
-
-        dpsi_vs_time_data.append(psi_at_rs_timeslice)
-        
-        if tstep_map:
-            times.append(
-                np.interp(
-                    modes[0].timestep, 
-                    tstep_map.time_steps, 
-                    tstep_map.times
-                )
-            )
-        else:
-            times.append(modes[0].timestep)
-
-
-
-    fig, ax = plt.subplots(1, figsize=(4,3))
-    ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-
-    dpsi_vs_time_data = np.array(dpsi_vs_time_data)
     for i,mode in enumerate(args.poloidal_modes):
-        psi_vs_time = dpsi_vs_time_data[:,i]
+        psi_vs_time = sols[i].psi_t
+        times = sols[i].times
         ax.plot(times, psi_vs_time, label=f'm={mode}')
 
     ax.legend()
     ax.grid()
 
     ax.set_xlabel('Time step (arb)')
-    if tstep_map:
+    if args.time_map_filename:
         ax.set_xlabel("Time (s)")
 
     ax.set_ylabel(r"$\delta\psi$ (arb)")
