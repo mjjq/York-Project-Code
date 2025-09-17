@@ -8,6 +8,7 @@ from tearing_mode_solver.helpers import (
     TearingModeParameters,
     sim_to_disk
 )
+from tearing_mode_plotter.plot_outer_region import plot_outer_region_solution
 
 def solution_old_version():
     params = TearingModeParameters(
@@ -38,7 +39,7 @@ def solution_new_version():
         poloidal_mode_number=2,
         toroidal_mode_number=1,
         lundquist_number=1e8,
-        initial_flux=1e-12,
+        initial_flux=1e-13,
         B0=1.0,
         R0=1.0,
         q_profile=q_profile,
@@ -58,7 +59,7 @@ def ql_tm_vs_time():
     
     params, tm = solution_new_version()
 
-    w_vals = np.linspace(1e-5, 1e-1, 10000)
+    w_vals = np.linspace(1e-7, 1e-4, 100000)
     dps = delta_prime_non_linear(
         tm, w_vals
     )
@@ -80,23 +81,18 @@ def ql_tm_vs_time():
     ax2.grid()
     fwd_r_vals = tm.r_s-tm.r_range_fwd
     ax2.plot(fwd_r_vals, tm.dpsi_dr_forwards, color='black')
-    ax2.plot(w_vals/2.0, tm.dpsi_dr_f_func(tm.r_s-w_vals/2.0), linestyle='--', color='red')
+    ax2.scatter(w_vals/2.0, tm.dpsi_dr_f_func(tm.r_s-w_vals/2.0), color='red')
 
     bkwd_r_vals = tm.r_range_bkwd-tm.r_s
     ax2.plot(bkwd_r_vals, tm.dpsi_dr_backwards, color='blue')
-    ax2.plot(w_vals/2.0, tm.dpsi_dr_b_func(tm.r_s+w_vals/2.0), linestyle='--', color='orange')
+    ax2.scatter(w_vals/2.0, tm.dpsi_dr_b_func(tm.r_s+w_vals/2.0), color='orange')
 
-    #ax2.set_xlim(left=9e-5, right=0.02)
-    # savefig("dpsi_dr")
+    fig3, ax3 = plt.subplots(1)
+    ax3.grid()
 
-    # fig3, ax3 = plt.subplots(1)
-    # ax3.plot(tm.r_s-tm.r_range_fwd, tm.r_range_fwd)
-    # ax3.plot(tm.r_range_bkwd-tm.r_s, tm.r_range_bkwd)
-    # ax3.set_xlim(left=9e-5, right=0.02)
-    # ax3.set_ylim(bottom=0.795, top=0.797)
-    # ax3.set_xscale('log')
-    # ax3.grid()
-    # savefig("eigenfunction_dist")
+    ax3.plot()
+
+    plot_outer_region_solution(tm)
 
     plt.show()
     return

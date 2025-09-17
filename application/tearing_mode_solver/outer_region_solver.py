@@ -10,6 +10,7 @@ try:
 except ImportError:
 	from scipy.integrate import simps as simpson
 
+from tearing_mode_solver.grid import grid_gaussian_dist
 from tearing_mode_solver.profiles import (
     rational_surface, magnetic_shear_profile, magnetic_shear
 )
@@ -150,8 +151,8 @@ def scale_tm_solution(tm: OuterRegionSolution, scale_factor: float)\
     )
 
 def solve_system(params: TearingModeParameters,
-                 resolution: float = 1e-6,
-                 r_s_thickness: float = 1e-4) -> OuterRegionSolution:
+                 resolution: float = 1e-4,
+                 r_s_thickness: float = 1e-6) -> OuterRegionSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
     plasma given the mode numbers of the tearing mode.
@@ -208,14 +209,9 @@ def solve_system(params: TearingModeParameters,
         raise ValueError("Rational surface located outside bounds")
 
     r_s = rational_surface(q_profile, poloidal_mode/toroidal_mode)
-    
-    
-    #r_s_thickness = 0.0001
-
-    #print(f"Rational surface located at r={r_s:.4f}")
 
     # Solve from axis moving outwards towards rational surface
-    r_range_fwd = np.arange(0.0, r_s-r_s_thickness, resolution)
+    r_range_fwd = grid_gaussian_dist(0.0, r_s, r_s_thickness, resolution)
 
     results_forwards = odeint(
         compute_derivatives,
@@ -232,7 +228,7 @@ def solve_system(params: TearingModeParameters,
     )
 
     # Solve from minor radius moving inwards towards rational surface
-    r_range_bkwd = np.arange(1.0, r_s+r_s_thickness, -resolution)
+    r_range_bkwd = grid_gaussian_dist(1.0, r_s, r_s_thickness, resolution)
 
     results_backwards = odeint(
         compute_derivatives,
