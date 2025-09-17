@@ -15,7 +15,7 @@ from tearing_mode_solver.helpers import (
     sim_to_disk,
     TimeDependentSolution,
 )
-from tearing_mode_plotter.plot_magnetic_island_width import phase_plot, island_width_plot
+from tearing_mode_plotter.plot_magnetic_island_width import phase_plot, island_width_plot, delta_prime_plot, delta_prime_phase_plot
 from tearing_mode_plotter.plot_quasi_linear_solution import plot_perturbed_flux, plot_growth_rate
 from jorek_tools.quasi_linear_model.central_density_si import central_density_si
 
@@ -53,7 +53,7 @@ def ql_tm_vs_time():
         help="Toroidal field strength at magnetic axis (T)"
     )
     parser.add_argument(
-        '-r0', '--major-radius', type=float, default=10.0,
+        '-r0', '--major-radius', type=float, default=40.0,
         help="Tokamak major radius (m)"
     )
     parser.add_argument(
@@ -61,7 +61,7 @@ def ql_tm_vs_time():
         help="Default initial perturbed flux"
     )
     parser.add_argument(
-        '-t0', '--initial-time', type=float, default=4.2444e5,
+        '-t0', '--initial-time', type=float, default=0.0,
         help="Initial simulation time (to align with JOREK initial)"
     )
     parser.add_argument(
@@ -69,7 +69,7 @@ def ql_tm_vs_time():
         '--final-time', 
         type=float,
         help="Final simulation time (in units of lundquist number).",
-	default=0.1
+	    default=0.5
     )
     parser.add_argument(
         '-s', '--n-steps', type=int, default=10000, 
@@ -162,6 +162,8 @@ def ql_tm_vs_time():
         plot_perturbed_flux(params, ql_solution, args.si_time)
         plot_growth_rate(params, ql_solution, args.si_time)
         island_width_plot(params, ql_solution, args.si_time)
+        delta_prime_plot(params, ql_solution, args.si_time)
+        delta_prime_phase_plot(params, ql_solution, args.si_time)
 
         plt.show()
 
