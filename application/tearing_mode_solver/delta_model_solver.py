@@ -251,7 +251,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
     toroidal_mode = params.toroidal_mode_number
     lundquist_number = params.lundquist_number
 
-    tm = solve_system(params)
+    tm = solve_system(params, resolution=1e-5, r_s_thickness=1e-7)
     
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
