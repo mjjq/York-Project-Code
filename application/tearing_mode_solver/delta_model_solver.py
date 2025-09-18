@@ -217,9 +217,12 @@ def flux_time_derivative(time: float,
     # plasma, see Brunetti MHD report.
     ps_corr = 1.0#(1+2*q_rs**2)**(1/2)
 
-    linear_term = S*(n*s)**2 * (
-       delta_prime * tm.r_s * psi/(gamma*S*dpsi_dt)
-    )**4
+    if np.abs(dpsi_dt/psi) > 1e-20:
+        linear_term = S*(n*s)**2 * (
+        delta_prime * tm.r_s * psi/(gamma*S*dpsi_dt)
+        )**4
+    else:
+        linear_term = 0.0
 
     non_linear_term = -nu(psi, m, S, tm.r_s)
 
