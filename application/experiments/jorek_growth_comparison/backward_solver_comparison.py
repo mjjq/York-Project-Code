@@ -33,22 +33,46 @@ def plot_against_backward_rutherford(params: TearingModeParameters,
         td_sol.w_t, 
         color='red', 
         linestyle='--', 
-        label='Backward RE'
+        label='Rutherford'
     )
+    
 
-
+    ax.set_title(f"S={params.lundquist_number:.2g}")
     ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.set_xlim(left=1e5)
     
     ax.set_xlabel(r"Time ($\omega_A$)")
     ax.set_ylabel(r"Magnetic island width ($a$)")
     
     ax.legend()
+    ax.grid(which='major')
+    ax.grid(which='minor', alpha=0.1)
     
     fig.tight_layout()
 
-    savefig("backward_rutherford_solution")
+
+    # fig2, ax2 = plt.subplots(1)
+
+    # ql_dw_dt = np.diff(ql_sol.w_t)/np.diff(ql_sol.times)
+    # ax2.plot(
+    #     ql_sol.delta_primes[:-1], 
+    #     ql_dw_dt, 
+    #     color='black',
+    #     label="Quasi-linear solution"
+    # )
+
+    # ruth_dw_dt = np.diff(td_sol.w_t)/np.diff(initial_time-td_sol.times)
+    # ax2.plot(
+    #     td_sol.delta_primes[:-1],
+    #     ruth_dw_dt,
+    #     color='red',
+    #     linestyle='--',
+    #     label="Backward RE"
+    # )
+
+
+
+
 
 if __name__ == '__main__':
     parser = ArgumentParser(
@@ -57,14 +81,15 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "quasilinear_filename", type=str,
+        nargs='+',
         help="Path to quasi-linear solution .zip file."
     )
     args = parser.parse_args()
 
-    model_data_filename = args.quasilinear_filename
+    model_data_filenames = args.quasilinear_filename
 
-    params, ql_sol = load_sim_from_disk(model_data_filename)
-
-    plot_against_backward_rutherford(params, ql_sol)
+    for model_data_filename in model_data_filenames:
+        params, ql_sol = load_sim_from_disk(model_data_filename)
+        plot_against_backward_rutherford(params, ql_sol)
 
     plt.show()
