@@ -1,29 +1,19 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from argparse import ArgumentParser
 
-import imports
-from tearing_mode_solver.outer_region_solver import rational_surface, magnetic_shear
 from tearing_mode_solver.backward_rutherford_solver import solve_time_dependent_system
 from tearing_mode_solver.helpers import (
-    classFromArgs,
     TimeDependentSolution,
     savefig,
     load_sim_from_disk,
     TearingModeParameters
 )
-from tearing_mode_solver.outer_region_solver import island_width
-from tearing_mode_solver.algebraic_fitting import get_parab_coefs
-from jorek_tools.calc_jorek_growth import growth_rate, _name_time, _name_flux
-from jorek_tools.jorek_dat_to_array import q_and_j_from_csv
-from jorek_tools.psi_t_from_vtk import jorek_flux_at_q
-from jorek_tools.time_conversion import jorek_to_alfven_time
 
 
-if __name__ == '__main__':
-    model_data_filename = "./output/05-06-2024_16:42_jorek_model_(m,n)=(2,1).zip"
-    t_range = np.linspace(0.0, 2e9, 100000)
-    
-    params, ql_sol = load_sim_from_disk(model_data_filename)
+def plot_against_backward_rutherford(params: TearingModeParameters,
+                                     ql_sol: TimeDependentSolution):
+    t_range = np.linspace(0.0, ql_sol.times[-1], 100000)
     
     params.initial_flux = ql_sol.psi_t[-1]
     initial_time = ql_sol.times[-1]
@@ -59,5 +49,22 @@ if __name__ == '__main__':
     fig.tight_layout()
 
     savefig("backward_rutherford_solution")
+
+if __name__ == '__main__':
+    parser = ArgumentParser(
+        description="Load a quasi-linear solution and compare it "
+        "against the Rutherford equation solved in reverse"
+    )
+    parser.add_argument(
+        "quasilinear_filename", type=str,
+        help="Path to quasi-linear solution .zip file."
+    )
+    args = parser.parse_args()
+
+    model_data_filename = args.quasilinear_filename
+
+    params, ql_sol = load_sim_from_disk(model_data_filename)
+
+    plot_against_backward_rutherford(params, ql_sol)
 
     plt.show()
