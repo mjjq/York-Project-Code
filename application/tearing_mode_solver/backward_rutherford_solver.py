@@ -12,7 +12,7 @@ from scipy.integrate import odeint
 
 from tearing_mode_solver.outer_region_solver import (
     OuterRegionSolution, solve_system, magnetic_shear,
-    delta_prime_non_linear, island_width
+    delta_prime_non_linear, island_width, gamma_constant
 )
 from tearing_mode_solver.helpers import (
     TimeDependentSolution, TearingModeParameters
@@ -58,8 +58,10 @@ def flux_time_derivative(psi: float,
     delta_prime = delta_prime_non_linear(tm, w)
     sqrt_factor = (tm.r_s**3)*s*psi
 
+    pre_factor = 2.0**(5.0/4.0)/gamma_constant()
+
     if sqrt_factor >= 0.0:
-        dpsi_dt = -(0.5*1.12*((n*s/m)**0.5)*(psi**0.5)*tm.r_s**2 *
+        dpsi_dt = -(0.5*pre_factor*((n*s/m)**0.5)*(psi**0.5)*tm.r_s**2 *
                     (delta_prime/lundquist_number)
                     )
 
