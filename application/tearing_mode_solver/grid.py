@@ -5,10 +5,8 @@ def grid_gaussian_dist(r0: float,
                        thickness: float,
                        resolution: float) -> np.array:
     max_index = np.ceil((1.0/resolution) * np.sqrt(np.log(np.abs(r0-rs)/thickness)))
-    print(max_index)
 
     linear_grid = np.arange(0, max_index, 1)
-    print(linear_grid)
 
     gaussian_grid = rs - (rs-r0)*np.exp(-(linear_grid*resolution)**2)
 
