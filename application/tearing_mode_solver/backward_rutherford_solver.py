@@ -94,7 +94,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
             associated perturbed flux, derivative etc calculated for that time.
     """
 
-    tm = solve_system(params)
+    tm = solve_system(params, resolution=1e-5, r_s_thickness=1e-7)
 
     psi_t0 = params.initial_flux
 

@@ -15,10 +15,11 @@ from tearing_mode_solver.outer_region_solver import layer_width, growth_rate
 
 def plot_against_backward_rutherford(params: TearingModeParameters,
                                      ql_sol: TimeDependentSolution):
-    t_range = np.linspace(0.0, ql_sol.times[-1], 20000)
     
     params.initial_flux = ql_sol.psi_t[-1]
     initial_time = ql_sol.times[-1]
+    t_range = np.linspace(0.0, initial_time, 10000)
+    
     
     td_sol, outer_sol = solve_time_dependent_system(params, t_range)
 
