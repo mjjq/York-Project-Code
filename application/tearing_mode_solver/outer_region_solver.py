@@ -344,7 +344,7 @@ def growth_rate_full(poloidal_mode: int,
     s = mag_shear
     S = lundquist_number
     
-    ps_corr = (1+2*(m/n)**2)
+    ps_corr = 1.0#(1+2*(m/n)**2)
 
     gamma_scale_factor = gamma_constant()
 
@@ -502,23 +502,18 @@ def curvature_stabilisation_non_linear(diff_width: float,
 
 
 
-def layer_width(poloidal_mode: int,
-                toroidal_mode: int,
-                lundquist_number: float,
-                q_profile: List[Tuple[float, float]]) -> float:
+def layer_width(params: TearingModeParameters) -> float:
     """
     Calculate the thickness of the resistive layer in the linear regime.
     """
-    m = poloidal_mode
-    n = toroidal_mode
-    S = lundquist_number
+    tm = solve_system(params)
 
-    try:
-        tm = solve_system(m, n, q_profile)
-    except ValueError:
-        return np.nan
+    m = params.poloidal_mode_number
+    n = params.toroidal_mode_number
+    S = params.lundquist_number
+    q_profile = params.q_profile
 
-    delta_p, gr = growth_rate(m, n, S, q_profile)
+    delta_p, gr = growth_rate(m,n,S,q_profile,tm)
 
     s = magnetic_shear(q_profile, tm.r_s)
 
