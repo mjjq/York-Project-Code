@@ -8,19 +8,14 @@ Created on Wed Jul 26 12:06:24 2023
 import numpy as np
 from typing import Tuple
 from scipy.integrate import odeint
-from matplotlib import pyplot as plt
-from scipy.stats import sem
-from scipy.optimize import curve_fit
-from typing import Tuple
 
 
 from tearing_mode_solver.outer_region_solver import (
     OuterRegionSolution, solve_system, magnetic_shear,
-    scale_tm_solution, delta_prime, q,
-    delta_prime_non_linear, island_width
+    delta_prime_non_linear, island_width, gamma_constant
 )
 from tearing_mode_solver.helpers import (
-    savefig, TimeDependentSolution, dataclass_to_disk
+    TimeDependentSolution, TearingModeParameters
 )
 
 
@@ -54,35 +49,32 @@ def flux_time_derivative(psi: float,
             Magnetic shear at the resonant surface. See magnetic_shear() in
             linear_solver.py
     """
-    
+
     m = poloidal_mode
     n = toroidal_mode
-      
+
     s = mag_shear
     w = island_width(psi, tm.r_s, m, n, s)
     delta_prime = delta_prime_non_linear(tm, w)
     sqrt_factor = (tm.r_s**3)*s*psi
-    
-    
+
+    pre_factor = 2.0**(5.0/4.0)/gamma_constant()
+
     if sqrt_factor >= 0.0:
-        dpsi_dt = (0.5*1.12*((n*s/m)**0.5)*(psi**0.5)*tm.r_s**2 *
+        dpsi_dt = (
+            0.5*pre_factor*((n*s/m)**0.5)*(psi**0.5)*tm.r_s**2 *
             (delta_prime/lundquist_number)
         )
 
     else:
         dpsi_dt = 0.0
-        
-    
+
     return dpsi_dt
 
 
-def solve_time_dependent_system(poloidal_mode: int, 
-                                toroidal_mode: int, 
-                                lundquist_number: float,
-                                axis_q: float,
-                                initial_scale_factor: float = 1.0,
+def solve_time_dependent_system(params: TearingModeParameters,
                                 t_range: np.array = np.linspace(0.0, 1e5, 10))\
-    -> Tuple[TimeDependentSolution, OuterRegionSolution]:
+        -> Tuple[TimeDependentSolution, OuterRegionSolution]:
     """
     Numerically integrate the quasi-linear flux time derivative of a tearing
     mode.
@@ -99,34 +91,38 @@ def solve_time_dependent_system(poloidal_mode: int,
         initial_scale_factor: float
             The value of the perturbed flux at the resonant surface at t=0
         t_range: np.array
-            Array of time values to record. Each element will have an associated
-            perturbed flux, derivative etc calculated for that time.
+            Array of time values to record. Each element will have an
+            associated perturbed flux, derivative etc calculated for that time.
     """
-    
-    tm = solve_system(poloidal_mode, toroidal_mode, axis_q)
 
-    psi_t0 = initial_scale_factor
-    
-    s = magnetic_shear(tm.r_s, poloidal_mode, toroidal_mode)
-    
+    tm = solve_system(params, resolution=1e-5, r_s_thickness=1e-7)
+
+    psi_t0 = params.initial_flux
+
+    s = magnetic_shear(
+        params.q_profile,
+        tm.r_s
+    )
+
     psi_t = odeint(
         flux_time_derivative,
         psi_t0,
         t_range,
-        args = (tm, poloidal_mode, toroidal_mode, lundquist_number, s)
+        args=(tm, params.poloidal_mode_number, params.toroidal_mode_number,
+              params.lundquist_number, s)
     )
-    
+
     # We get weird numerical bugs sometimes returning large or nan values.
     # Set these to zero.
     psi_t[np.abs(psi_t) > 1e10] = 0.0
     psi_t[np.argwhere(np.isnan(psi_t))] = 0.0
 
     w_t = np.squeeze(
-        island_width(psi_t, tm.r_s, poloidal_mode, toroidal_mode, s)
+        island_width(psi_t, tm.r_s, params.poloidal_mode_number,
+                     params.toroidal_mode_number, s)
     )
 
     dps = [delta_prime_non_linear(tm, w) for w in w_t]
-    
 
     return TimeDependentSolution(
         t_range,
@@ -136,4 +132,3 @@ def solve_time_dependent_system(poloidal_mode: int,
         w_t,
         dps
     ), tm
-    

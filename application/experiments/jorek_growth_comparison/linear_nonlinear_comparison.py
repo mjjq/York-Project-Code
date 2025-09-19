@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from argparse import ArgumentParser
 
-from tearing_mode_solver.backward_rutherford_solver import solve_time_dependent_system
+from tearing_mode_solver.rutherford_solver import solve_time_dependent_system
 from tearing_mode_solver.linear_solver import solve_time_dependent_system as solve_linear
 from tearing_mode_solver.helpers import (
     TimeDependentSolution,
@@ -25,10 +25,10 @@ def plot_against_backward_rutherford(params: TearingModeParameters,
     params.initial_flux = np.interp(
         initial_time, ql_sol.times, ql_sol.psi_t
     )
-    t_range_bkwd_ruth = np.linspace(0.0, initial_time, 10000)
+    t_range_bkwd_ruth = np.linspace(initial_time, 0.0, 10000)
     td_sol, outer_sol = solve_time_dependent_system(params, t_range_bkwd_ruth)
 
-    t_range_fwd_ruth = np.linspace(ql_sol.times[-1], initial_time, 10000)
+    t_range_fwd_ruth = np.linspace(initial_time, ql_sol.times[-1], 10000)
     td_sol_fwd, outer_sol_fwd = solve_time_dependent_system(params, t_range_fwd_ruth)
 
     t_range_linear = np.linspace(0.0, initial_time, 10000)
@@ -57,14 +57,14 @@ def plot_against_backward_rutherford(params: TearingModeParameters,
         label='Linear solution'
     )
     ax.plot(
-        initial_time - td_sol.times, 
+        td_sol.times, 
         td_sol.w_t, 
         color='red', 
         linestyle='--', 
         label='Rutherford ($C=1.12$)'
     )
     ax.plot(
-        td_sol_fwd.times[::-1], 
+        td_sol_fwd.times, 
         td_sol_fwd.w_t, 
         color='red', 
         linestyle='--'
