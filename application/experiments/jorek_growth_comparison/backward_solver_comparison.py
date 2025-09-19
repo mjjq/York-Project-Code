@@ -15,16 +15,25 @@ from tearing_mode_solver.outer_region_solver import layer_width, growth_rate
 
 def plot_against_backward_rutherford(params: TearingModeParameters,
                                      ql_sol: TimeDependentSolution):
-    
-    params.initial_flux = ql_sol.psi_t[-1]
-    initial_time = ql_sol.times[-1]
-    t_range = np.linspace(0.0, initial_time, 10000)
-    
-    
-    td_sol, outer_sol = solve_time_dependent_system(params, t_range)
+    # Don't want to initialise the backward solver at the time of saturation
+    # due to sensitivity to initial conditions. 90% of the saturated
+    # island width should be fine since there should be significant dpsi/dt
+    # while remaining in the non-linear regime where rutherford should be valid.
+    initial_time = np.interp(
+        max(ql_sol.w_t)*0.9, ql_sol.w_t, ql_sol.times
+    )
+    params.initial_flux = np.interp(
+        initial_time, ql_sol.times, ql_sol.psi_t
+    )
+    t_range_bkwd_ruth = np.linspace(0.0, initial_time, 10000)
+    td_sol, outer_sol = solve_time_dependent_system(params, t_range_bkwd_ruth)
 
+    t_range_fwd_ruth = np.linspace(ql_sol.times[-1], initial_time, 10000)
+    td_sol_fwd, outer_sol_fwd = solve_time_dependent_system(params, t_range_fwd_ruth)
+
+    t_range_linear = np.linspace(0.0, initial_time, 10000)
     params.initial_flux = ql_sol.psi_t[0]
-    exp_sol, outer_sol_2 = solve_linear(params, t_range)
+    exp_sol, outer_sol_2 = solve_linear(params, t_range_linear)
 
     filt = exp_sol.psi_t < max(ql_sol.psi_t)
     exp_w_t = exp_sol.w_t[filt]
@@ -52,13 +61,19 @@ def plot_against_backward_rutherford(params: TearingModeParameters,
         td_sol.w_t, 
         color='red', 
         linestyle='--', 
-        label='Rutherford'
+        label='Rutherford ($C=1.12$)'
+    )
+    ax.plot(
+        td_sol_fwd.times[::-1], 
+        td_sol_fwd.w_t, 
+        color='red', 
+        linestyle='--'
     )
     ax.hlines(
-        resistive_layer_width, 
-        min(td_sol.times), 
-        max(td_sol.times),
-        label="Resistive layer width"
+        2**(9/4)*outer_sol.r_s*resistive_layer_width, 
+        min(ql_sol.times), 
+        max(ql_sol.times),
+        label="Resistive layer width ($2^{9/4}r_s \delta$)"
     )
     
 
@@ -69,7 +84,7 @@ def plot_against_backward_rutherford(params: TearingModeParameters,
     ax.set_xlabel(r"Time ($\omega_A$)")
     ax.set_ylabel(r"Magnetic island width ($a$)")
     
-    ax.legend()
+    ax.legend(prop={'size': 9})
     ax.grid(which='major')
     ax.grid(which='minor', alpha=0.1)
     
