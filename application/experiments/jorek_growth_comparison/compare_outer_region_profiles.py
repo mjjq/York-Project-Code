@@ -64,7 +64,7 @@ def plot_outer_region_solution(params: TearingModeParameters,
     )
     
     
-    jorek_rs = jorek_psi_data.r_minor/np.max(jorek_psi_data.r_minor)
+    jorek_rs = jorek_psi_data.r_minor/params.r_minor
     jorek_psi = jorek_psi_data.psi
     ax.plot(
         jorek_rs, jorek_psi/max(jorek_psi), color='red', 

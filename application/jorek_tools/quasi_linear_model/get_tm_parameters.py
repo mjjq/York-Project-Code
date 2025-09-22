@@ -50,6 +50,7 @@ def get_parameters(psi_current_prof_filename: str,
         R0=R_0,
         q_profile=q_profile,
         j_profile=j_profile,
+        r_minor=r_minor
     )
     logger.debug(params)
 
