@@ -26,7 +26,8 @@ def j(radial_coordinate: float,
     
 @np.vectorize
 def dj_dr(radial_coordinate: float,
-          shaping_exponent: float) -> float:
+          shaping_exponent: float,
+          axis_q: float) -> float:
     """
     Normalised derivative in the current profile.
 
@@ -36,7 +37,7 @@ def dj_dr(radial_coordinate: float,
     r = radial_coordinate
     nu = shaping_exponent
 
-    return -2*nu*(r) * (1-r**2)**(nu-1)
+    return -4.0/axis_q*nu*(r) * (1-r**2)**(nu-1)
 
 def generate_j_profile(axis_q: float,
                        shaping_exponent: float) -> List[Tuple[float, float]]:
