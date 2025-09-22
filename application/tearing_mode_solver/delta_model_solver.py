@@ -251,7 +251,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
     toroidal_mode = params.toroidal_mode_number
     lundquist_number = params.lundquist_number
 
-    tm = solve_system(params, resolution=1e-5, r_s_thickness=1e-7)
+    tm = solve_system(params)
     
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
@@ -268,6 +268,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
         params.q_profile,
         tm
     )
+    print(delta_prime, linear_growth_rate)
     dpsi_dt_t0 = linear_growth_rate * psi_t0
 
     s = magnetic_shear(params.q_profile, tm.r_s)

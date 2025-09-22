@@ -17,8 +17,7 @@ from tearing_mode_solver.outer_region_solver import (
     OuterRegionSolution,
     normalised_energy_integral,
     energy,
-    rational_surface,
-    eta_to_lundquist_number
+    delta_prime_non_linear
 )
 from tearing_mode_solver.helpers import (
     TearingModeParameters,
@@ -26,6 +25,7 @@ from tearing_mode_solver.helpers import (
     TimeDependentSolution,
 )
 from jorek_tools.quasi_linear_model.central_density_si import central_density_si
+from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
 from tearing_mode_plotter.plot_magnetic_island_width import phase_plot, island_width_plot
 from tearing_mode_plotter.plot_quasi_linear_solution import plot_perturbed_flux, plot_growth_rate
 
@@ -174,7 +174,7 @@ def ql_tm_vs_time():
         help="Default initial perturbed flux"
     )
     parser.add_argument(
-        '-t0', '--initial-time', type=float, default=4.2444e5,
+        '-t0', '--initial-time', type=float, default=0.0,
         help="Initial simulation time (to align with JOREK initial)"
     )
     parser.add_argument(
@@ -213,54 +213,20 @@ def ql_tm_vs_time():
     psi_current_prof_filename = args.exprs_averaged
     q_prof_filename = args.q_profile
 
-    q_profile, j_profile = q_and_j_from_csv(psi_current_prof_filename, q_prof_filename)
-
-    poloidal_mode_number = args.poloidal_mode_number
-    toroidal_mode_number = args.toroidal_mode_number
-    init_flux = args.psi_init # JOREK flux at which the simulation numerically stabilises
-    t0 = args.initial_time  # This is the jorek time at which the simulation numerically stabilises
-    nsteps = args.n_steps
-
-    r_minor = read_r_minor(psi_current_prof_filename)
-    # q_profile is a function of r/r_minor, so multiply by r_minor
-    # to get SI
-    r_s_si = r_minor*rational_surface(q_profile, poloidal_mode_number/toroidal_mode_number)
-
-    eta_profile = read_eta_profile_r_minor(psi_current_prof_filename)
-    r_vals, eta_vals = zip(*eta_profile)
-    eta_at_rs = np.interp(r_s_si, r_vals, eta_vals)
-    B_tor = read_Btor(psi_current_prof_filename)
-    R_0 = read_R0(psi_current_prof_filename)
-    lundquist_number = eta_to_lundquist_number(
-        r_minor,
-        R_0,
-        B_tor,
-        eta_at_rs
-    )
-    print(f"lundquist number: {lundquist_number:.2g}")
-
-    rho0 = central_density_si(
-            args.central_mass,
-            args.central_density
+    params = get_parameters(
+        psi_current_prof_filename,
+        q_prof_filename,
+        args.poloidal_mode_number,
+        args.toroidal_mode_number
     )
 
-    params = TearingModeParameters(
-        poloidal_mode_number=poloidal_mode_number,
-        toroidal_mode_number=toroidal_mode_number,
-        lundquist_number=lundquist_number,
-        initial_flux=init_flux,
-        B0=B_tor,
-        R0=R_0,
-        q_profile=q_profile,
-        j_profile=j_profile,
-        rho0=rho0
-    )
-
+    t0 = args.initial_time
     # Typically, several lundquist numbers needed to reach saturation
-    t1 = t0 + 0.1*lundquist_number
+    t1 = t0 + 0.1*params.lundquist_number
     if args.final_time:
-        t1 = t0 + args.final_time*lundquist_number
+        t1 = t0 + args.final_time*params.lundquist_number
 
+    nsteps = args.n_steps
     times = np.linspace(t0, t1, nsteps)
     print(max(times))
 
