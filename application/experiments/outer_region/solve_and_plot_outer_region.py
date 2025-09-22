@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from argparse import ArgumentParser
 
 from tearing_mode_solver.outer_region_solver import delta_prime_non_linear, solve_system, delta_prime
 from tearing_mode_solver.helpers import (
@@ -47,7 +48,7 @@ def solution_new_version():
         rho0=1.0
     )
 
-    outer_sol = solve_system(params)
+    outer_sol = solve_system(params, resolution=1e-6, r_s_thickness=1e-3)
 
     return params, outer_sol
 
@@ -56,10 +57,33 @@ def ql_tm_vs_time():
     Numerically solve the quasi-linear time-dependent tearing mode problem
     and plot the perturbed flux and layer width as functions of time.
     """
-    
-    params, tm = solution_new_version()
+    parser = ArgumentParser(
+        description="Plot outer region solution with debugging"
+    )
+    parser.add_argument(
+        '-ex', '--exprs-filename', type=str,
+        help="Use JOREK postproc expressions as input",
+        default=None
+    )
+    parser.add_argument(
+        '-q', '--qprofile-filename', type=str,
+        help="Use JOREK qprofile as input",
+        default=None
+    )
+    args=parser.parse_args()
 
-    w_vals = np.linspace(1e-7, 1e-4, 100000)
+    if args.exprs_filename:
+        from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
+        params = get_parameters(
+            args.exprs_filename,
+            args.qprofile_filename,
+            2, 1
+        )
+        tm = solve_system(params)
+    else:
+        params, tm = solution_new_version()
+
+    w_vals = np.linspace(1e-7, 1e-2, 100000)
     dps = delta_prime_non_linear(
         tm, w_vals
     )
@@ -76,21 +100,19 @@ def ql_tm_vs_time():
     # ax1.grid()
     # #savefig("eigenfunction")
 
+
     fig2, ax2 = plt.subplots(1)
     ax2.set_xscale('log')
     ax2.grid()
     fwd_r_vals = tm.r_s-tm.r_range_fwd
-    ax2.plot(fwd_r_vals, tm.dpsi_dr_forwards, color='black')
+    ax2.plot(fwd_r_vals, tm.dpsi_dr_forwards, color='black', marker='x')
     ax2.scatter(w_vals/2.0, tm.dpsi_dr_f_func(tm.r_s-w_vals/2.0), color='red')
 
     bkwd_r_vals = tm.r_range_bkwd-tm.r_s
-    ax2.plot(bkwd_r_vals, tm.dpsi_dr_backwards, color='blue')
+    offset = tm.dpsi_dr_forwards[-1]-tm.dpsi_dr_backwards[-1]
+    ax2.plot(bkwd_r_vals, offset + tm.dpsi_dr_backwards, color='blue', marker='x')
+    
     ax2.scatter(w_vals/2.0, tm.dpsi_dr_b_func(tm.r_s+w_vals/2.0), color='orange')
-
-    fig3, ax3 = plt.subplots(1)
-    ax3.grid()
-
-    ax3.plot()
 
     plot_outer_region_solution(tm)
 
