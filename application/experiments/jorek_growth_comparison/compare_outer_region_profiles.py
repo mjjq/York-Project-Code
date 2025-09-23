@@ -63,19 +63,19 @@ def plot_outer_region_solution(params: TearingModeParameters,
         tm.r_range_bkwd, tm.dpsi_dr_backwards/max_psi, color='black'
     )
     
+    if jorek_psi_data:    
+        jorek_rs = jorek_psi_data.r_minor/params.r_minor
+        jorek_psi = jorek_psi_data.psi
+        ax.plot(
+            jorek_rs, jorek_psi/max(jorek_psi), color='red', 
+            label='JOREK', linestyle='--'
+        )
     
-    jorek_rs = jorek_psi_data.r_minor/params.r_minor
-    jorek_psi = jorek_psi_data.psi
-    ax.plot(
-        jorek_rs, jorek_psi/max(jorek_psi), color='red', 
-        label='JOREK', linestyle='--'
-    )
-    
-    jorek_psi_spline = UnivariateSpline(jorek_rs, jorek_psi, s=0.0)
-    jorek_dpsi_dr = jorek_psi_spline.derivative()(jorek_rs)
-    ax_dpsi_dr.plot(
-        jorek_rs, jorek_dpsi_dr/max(jorek_psi), color='red', linestyle='--'
-    )
+        jorek_psi_spline = UnivariateSpline(jorek_rs, jorek_psi, s=0.0)
+        jorek_dpsi_dr = jorek_psi_spline.derivative()(jorek_rs)
+        ax_dpsi_dr.plot(
+            jorek_rs, jorek_dpsi_dr/max(jorek_psi), color='red', linestyle='--'
+        )
     
     ax.set_ylabel("Normalised perturbed flux")
     ax_dpsi_dr.set_ylabel("Normalised $\partial \delta\psi^{(1)}/\partial r$") 
@@ -118,10 +118,14 @@ def ql_tm_vs_time(psi_current_prof_filename: str,
         toroidal_mode_number
     )
 
-    jorek_psi_data = read_four2d_profile_filter(
-        jorek_fourier_filename,
-        poloidal_mode_number
-    )
+    try:
+        jorek_psi_data = read_four2d_profile_filter(
+            jorek_fourier_filename,
+            poloidal_mode_number
+        )
+    except:
+        print("Error, could not read jorek psi data")
+        jorek_psi_data=None
 
     plot_outer_region_solution(params, jorek_psi_data)
 
@@ -140,7 +144,9 @@ if __name__=='__main__':
     parser.add_argument(
         "fourier_filename", 
         type=str,
-        help="Name of postproc fourier filename"
+        help="Name of postproc fourier filename",
+        nargs="?",
+        default=""
     )
     parser.add_argument(
         '-exf', '--exprs-filename',
