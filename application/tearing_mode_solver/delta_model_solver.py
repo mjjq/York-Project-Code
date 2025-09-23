@@ -1,9 +1,6 @@
 import numpy as np
-from scipy.integrate import odeint, ode
-from matplotlib import pyplot as plt
-from tqdm import tqdm, trange
-import pandas as pd
-from dataclasses import dataclass, asdict
+from scipy.integrate import ode
+from tqdm import trange
 from typing import Tuple
 
 from tearing_mode_solver.outer_region_solver import (
@@ -11,18 +8,19 @@ from tearing_mode_solver.outer_region_solver import (
     gamma_constant,
     growth_rate,
     solve_system,
-    scale_tm_solution,
-    layer_width,
     delta_prime_non_linear,
     island_width
 )
+from tearing_mode_solver.loizu_delta_prime import (
+    calculate_coefficients, delta_prime_loizu, LoizuCoefficients
+)
 
 from tearing_mode_solver.profiles import (
-    rational_surface_of_mode, magnetic_shear_profile, magnetic_shear
+    rational_surface_of_mode, magnetic_shear
 )
 
 from tearing_mode_solver.helpers import (
-    savefig, savecsv, TimeDependentSolution, TearingModeParameters
+    TimeDependentSolution, TearingModeParameters
 )
 
 @np.vectorize
@@ -164,7 +162,8 @@ def flux_time_derivative(time: float,
                          poloidal_mode: int,
                          toroidal_mode: int,
                          lundquist_number: float,
-                         mag_shear: float):
+                         mag_shear: float,
+                         loizu_coefs: LoizuCoefficients):
     """
     Calculate first and second order time derivatives of the perturbed flux
     in the inner region of the tearing mode using the quasi-linear time
@@ -200,9 +199,7 @@ def flux_time_derivative(time: float,
     n = toroidal_mode
 
     w = island_width(psi, tm.r_s, m, n, mag_shear)
-    delta_prime = delta_prime_non_linear(
-        tm, w
-    )
+    delta_prime = delta_prime_loizu(w, loizu_coefs)
 
     
 
@@ -252,6 +249,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
     lundquist_number = params.lundquist_number
 
     tm = solve_system(params)
+    loizu_coefs = calculate_coefficients(params)
     
     #tm_s = scale_tm_solution(tm, initial_scale_factor)
 
@@ -298,7 +296,8 @@ def solve_time_dependent_system(params: TearingModeParameters,
         poloidal_mode,
         toroidal_mode,
         lundquist_number,
-        s
+        s,
+        loizu_coefs
     )
 
     # Set up return parameters.
@@ -332,7 +331,8 @@ def solve_time_dependent_system(params: TearingModeParameters,
             poloidal_mode,
             toroidal_mode,
             lundquist_number,
-            s
+            s,
+            loizu_coefs
             #init_island_width,
             #delta_prime
         )
@@ -352,7 +352,7 @@ def solve_time_dependent_system(params: TearingModeParameters,
             s
         )
         
-        delta_prime = delta_prime_non_linear(tm, init_island_width)
+        delta_prime = delta_prime_loizu(init_island_width, loizu_coefs)
 
         delta_primes.append(delta_prime)
 
