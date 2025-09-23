@@ -100,9 +100,9 @@ class TearingModeParameters():
     # Each array element contains (minor_radial_coord, current_at_coord)
     j_profile: List[Tuple[float, float]]
     # Central plasma mass density in kg/m^3. Purely used to convert to SI units
-    # Assume by default that n0=1e20/m^3, m0 = mp = 1.67e-27, so
-    # rho0 = n0*mp = 1.67e-7kg/m^3
-    rho0: float = 1.67e-7
+    # Assume by default that n0=1e20/m^3, m0 = mD = 2mp = 3.3452e-27, so
+    # rho0 = n0*mp = 3.3452e-7kg/m^3
+    rho0: float = 3.3452e-7
     # Minor radius of the tokamak in metres. Assume by default that r_minor=1m
     r_minor: float = 1.0
     
