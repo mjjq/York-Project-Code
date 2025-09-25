@@ -15,11 +15,11 @@ def get_psi_at_psi_s(prof: Four2DProfile,
                      psi_s: float) -> float:
     return np.interp(psi_s, prof.psi_norm, prof.psi)
 
-def get_psi_vs_time_for_mode(four2d_prof_filenames: List[str],
+def get_psi_vs_time_for_mode(four2d_profs: List[List[Four2DProfile]],
                              poloidal_mode_numbers: List[int],
                              toroidal_mode_number: int,
-                             qprofile_filename: Optional[str],
-                             timestep_map_filename: Optional[str]) -> List[TimeDependentSolution]:
+                             qprofile: Optional[List[Tuple[float, float]]] = None,
+                             tstep_map: Optional[TimestepMap] = None) -> List[TimeDependentSolution]:
     """
     Get delta_psi(r_s) as a function of time from a set of fourier
     decomposed JOREK .dat files.
@@ -35,24 +35,19 @@ def get_psi_vs_time_for_mode(four2d_prof_filenames: List[str],
 
     """
     rational_surfaces = [0.5 for m in poloidal_mode_numbers]
-    if qprofile_filename:
-        q_prof = read_q_profile(qprofile_filename)
+    if qprofile:
         rational_surfaces = [
-            rational_surface(q_prof, m/toroidal_mode_number)
+            rational_surface(qprofile, m/toroidal_mode_number)
             for m in poloidal_mode_numbers
         ]
 
     print(f"Rational surfaces (psi_N): {['{:.3g}'.format(i) for i in rational_surfaces]}")
 
-    tstep_map = None
-    if timestep_map_filename:
-        tstep_map = read_timestep_map(timestep_map_filename)
-
     dpsi_vs_time_data = []
     times = []
 
-    for prof_timeslice in four2d_prof_filenames:
-        modes: List[Four2DProfile] = read_four2d_profile(prof_timeslice)
+    for prof_timeslice in four2d_profs:
+        modes: List[Four2DProfile] = prof_timeslice
 
         psi_at_rs_timeslice = []
         for i,poloidal_mode_number in enumerate(poloidal_mode_numbers):
@@ -129,13 +124,22 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
+    fourier_data = [read_four2d_profile(fname) for fname in args.fourier_data]
+    qprofile = None
+    if args.qprofile_filename:
+        qprofile = read_q_profile(args.qprofile_filename)
+    tstep_map = None
+    if args.time_map_filename:
+        tstep_map = read_timestep_map(args.time_map_filename)
+
+
 
     sols = get_psi_vs_time_for_mode(
-        args.fourier_data,
+        fourier_data,
         args.poloidal_modes,
         args.toroidal_mode,
-        args.qprofile_filename,
-        args.time_map_filename
+        qprofile,
+        tstep_map
     )
 
     fig, ax = plt.subplots(1)
