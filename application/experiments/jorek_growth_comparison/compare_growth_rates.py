@@ -162,29 +162,21 @@ if __name__ == "__main__":
         default=None
     )
     parser.add_argument(
-        '-p0', '--initial_psi',
-        help="Initial psi to align JOREK and quasi-linear solutions",
-        type=float,
-        default=1e-12
-    )
-    parser.add_argument(
         "-t0", "--initial-time",
         help="Initial time to align the JOREK and quasi-linear solutions, units of ms",
         type=float,
         default=None
     )
-    parser.add_argument(
-        '-m', '--poloidal-mode',
-        help="Poloidal mode number of the tearing mode",
-        default=2,
-        type=int
-    )
-    parser.add_argument(
-        '-n', '--toroidal-mode', type=int,
-        help='Toroidal mode number',
-        default=1,
-    )
     args = parser.parse_args()
+
+
+    jorek_gr = MacroscopicQuantity(args.jorek_growth_rate)
+    jorek_gr.load_x_values_by_index(0)
+    jorek_gr.load_y_values_by_index(2)
+    params, ql_sol = load_sim_from_disk(args.ql_solution)
+    print(params.lundquist_number, params.r_minor, params.rho0)
+    ql_sol_si = solution_time_scale(params, ql_sol, True)
+
 
     t0 = 0.0
     if args.t0:
@@ -198,19 +190,12 @@ if __name__ == "__main__":
             fourier_data,
             qprofile,
             tstep_map,
-            args.initial_psi,
-            args.poloidal_mode_number,
-            args.toroidal_mode_number
+            ql_sol_si.psi_t[0],
+            params.poloidal_mode_number,
+            params.toroidal_mode_number
         )
     else:
         print("Warning, t0 not specified. Solutions may not be aligned")
-
-    jorek_gr = MacroscopicQuantity(args.jorek_growth_rate)
-    jorek_gr.load_x_values_by_index(0)
-    jorek_gr.load_y_values_by_index(2)
-    params, ql_sol = load_sim_from_disk(args.ql_solution)
-    print(params.lundquist_number, params.r_minor, params.rho0)
-    ql_sol_si = solution_time_scale(params, ql_sol, True)
 
     plot_aligned_growth_rates(ql_sol_si, jorek_gr, args.initial_time)
 
