@@ -122,7 +122,11 @@ def get_t0(jorek_psi_data: List[List[Four2DProfile]],
     delta_psi = psi_solution.psi_t
     times = psi_solution.times
 
-    t0 = np.interp(target_psi_0, delta_psi, times)
+    # log(delta psi) is linear in t, so interp the log
+    log_dpsi = np.log10(delta_psi)
+    log_target_dpsi = np.log10(target_psi_0)
+
+    t0 = np.interp(log_target_dpsi, log_dpsi, times)
 
     # Convert to ms
     return 1000.0*t0
