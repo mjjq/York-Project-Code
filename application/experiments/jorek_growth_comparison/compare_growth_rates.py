@@ -89,7 +89,7 @@ def plot_aligned_fluxes(ql_si: TimeDependentSolution,
     ax.plot(ql_times, ql_fluxes, label='Model', color='red', linestyle='-')
     
     ax.set_xlabel("Time (ms)")
-    ax.set_ylabel("Growth rate (1/s)")
+    ax.set_ylabel("$\delta\psi(r_s)$ (Tm$^2$)")
     ax.legend()
     ax.grid()
 
@@ -114,7 +114,7 @@ def get_t0(jorek_psi_data: List[List[Four2DProfile]],
     psi_solution = get_psi_vs_time_for_mode(
         jorek_psi_data,
         [poloidal_mode_number],
-        [toroidal_mode_number],
+        toroidal_mode_number,
         qprofile,
         tstep_map
     )[0]
@@ -124,7 +124,8 @@ def get_t0(jorek_psi_data: List[List[Four2DProfile]],
 
     t0 = np.interp(target_psi_0, delta_psi, times)
 
-    return t0
+    # Convert to ms
+    return 1000.0*t0
 
 if __name__ == "__main__":
     parser = ArgumentParser(
@@ -179,7 +180,7 @@ if __name__ == "__main__":
 
 
     t0 = 0.0
-    if args.t0:
+    if args.initial_time:
         t0 = args.initial_time
     elif args.fourier_data and args.qprofile_filename and args.time_map_filename:
         qprofile = read_q_profile(args.qprofile_filename)
@@ -197,14 +198,14 @@ if __name__ == "__main__":
     else:
         print("Warning, t0 not specified. Solutions may not be aligned")
 
-    plot_aligned_growth_rates(ql_sol_si, jorek_gr, args.initial_time)
+    plot_aligned_growth_rates(ql_sol_si, jorek_gr, t0)
 
     if args.jorek_mag_energies:
         jorek_energies = MacroscopicQuantity(args.jorek_mag_energies)
         jorek_energies.load_x_values_by_index(0)
         jorek_energies.load_y_values_by_index(2)
 
-        plot_aligned_fluxes(ql_sol_si, jorek_energies, args.initial_time)
+        plot_aligned_fluxes(ql_sol_si, jorek_energies, t0)
 
     plt.show()
 
