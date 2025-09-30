@@ -18,46 +18,47 @@ def test_accuracy_vs_layer_width():
     We can use the output of this test to determine a reasonable resolution for
     the precision we need.
     """
-
-    params = get_parameters(
-        'postproc/exprs_averaged_s00000.dat',
-        'postproc/qprofile_s00000.dat',
-        poloidal_mode_number=2,
-        toroidal_mode_number=1
-    )
-
-    resolution = 1e-5
-    layer_widths = np.logspace(-10, -6, 20)
-
     delta_ps = []
     sols: List[OuterRegionSolution] = []
 
-    for width in layer_widths:
-        tm = solve_system(params, resolution, width)
+    current_scale_factors = np.linspace(1.0, 0.1, 5)
+
+    for j_scale in current_scale_factors:
+        q_profile = generate_q_profile(1.0, 2.0)
+        j_profile = generate_j_profile(1.0, 2.0)
+
+        rs, js = zip(*j_profile)
+        js = j_scale*np.array(js)
+
+        j_profile = zip(rs, js)
+
+        params = TearingModeParameters(
+            poloidal_mode_number=2,
+            toroidal_mode_number=1,
+            lundquist_number=1e8,
+            initial_flux=1e-12,
+            B0=j_scale,
+            R0=20.0,
+            q_profile=q_profile,
+            j_profile=j_profile
+        )
+
+
+        tm = solve_system(params)
         delta_p = delta_prime(tm)
 
         delta_ps.append(delta_p)
         sols.append(tm)
 
     fig, ax = plt.subplots(1, figsize=(4,3))
-    print(layer_widths)
-    print(delta_ps)
-    ax.scatter(layer_widths, delta_ps, color='black')
+    ax.scatter(current_scale_factors, delta_ps, color='black')
     ax.grid(which='major')
 
     ax.set_xscale('log')
 
-    ax.set_xlabel(r"Normalised layer width $\hat{r}_s \delta$")
+    ax.set_xlabel(r"J profile scale factor")
     ax.set_ylabel(r"$a\Delta'$")
     fig.tight_layout()
-
-    fig2, ax2 = plt.subplots(1)
-
-
-    ax2.scatter(sols[0].r_range_fwd, sols[0].psi_forwards, marker='x')
-    ax2.scatter(sols[0].r_range_bkwd, sols[0].psi_backwards, marker='x')
-    ax2.scatter(sols[5].r_range_fwd, sols[5].psi_forwards, marker='x')
-    ax2.scatter(sols[5].r_range_bkwd, sols[5].psi_backwards, marker='x')
 
     plt.show()
 

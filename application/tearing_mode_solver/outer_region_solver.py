@@ -79,7 +79,8 @@ def compute_derivatives(y: Tuple[float, float],
         co-ordinate r as a parameter.
     dj_dr_profile : func
         Derivative in the current profile. Must be a function which accepts
-        the radial co-ordinate r as a parameter.
+        the radial co-ordinate r as a parameter. Note: This function should be
+        normalised to the on-axis current density J_0.
     epsilon : float, optional
         Tolerance value to determine values of r which are sufficiently close
         to r=0. The default is 1e-5.
@@ -104,7 +105,8 @@ def compute_derivatives(y: Tuple[float, float],
     else:
         dj_dr = dj_dr_profile(r)
         q = q_profile(r)
-        A = (q*m*dj_dr)/(n*q - m)
+        q0 = q_profile(0.0)
+        A = 2.0*(q/q0*m*dj_dr)/(n*q - m)
         d2psi_dr2 = psi*(m**2 - A*r) + r*dpsi_dr
         
     #print(dpsi_dr)
@@ -192,6 +194,7 @@ def solve_system(params: TearingModeParameters,
     q_func = UnivariateSpline(r_vals, q_vals, s=0.0)
     
     r_vals, j_vals = zip(*j_profile)
+    j_vals = j_vals/j_vals[0]
 
     min_dr = np.min(np.diff(r_vals))
     if min_dr >= r_s_thickness:
