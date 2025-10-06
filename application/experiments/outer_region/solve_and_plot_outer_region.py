@@ -33,8 +33,8 @@ def solution_old_version():
 def solution_new_version():
     from tearing_mode_solver.profiles import generate_j_profile, generate_q_profile
 
-    q_profile = generate_q_profile(axis_q=1.0, shaping_exponent=2.0)
-    j_profile = generate_j_profile(axis_q=1.0, shaping_exponent=2.0)
+    q_profile = generate_q_profile(axis_q=1.25, shaping_exponent=1.5)
+    j_profile = generate_j_profile(axis_q=1.25, shaping_exponent=1.5)
 
     params = TearingModeParameters(
         poloidal_mode_number=2,
@@ -48,7 +48,7 @@ def solution_new_version():
         rho0=1.0
     )
 
-    outer_sol = solve_system(params, resolution=1e-6, r_s_thickness=1e-3)
+    outer_sol = solve_system(params, resolution=1e-5, r_s_thickness=1e-6)
 
     return params, outer_sol
 
@@ -70,6 +70,11 @@ def ql_tm_vs_time():
         help="Use JOREK qprofile as input",
         default=None
     )
+    parser.add_argument(
+        '-qm', '--q-scale-factor', type=float,
+        help="Constant scale factor for the safety factor profile",
+        default=1.0
+    )
     args=parser.parse_args()
 
     if args.exprs_filename:
@@ -79,19 +84,24 @@ def ql_tm_vs_time():
             args.qprofile_filename,
             2, 1
         )
+        rs, qs = zip(*params.q_profile)
+        qs = args.q_scale_factor * np.array(qs)
+        params.q_profile = list(zip(rs, qs))
         tm = solve_system(params)
     else:
         params, tm = solution_new_version()
 
-    w_vals = np.linspace(1e-7, 1e-2, 100000)
+    w_vals = np.linspace(1e-7, 2e-1, 1000)
     dps = delta_prime_non_linear(
         tm, w_vals
     )
 
     fig, ax0 = plt.subplots(1)
-    ax0.plot(w_vals, dps)
-    ax0.scatter(tm.r_s-tm.r_range_fwd[-1], delta_prime(tm))
     ax0.grid()
+    ax0.set_xlabel("w/a")
+    ax0.set_ylabel("$a\Delta'(w)$")
+    ax0.plot(w_vals, dps, color='black')
+    #ax0.scatter(tm.r_s-tm.r_range_fwd[-1], delta_prime(tm))
     #savefig("delta_prime")
 
     # fig1, ax1 = plt.subplots(1)
@@ -101,20 +111,37 @@ def ql_tm_vs_time():
     # #savefig("eigenfunction")
 
 
-    fig2, ax2 = plt.subplots(1)
-    ax2.set_xscale('log')
-    ax2.grid()
-    fwd_r_vals = tm.r_s-tm.r_range_fwd
-    ax2.plot(fwd_r_vals, tm.dpsi_dr_forwards, color='black', marker='x')
-    ax2.scatter(w_vals/2.0, tm.dpsi_dr_f_func(tm.r_s-w_vals/2.0), color='red')
+    #fig2, ax2 = plt.subplots(1)
+    #ax2.set_xscale('log')
+    #ax2.grid()
+    #fwd_r_vals = tm.r_s-tm.r_range_fwd
+    #ax2.plot(fwd_r_vals, tm.dpsi_dr_forwards, color='black', marker='x')
+    #ax2.scatter(w_vals/2.0, tm.dpsi_dr_f_func(tm.r_s-w_vals/2.0), color='red')
 
-    bkwd_r_vals = tm.r_range_bkwd-tm.r_s
-    offset = tm.dpsi_dr_forwards[-1]-tm.dpsi_dr_backwards[-1]
-    ax2.plot(bkwd_r_vals, offset + tm.dpsi_dr_backwards, color='blue', marker='x')
+    #bkwd_r_vals = tm.r_range_bkwd-tm.r_s
+    #offset = tm.dpsi_dr_forwards[-1]-tm.dpsi_dr_backwards[-1]
+    #ax2.plot(bkwd_r_vals, offset + tm.dpsi_dr_backwards, color='blue', marker='x')
     
-    ax2.scatter(w_vals/2.0, tm.dpsi_dr_b_func(tm.r_s+w_vals/2.0), color='orange')
+    #ax2.scatter(w_vals/2.0, tm.dpsi_dr_b_func(tm.r_s+w_vals/2.0), color='orange')
 
     plot_outer_region_solution(tm)
+
+    fig3, ax3 = plt.subplots(2, sharex=True)
+    axj, axq = ax3
+    axj.grid(); axq.grid()
+
+    axj.set_ylabel("$J_\phi$ (A/m$^2$)")
+    axq.set_ylabel("q")
+
+    axq.set_xlabel("r/a")
+
+    rs, js = zip(*params.j_profile)
+    axj.plot(rs, js, color='black')
+    axj.vlines(tm.r_s, min(js), max(js), color='red', linestyle='--')
+
+    rs, qs = zip(*params.q_profile)
+    axq.plot(rs, qs, color='black')
+    axq.vlines(tm.r_s, min(qs), max(qs), color='red', linestyle='--')
 
     plt.show()
     return
