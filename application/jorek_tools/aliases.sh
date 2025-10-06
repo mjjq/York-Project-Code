@@ -17,10 +17,28 @@ alias grept="grep -riI"
 load_jorek_mod_csd() {
 	module purge
 	module load rhel8/default-icl intel-oneapi-tbb intel-oneapi-mkl fftw
+	export HDF5_HOME="/usr/local/Cluster-Apps/hdf5/impi/1.8.9"
+	export SZIP_LIB="/usr/local/Cluster-Apps/szip/2.1/lib"
 }
 
 jtvtk() {
         $JOREK_UTIL/convert2vtk.sh -j 32 "$@" ./jorek2vtk ./inmastu
+}
+
+restart_dir() {
+	# Get directory of simulation from which this simulation restarted
+	grep jorek_restart.h5 pointers.txt | awk '{print $NF}' | xargs dirname
+}
+
+cdres(){
+	dname=$(restart_dir)
+	# Check if first character is alphanumeric. if it is then this path is
+	# likely a relative path.
+	if [[ ${dname:0:1} =~ [[:alnum:]] ]]; then
+		cd ../$dname
+	else
+		cd $dname
+	fi
 }
 
 batchgrowth() {
@@ -146,3 +164,5 @@ gg() {
 source $(get_script_dir)/delta_psi_extraction/delta_psi_main.sh
 
 source $(get_script_dir)/postproc_wrapper.sh
+
+source $(get_script_dir)/model_params.sh
