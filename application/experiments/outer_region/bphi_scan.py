@@ -7,7 +7,7 @@ from tearing_mode_solver.outer_region_solver import solve_system
 from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
 from tearing_mode_plotter.plot_outer_region import plot_outer_region_solution
 from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
-from matplotlib import colors as cm
+from matplotlib import colors, cm
 
 def ql_tm_vs_time():
     """
@@ -46,11 +46,12 @@ def ql_tm_vs_time():
         args.toroidal_mode_number
     )
 
-    b_phi_scale_factors = np.arange(0.8, 1.2, 0.05)
+    b_phi_scale_factors = np.arange(0.7, 1.3, 0.005)
     delta_primes = []
     r_s_vals = []
 
     island_widths = np.linspace(0.0, 0.5, 50)
+    island_widths[0] = 1e-5
 
     for b_phi_sf in b_phi_scale_factors:
         rs, qs = zip(*params.q_profile)
@@ -63,24 +64,30 @@ def ql_tm_vs_time():
 
 
 
-    fig_w, ax_w = plt.subplots(1, figsize=(6,3))
+    fig_w, ax_w = plt.subplots(1, figsize=(6,5))
     ax_w.set_xlabel("w/a")
-    ax_w.set_ylabel("$r_s \Delta'$")
-    ax_w.hlines(
-        0.0, 
-        min(island_widths), max(island_widths), 
-        color='black', linestyle='--', 
-        label="Marginal stability"
+    ax_w.set_ylabel("$B_{\phi,0}$ (T)")
+
+    min_dp = np.nanmin(np.array(delta_primes))
+    max_dp = np.nanmax(np.array(delta_primes))
+    if np.abs(max_dp) > np.abs(min_dp):
+        min_dp = -max_dp
+    else:
+        max_dp = -min_dp
+
+    b_phi = params.B0 * b_phi_scale_factors
+    im = ax_w.imshow(
+        delta_primes, 
+        cmap='coolwarm',
+        extent=[min(island_widths), max(island_widths), min(b_phi), max(b_phi)],
+        aspect='auto',
+        vmin=min_dp,
+        vmax=max_dp,
+        origin='lower'
     )
-    ax_w.grid()
+    cbar = plt.colorbar(im, ax=ax_w)
+    cbar.set_label(r"$r_s\Delta'$")
 
-    for i, b_phi_sf in enumerate(b_phi_scale_factors):
-        b_phi = params.B0 * b_phi_sf
-        r_s = r_s_vals[i]
-        dp = delta_primes[i]
-        ax_w.plot(island_widths, dp, label=r'$B_\phi=$'f'{b_phi:.2g}T')
-
-    ax_w.legend(bbox_to_anchor=(1.05, 1.0))
     fig_w.tight_layout()
 
     fig, ax_j = plt.subplots(1, figsize=(5,4))
@@ -92,7 +99,7 @@ def ql_tm_vs_time():
     ax_j.plot(rs, js, color='black')
     for i, r_s in enumerate(r_s_vals):
         b_phi = params.B0 * b_phi_scale_factors[i]
-        color = cm.to_hex(plt.cm.tab10(i))
+        color = colors.to_hex(plt.cm.tab10(i))
         ax_j.vlines(
             r_s, min(js), max(js), label=r'$B_\phi=$'f'{b_phi:.2g}T',
             linestyle='--', color=color)
