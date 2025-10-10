@@ -26,6 +26,7 @@ function gen_poincare() {
 		./jorek2_poincare < inmastu
 		mv poinc_R-Z.dat $poincare_rz_filename
 		mv poinc_rho-theta.dat $poincare_rt_filename
+		mv jorek_restart.h5.old jorek_restart.h5
 	fi
 }
 
@@ -34,7 +35,10 @@ function plot_poincare() {
 	gen_poincare $restart_file
 	restart_no=$(restart_number $restart_file)
 	poincare_rz_filename=$(echo poinc_R-Z_$restart_no.dat)
-	__plq -f $poincare_rz_filename -t . -fs 3.2 3.0 -xl "R (m)" -yl "Z (m)" -ms 0.2 -o poinc_$restart_no.png
+	__plq -f $poincare_rz_filename -t o -xl "R (m)" -yl "Z (m)" -ms 0.25 -a equal -o poinc_R-Z_$restart_no.png
+
+	poincare_rt_filename=$(echo poinc_rho-theta_$restart_no.dat) 
+	__plq -f $poincare_rt_filename -t o -xl "$\rho/a$" -yl "$\theta$ (rad)" -fs 4 4 -ms 0.25 -o poinc_rho-theta_$restart_no.png 
 }
 
 function gen_poincare_multiple() {

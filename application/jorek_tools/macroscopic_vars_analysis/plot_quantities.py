@@ -110,8 +110,14 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 								xmax: Optional[float],
 								marker_style: str,
 								marker_size: float,
+								aspect_ratio: str,
 								output_filename: Optional[str]):
-	fig, ax = plt.subplots(1, figsize=figure_size)
+	if figure_size is not None:
+		fig, ax = plt.subplots(1, figsize=figure_size)
+	else:
+		fig, ax = plt.subplots(1)
+
+	ax.set_aspect(aspect_ratio)
 	xlabel = x_axis_label
 	if xlabel is None:
 		xlabel = quantities[0].x_val_name
@@ -153,10 +159,11 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 	if 'lin' in y_scale:
 		ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2), useOffset=True)
 
+	plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 	plt.tight_layout()
 
 	if output_filename:
-		plt.savefig(output_filename, dpi=300)
+		plt.savefig(output_filename, dpi=300, bbox_inches='tight')
 
 	plt.show()
 
@@ -194,7 +201,7 @@ if __name__ == "__main__":
 	)
 	parser.add_argument(
 		'-fs', '--figure-size', nargs=2, type=float, help="Figure size (tuple)",
-		default=(4.0,3.0)
+		default=None
 	)
 	parser.add_argument(
 		'-t', '--marker-type', 
@@ -204,6 +211,7 @@ if __name__ == "__main__":
 		'-ms', '--marker-size', type=float,
 		help="Plotting marker size (x, -, etc)", default=1.0
 	)
+	parser.add_argument('-a', '--aspect-ratio', help="Axes aspect ratio", default='auto')
 	parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
 	args = parser.parse_args()
 
@@ -243,6 +251,7 @@ if __name__ == "__main__":
 		args.xmax,
 		args.marker_type,
 		args.marker_size,
+		args.aspect_ratio,
 		args.output_filename
 	)
 
