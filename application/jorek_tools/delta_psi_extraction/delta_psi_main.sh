@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+_delta_psi_SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 function find_unprocessed_h5()
 {
@@ -18,11 +18,11 @@ function extract_delta_psi_all()
 {
     mkdir postproc
 
-    source $SCRIPT_DIR/time_restart.sh
+    source $_delta_psi_SCRIPT_DIR/time_restart.sh
     get_time_map > postproc/times.txt
 
-    ./jorek2_postproc < $SCRIPT_DIR/qprofile.pp
-    ./jorek2_postproc < $SCRIPT_DIR/fourier_r_minor.pp
+    ./jorek2_postproc < $_delta_psi_SCRIPT_DIR/qprofile.pp
+    ./jorek2_postproc < $_delta_psi_SCRIPT_DIR/fourier_r_minor.pp
 }
 
 function plot_delta_psi_time()

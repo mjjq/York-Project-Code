@@ -9,9 +9,9 @@ function restart_number() {
 	echo ${restart_filename%.h5} | grep -o '[0-9]\+'
 }
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+_poincare_SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 __plq() {
-	$(python3 $SCRIPT_DIR/../macroscopic_vars_analysis/plot_quantities.py "$@")
+	$(python3 $_poincare_SCRIPT_DIR/../macroscopic_vars_analysis/plot_quantities.py "$@")
 }
 
 function gen_poincare() {

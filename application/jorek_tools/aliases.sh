@@ -166,3 +166,5 @@ source $(get_script_dir)/delta_psi_extraction/delta_psi_main.sh
 source $(get_script_dir)/postproc_wrapper.sh
 
 source $(get_script_dir)/model_params.sh
+
+source $(get_script_dir)/poincare/plot_multiple.sh
