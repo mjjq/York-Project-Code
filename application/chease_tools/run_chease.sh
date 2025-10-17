@@ -12,7 +12,9 @@ chease_to_jorek() {
 	./eqdsk2jorek < EQDSK_COCOS_02.OUT
 
 	mv jorek_temperature jorek_temperature_orig
-	cat jorek_temperature_orig | awk '{print $1 " " ($2 < 1e-6 ? 1e-6 : $2)}' > jorek_temperature
+	central_t=$(head -n 1 jorek_temperature_orig | awk '{print $2}')
+	echo $central_t
+	cat jorek_temperature_orig | awk -v t0="$central_t" '{print $1 " " ($2 < 1e-6*t0 ? 1e-6*t0 : $2)}' > jorek_temperature
 
 	./o.chease_to_cols chease_output.out chease_cols.out
 
@@ -20,6 +22,16 @@ chease_to_jorek() {
 	#chease_temperature chease_cols.out > jorek_temperature
 	#chease_ffprime chease_cols.out > jorek_ffprime
 	#chease_cols_psin_convert chease_cols.out > chease_cols_psin.out
+}
+
+function link_xtor_input() {
+	chease_folder=$1
+
+	if [ -d "$chease_folder" ]; then
+		ln -s $chease_folder/ALL_PROFILES $chease_folder/EXPEQ $chease_folder/OUTXTOR .
+	else
+		echo "Folder doesn't exist, exiting."
+	fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
