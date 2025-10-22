@@ -14,6 +14,10 @@ alias plq="python3 $JOREK_TOOLS/macroscopic_vars_analysis/plot_quantities.py"
 
 alias grept="grep -riI"
 
+c() {
+	python3 $(get_script_dir)/calculator.py "$1"
+}
+
 load_jorek_mod_csd() {
 	module purge
 	module load rhel8/default-icl intel-oneapi-tbb intel-oneapi-mkl fftw
