@@ -28,7 +28,17 @@ function link_xtor_input() {
 	chease_folder=$1
 
 	if [ -d "$chease_folder" ]; then
-		ln -s $chease_folder/ALL_PROFILES $chease_folder/EXPEQ $chease_folder/OUTXTOR .
+		ln -s $chease_folder/ALL_PROFILES $chease_folder/EXPEQ $chease_folder/OUTXTOR $chease_folder/fort.8 .
+	else
+		echo "Folder doesn't exist, exiting."
+	fi
+}
+
+function link_jorek_input() {
+	chease_folder=$1
+
+	if [ -d "$chease_folder" ]; then
+		ln -s $chease_folder/jorek_ffprime $chease_folder/jorek_density $chease_folder/jorek_temperature $chease_folder/inmastu .
 	else
 		echo "Folder doesn't exist, exiting."
 	fi
