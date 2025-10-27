@@ -27,3 +27,7 @@ model_params(){
 compare_ql_to_jorek() {
 	python3 -m experiments.jorek_growth_comparison.compare_growth_rates -ql postproc/output/*jorek_model_m2_n1.zip -jg magnetic_growth_rates_si.dat -je magnetic_energies_si.dat -f postproc/exprs_four2d_s*_absolute_value_n001.dat -t postproc/times.txt -q postproc/qprofile_s00000.dat
 }
+
+model_linear_growth(){
+	python3 -m experiments.jorek_growth_comparison.curvature_stabilisation "$@"
+}

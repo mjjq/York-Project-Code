@@ -36,8 +36,12 @@ if __name__=='__main__':
         formatter_class=ArgumentDefaultsHelpFormatter
 	)
     parser.add_argument(
-        'resistive_interchange', nargs='+', type=float,
+        '-dr', '--resistive-interchange', nargs='+', type=float,
         help="List of resistive interchange values"
+    )
+    parser.add_argument(
+        '-lq', '--lundquist-numbers', nargs='+', type=float,
+        help="Override lundquist numbers (specify as list)"
     )
     parser.add_argument(
         '-ex', '--exprs-averaged',  type=str, default="exprs_averaged_s00000.dat",
@@ -108,6 +112,8 @@ if __name__=='__main__':
     )
 
     resistive_interchange_values = args.resistive_interchange
+    if not resistive_interchange_values:
+        resistive_interchange_values = [0.0]
 
     m_proton = 1.6726e-27
     # See https://www.jorek.eu/wiki/doku.php?id=normalization
@@ -117,25 +123,31 @@ if __name__=='__main__':
     gr_conversion = 1.0
     if args.si_units:
         gr_conversion = alfven_frequency(params.R0, params.B0, rho0)
+        print(params.R0, params.B0, rho0, 1.0/gr_conversion)
 
-    for d_r in resistive_interchange_values:
-        curv_stabilisation = curvature_stabilisation(
-            params.lundquist_number,
-            d_r,
-            mag_shear,
-            params.poloidal_mode_number,
-            params.toroidal_mode_number,
-            outer_solution.r_s
-        )
-        delta_p_eff = delta_p + curv_stabilisation
+    lundquist_numbers = args.lundquist_numbers
+    if not lundquist_numbers:
+        lundquist_numbers = [params.lundquist_number]
 
-        gr = growth_rate_full(
-            params.poloidal_mode_number,
-            params.toroidal_mode_number,
-            params.lundquist_number,
-            outer_solution.r_s,
-            mag_shear,
-            delta_p_eff
-        )
+    for lq in lundquist_numbers:
+        for d_r in resistive_interchange_values:
+            curv_stabilisation = curvature_stabilisation(
+                lq,
+                d_r,
+                mag_shear,
+                params.poloidal_mode_number,
+                params.toroidal_mode_number,
+                outer_solution.r_s
+            )
+            delta_p_eff = delta_p + curv_stabilisation
 
-        print(gr*gr_conversion)
+            gr = growth_rate_full(
+                params.poloidal_mode_number,
+                params.toroidal_mode_number,
+                lq,
+                outer_solution.r_s,
+                mag_shear,
+                delta_p_eff
+            )
+
+            print(gr*gr_conversion)
