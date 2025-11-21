@@ -18,6 +18,14 @@ c() {
 	python3 $(get_script_dir)/calculator.py "$1"
 }
 
+tv() {
+	tmux split-window -v "$@"
+}
+
+th() {
+	tmux split-window -h "$@"
+}
+
 load_jorek_mod_csd() {
 	module purge
 	module load rhel8/default-icl intel-oneapi-tbb intel-oneapi-mkl fftw
