@@ -16,6 +16,9 @@ chease_to_jorek() {
 	echo $central_t
 	cat jorek_temperature_orig | awk -v t0="$central_t" '{print $1 " " ($2 < 1e-6*t0 ? 1e-6*t0 : $2)}' > jorek_temperature
 
+	mv jorek_density jorek_density_1f
+	awk '{print $1 " " 0.5*$2}' jorek_density_1f > jorek_density_2f
+
 	./o.chease_to_cols chease_output.out chease_cols.out
 
 	#source $CHEASE_TOOLS/aliases.sh
@@ -28,7 +31,7 @@ function link_xtor_input() {
 	chease_folder=$1
 
 	if [ -d "$chease_folder" ]; then
-		ln -s $chease_folder/ALL_PROFILES $chease_folder/EXPEQ $chease_folder/OUTXTOR $chease_folder/fort.8 .
+		ln -s $chease_folder/ALL_PROFILES $chease_folder/EXPEQ $chease_folder/OUTXTOR $chease_folder/fort.8 $chease_folder/chease.dat $chease_folder/chease.bin .
 	else
 		echo "Folder doesn't exist, exiting."
 	fi
@@ -38,7 +41,7 @@ function link_jorek_input() {
 	chease_folder=$1
 
 	if [ -d "$chease_folder" ]; then
-		ln -s $chease_folder/jorek_ffprime $chease_folder/jorek_density $chease_folder/jorek_temperature $chease_folder/inmastu .
+		ln -s $chease_folder/jorek_ffprime $chease_folder/jorek_density_*f $chease_folder/jorek_temperature $chease_folder/inmastu .
 	else
 		echo "Folder doesn't exist, exiting."
 	fi

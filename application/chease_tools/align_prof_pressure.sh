@@ -3,14 +3,14 @@
 get_chease_beta() {
 	chease_out_filename=$1
 
-	grep "BETA-AXIS=" $chease_out_filename | awk '{ printf("%.10f\n", $NF) }'
+	grep "BETA-AXIS=" $chease_out_filename | awk '{ printf("%.15f\n", $NF) }'
 }
 
 get_prof_beta() {
 	prof_out_filename=$1
 	
 	# Divide by 100 to convert from percentage to abs value
-	grep -m 1 "beta total (%)" $prof_out_filename | awk '{ printf("%.10f\n", $NF/100) }'
+	grep -m 1 "beta total (%)" $prof_out_filename | awk '{ printf("%.15f\n", $NF/100) }'
 }
 
 approx_equal() {
