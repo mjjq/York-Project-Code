@@ -75,6 +75,12 @@ if __name__=='__main__':
         "results are printed normalised to Alfven frequency",
         default=False
     )
+    parser.add_argument(
+        '-dp', '--output-delta-prime', action='store_true',
+        help="Enable this flag to output r_s Delta' values instead "\
+            "of the growth rate",
+        default=False
+    )
 
     args = parser.parse_args()
 
@@ -129,6 +135,11 @@ if __name__=='__main__':
     if not lundquist_numbers:
         lundquist_numbers = [params.lundquist_number]
 
+    if args.output_delta_prime:
+        print("% r_s Delta'_CL")
+        print(outer_solution.r_s * delta_p)
+        print("% r_s Delta'_crit")
+
     for lq in lundquist_numbers:
         for d_r in resistive_interchange_values:
             curv_stabilisation = curvature_stabilisation(
@@ -141,13 +152,17 @@ if __name__=='__main__':
             )
             delta_p_eff = delta_p + curv_stabilisation
 
-            gr = growth_rate_full(
-                params.poloidal_mode_number,
-                params.toroidal_mode_number,
-                lq,
-                outer_solution.r_s,
-                mag_shear,
-                delta_p_eff
-            )
+            if args.output_delta_prime:
+                print(outer_solution.r_s * abs(curv_stabilisation))
 
-            print(gr*gr_conversion)
+            else:
+                gr = growth_rate_full(
+                    params.poloidal_mode_number,
+                    params.toroidal_mode_number,
+                    lq,
+                    outer_solution.r_s,
+                    mag_shear,
+                    delta_p_eff
+                )
+
+                print(gr*gr_conversion)
