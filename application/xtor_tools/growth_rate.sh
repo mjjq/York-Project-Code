@@ -2,7 +2,7 @@
 
 max_growth_rate_single(){
 	logfile=$1
-	grep -A 1 "taux de croissance n =            1" $logfile | grep magnetic | awk '{print $2}' | sort -rg | head -n 1
+	grep -A 1 "taux de croissance n =            1" $logfile | grep magnetic | awk '{print $2}' | tail -n +100 | sort -rg | head -n 1
 }
 
 get_mks_time(){
