@@ -447,14 +447,14 @@ def curvature_stabilisation_kinetic(diff_width: float,
     return np.sqrt(2)*np.pi**1.5 * resistive_interchange/diff_width
 
 
-def curvature_stabilisation(lundquist_number: float,
+def curvature_stabilisation_threshold(lundquist_number: float,
 			    resistive_interchange: float,
 			    magnetic_shear: float,
 			    poloidal_mode_number: float,
 			    toroidal_mode_number: float,
 			    r_s: float) -> float:
     """
-	Calculate the curvature stabilisation modification to Delta'
+	Calculate the curvature stabilisation Delta' threshold (Delta'_c)
 	(fluid version where diffusion is unimportant (GGJ 1975 result).
 	Full criterion taken from Brunetti's MHD report, eq. 17.56
 
@@ -474,7 +474,7 @@ def curvature_stabilisation(lundquist_number: float,
     const_terms = 1.53929937748165595101
     q_s = poloidal_mode_number/toroidal_mode_number
 
-    return -(
+    return (
         const_terms/r_s *
         (toroidal_mode_number*magnetic_shear*lundquist_number)**(1/3) /
         (1+2.0*q_s**2)**(1/6) *
