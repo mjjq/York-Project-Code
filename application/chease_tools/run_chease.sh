@@ -47,6 +47,16 @@ function link_jorek_input() {
 	fi
 }
 
+function link_chease_files() {
+	i=0
+	for path in $@; do
+		ln -s $path .
+		bname="$(basename $path)"
+		rename $bname chease_$i $bname
+		((i++))
+	done
+}
+
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     run_chease
     chease_to_jorek
