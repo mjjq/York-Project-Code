@@ -17,15 +17,15 @@ from tearing_mode_solver.profiles import (
 from tearing_mode_solver.helpers import savefig, TearingModeParameters
 
 
-def compute_derivatives(y: Tuple[float, float],
-                        r: float,
+def compute_derivatives(r: float,
+                        y: Tuple[float, float],
                         poloidal_mode: int,
                         toroidal_mode: int,
                         B0: float,
                         R0: float,
                         q_profile: callable,
                         dj_dr_profile: callable,
-                        epsilon: float = 1e-6) -> Tuple[float, float]:
+                        epsilon: float = 1e-3) -> Tuple[float, float]:
     """
     Compute derivatives for the perturbed flux outside of the resonant region
     (resistivity and inertia neglected).
@@ -102,14 +102,15 @@ def compute_derivatives(y: Tuple[float, float],
     
     if np.abs(r) < epsilon:
         d2psi_dr2 = psi*m**2
+        #print("psi", psi, r, dpsi_dr, d2psi_dr2)
     else:
         dj_dr = dj_dr_profile(r)
         q = q_profile(r)
         q0 = q_profile(0.0)
         A = 2.0*(q/q0*m*dj_dr)/(n*q - m)
         d2psi_dr2 = psi*(m**2 - A*r) + r*dpsi_dr
+        #print("dj_dr", dj_dr, q, q0, A, r, psi, dpsi_dr, d2psi_dr2)
         
-    #print(dpsi_dr)
 
     return dpsi_dr, d2psi_dr2
 
@@ -154,7 +155,7 @@ def scale_tm_solution(tm: OuterRegionSolution, scale_factor: float)\
 
 def solve_system(params: TearingModeParameters,
                  resolution: float = 1e-4,
-                 r_s_thickness: float = 1e-6) -> OuterRegionSolution:
+                 r_s_thickness: float = 1e-4) -> OuterRegionSolution:
     """
     Generate solution for peturbed flux over the minor radius of a cylindrical
     plasma given the mode numbers of the tearing mode.
@@ -172,7 +173,7 @@ def solve_system(params: TearingModeParameters,
 
     """
     initial_psi = 0.0
-    initial_dpsi_dr = 1.0
+    initial_dpsi_dr = 1e-6
 
     q_profile = params.q_profile
     j_profile = params.j_profile
@@ -216,46 +217,49 @@ def solve_system(params: TearingModeParameters,
     # Solve from axis moving outwards towards rational surface
     r_range_fwd = grid_gaussian_dist(0.0, r_s, r_s_thickness, resolution)
 
-    results_forwards = odeint(
+    fwd_sol = solve_ivp(
         compute_derivatives,
+        (0.0, (1.0-1e-20)*r_s),
         (initial_psi, initial_dpsi_dr),
-        r_range_fwd,
         args = (
             poloidal_mode, toroidal_mode, B0, R0, q_func, dj_dr_func
         ),
-        tcrit=(0.0)
+        tcrit=(r_s),
+        atol=1e-12,
+        rtol=1e-12
     )
 
-    psi_forwards, dpsi_dr_forwards = (
-        results_forwards[:,0], results_forwards[:,1]
-    )
+    r_range_fwd = fwd_sol.t
+    psi_forwards, dpsi_dr_forwards = fwd_sol.y
+
+    # psi_forwards, dpsi_dr_forwards = (
+    #     results_forwards[:,0], results_forwards[:,1]
+    # )
 
     # Solve from minor radius moving inwards towards rational surface
     r_range_bkwd = grid_gaussian_dist(1.0, r_s, r_s_thickness, resolution)
 
-    results_backwards = odeint(
+    bkwd_sol = solve_ivp(
         compute_derivatives,
+        (1.0, (1.0+1e-20)*r_s),
         (initial_psi, -initial_dpsi_dr),
-        r_range_bkwd,
         args = (
             poloidal_mode, toroidal_mode, B0, R0, q_func, dj_dr_func
-        )
+        ),
+        tcrit=(r_s),
+        atol=1e-12,
+        rtol=1e-12
     )
 
-    psi_backwards, dpsi_dr_backwards = (
-        results_backwards[:,0], results_backwards[:,1]
-    )
+    r_range_bkwd = bkwd_sol.t
+    psi_backwards, dpsi_dr_backwards = bkwd_sol.y
+
+    # psi_backwards, dpsi_dr_backwards = (
+    #     results_backwards[:,0], results_backwards[:,1]
+    # )
     #print(psi_backwards)
     #print(dpsi_dr_backwards)
     
-    # Rescale the forwards solution such that its value at the resonant
-    # surface matches the psi of the backwards solution. This is equivalent
-    # to fixing the initial values of the derivatives such that the above
-    # relation is satisfied
-    fwd_res_surface = psi_forwards[-1]
-    bkwd_res_surface = psi_backwards[-1]
-    psi_forwards = psi_forwards * bkwd_res_surface/fwd_res_surface
-    dpsi_dr_forwards = dpsi_dr_forwards * bkwd_res_surface/fwd_res_surface
     
     #print(dpsi_dr_forwards)
     #print(r_range_fwd)
@@ -265,6 +269,16 @@ def solve_system(params: TearingModeParameters,
     # so no need to divide by r^2.
     dpsi_dr_forwards[1:] = dpsi_dr_forwards[1:]/(r_range_fwd[1:]**2)
     dpsi_dr_backwards = dpsi_dr_backwards/(r_range_bkwd**2)
+
+
+    # Rescale the forwards solution such that its value at the resonant
+    # surface matches the psi of the backwards solution. This is equivalent
+    # to fixing the initial values of the derivatives such that the above
+    # relation is satisfied
+    fwd_res_surface = psi_forwards[-1]
+    bkwd_res_surface = psi_backwards[-1]
+    psi_forwards = psi_forwards * bkwd_res_surface/fwd_res_surface
+    dpsi_dr_forwards = dpsi_dr_forwards * bkwd_res_surface/fwd_res_surface
     
     dpsi_dr_f_func = interp1d(
         r_range_fwd, 
