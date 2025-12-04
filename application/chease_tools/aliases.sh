@@ -38,6 +38,6 @@ chease_temperature() {
 }
 
 chease_dr_at_q2() {
-	cat useful_runs.txt | xargs find | grep chease_cols | xargs python3 -m chease_tools.dr_term_at_q -q 2.0
+	python3 -m chease_tools.dr_term_at_q $@ -q 2.0
 }
 
