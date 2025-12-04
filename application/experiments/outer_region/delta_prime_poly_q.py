@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 from tearing_mode_solver.outer_region_solver import solve_system, TearingModeParameters, delta_prime
 
-from tearing_mode_solver.profiles import poly_profiles_coef, poly_profiles_loc
+from tearing_mode_solver.profiles import poly_profiles_coef, poly_profiles_loc, generate_q_profile, generate_j_profile
 
 
 
@@ -14,6 +14,9 @@ if __name__=='__main__':
     q_shape = 1.0
     q_profile, j_profile = poly_profiles_coef([1.5, 0.0, 1.0])
     q_profile, j_profile = poly_profiles_loc(1.8, 2.87, 2.0, 0.5)
+
+    q_profile = generate_q_profile(1.0, 2.0)
+    j_profile = generate_j_profile(1.0, 2.0)
 
 
     params = TearingModeParameters(
