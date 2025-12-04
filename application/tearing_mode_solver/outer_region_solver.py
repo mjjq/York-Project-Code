@@ -219,7 +219,7 @@ def solve_system(params: TearingModeParameters,
 
     fwd_sol = solve_ivp(
         compute_derivatives,
-        (0.0, (1.0-1e-20)*r_s),
+        (0.0, (1.0-r_s_thickness)*r_s),
         (initial_psi, initial_dpsi_dr),
         args = (
             poloidal_mode, toroidal_mode, B0, R0, q_func, dj_dr_func
@@ -241,7 +241,7 @@ def solve_system(params: TearingModeParameters,
 
     bkwd_sol = solve_ivp(
         compute_derivatives,
-        (1.0, (1.0+1e-20)*r_s),
+        (1.0, (1.0+r_s_thickness)*r_s),
         (initial_psi, -initial_dpsi_dr),
         args = (
             poloidal_mode, toroidal_mode, B0, R0, q_func, dj_dr_func
