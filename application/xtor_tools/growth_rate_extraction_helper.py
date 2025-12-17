@@ -28,6 +28,9 @@ def extract_growth_rate(energy_filename: str,
 	t0 = coords[0][0]
 	t1 = coords[1][0]
 
+	if t1 < t0:
+		return 0.0
+
 	w0 = np.interp(t0, t, w_n)
 	w1 = np.interp(t1, t, w_n)
 
