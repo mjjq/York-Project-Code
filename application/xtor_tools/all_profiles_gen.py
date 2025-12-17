@@ -27,7 +27,8 @@ def sample_radial_profile(prof_r: np.array,
 
     return spline(new_prof_r)
 
-def generate_all_profiles_file(r_mesh: np.array,
+def generate_all_profiles_file(n_psi: int,
+                               r_mesh: np.array,
                                density_mesh: np.array,
                                t_ion_mesh: np.array,
                                t_electron_mesh: np.array):
@@ -41,7 +42,7 @@ def generate_all_profiles_file(r_mesh: np.array,
     :param t_ion_mesh: List describing ion temperature at
         each radial point
     """
-    n_p = len(r_mesh)
+    n_p = 2*(n_psi+1)
     if not np.all([
         len(density_mesh)==n_p,
         len(t_electron_mesh)==n_p,
@@ -50,7 +51,7 @@ def generate_all_profiles_file(r_mesh: np.array,
         raise ValueError("All meshes should have the same length!")
 
     with open('ALL_PROFILES', 'w') as f:
-        f.write(f"{n_p} 0 0\n")
+        f.write(f"{n_p}  0  0\n")
         f.write("\n".join([f"{x}" for x in r_mesh]))
         f.write("\n")
         f.write("\n".join([f"{x}" for x in density_mesh]))
@@ -59,6 +60,9 @@ def generate_all_profiles_file(r_mesh: np.array,
         f.write("\n")
         f.write("\n".join([f"{x}" for x in t_electron_mesh]))
         f.write("\n")
+
+        # Write dummy equil quantities
+        f.write("\n".join(["0" for x in range(11)]))
 
 def read_jorek_profile_ascii(filename: str) -> Tuple[np.array, np.array]:
     """
@@ -80,7 +84,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
                            jorek_temp_fname: str,
                            epsilon: float,
                            B0: float,
-                           xtor_lmax: int):
+                           npsi: int):
     """
     Convert JOREK density and temperature profiles to
     a format accepted by XTOR (via ALL_PROFILES)
@@ -91,16 +95,18 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     :param B0: On-axis toroidal field of the system
     :param xtor_lmax: Number of radial points in XTOR
     """
+    xtor_lmax = 2*(npsi) + 1
+    delta_r = 1.0/npsi
     density_rs, density_vals = read_jorek_profile_ascii(jorek_density_fname)
     temp_rs, temp_vals = read_jorek_profile_ascii(jorek_temp_fname)
 
-    d_r_filter = density_rs < 1.0
-    t_r_filter = temp_rs < 1.0
+    # d_r_filter = density_rs < 1.0+delta_r/2.0
+    # t_r_filter = temp_rs < 1.0+delta_r/2.0
 
-    density_rs = density_rs[d_r_filter]
-    density_vals = density_vals[d_r_filter]
-    temp_rs = temp_rs[t_r_filter]
-    temp_vals = temp_vals[t_r_filter]
+    # density_rs = density_rs[d_r_filter]
+    # density_vals = density_vals[d_r_filter]
+    # temp_rs = temp_rs[t_r_filter]
+    # temp_vals = temp_vals[t_r_filter]
 
     # Convert from JOREK units to XTOR units
     temp_vals = temp_vals * (B0*epsilon)**2
@@ -110,7 +116,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     temp_rs_rescale = upscale_profile(temp_rs, xtor_lmax)**0.5
     temp_val_rescale = upscale_profile(temp_vals, xtor_lmax)
 
-    linear_rs_profile = np.linspace(0.0, 1.0, xtor_lmax)
+    linear_rs_profile = np.linspace(0.0, 1.0+delta_r/2.0, xtor_lmax)
     temp_val_rescale = sample_radial_profile(
         temp_rs_rescale,
         temp_val_rescale,
@@ -121,6 +127,17 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
         density_val_rescale,
         linear_rs_profile
     )
+
+    # Now add left padding to arrays. Right padding already
+    # included
+    left_pad_r = [-delta_r/2.0]
+    linear_rs_profile = np.concatenate((left_pad_r, linear_rs_profile))
+
+    left_pad_n = [density_val_rescale[0]]
+    density_val_rescale = np.concatenate((left_pad_n, density_val_rescale))
+
+    left_pad_t = [temp_val_rescale[0]]
+    temp_val_rescale = np.concatenate((left_pad_t, temp_val_rescale))
 
 
     #from matplotlib import pyplot as plt
@@ -133,6 +150,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     #plt.show()
 
     generate_all_profiles_file(
+        npsi,
         linear_rs_profile,
         density_val_rescale,
         0.5*temp_val_rescale,
@@ -168,7 +186,7 @@ if __name__=='__main__':
 
     parser.add_argument('jorek_density', type=str, help="Path to jorek density file")
     parser.add_argument('jorek_temperature', type=str, help="Path to JOREK temperature file")
-    parser.add_argument('-l','--xtor-lmax', type=int, help="XTOR total_lmax")
+    parser.add_argument('-n','--npsi-chease', type=int, help="Number of flux surface (==NPSI in chease)")
     parser.add_argument('-b','--B0', type=float, help="On-axis toroidal field of plasma")
     parser.add_argument('-e','--epsilon',type=float, help="Inverse aspect ratio of plasma (a/R_0)")
 
@@ -179,5 +197,5 @@ if __name__=='__main__':
         args.jorek_temperature,
         args.epsilon,
         args.B0,
-        2*args.xtor_lmax+1
+        args.npsi_chease
     )
