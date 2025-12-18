@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from typing import Tuple
-import f90nml
+from dataclasses import dataclass
 
 def upscale_profile(prof: np.array,
                     new_length: int) -> np.array:
@@ -27,43 +27,70 @@ def sample_radial_profile(prof_r: np.array,
 
     return spline(new_prof_r)
 
-def generate_all_profiles_file(n_psi: int,
-                               r_mesh: np.array,
-                               density_mesh: np.array,
-                               t_ion_mesh: np.array,
-                               t_electron_mesh: np.array):
+@dataclass
+class XTORProfiles:
+    n_psi: int
+    r_mesh: np.array
+    density_mesh: np.array
+    t_ion_mesh: np.array
+    t_electron_mesh: np.array
+
+    # Below quantities are appended to 
+    # ALL_PROFILES. Must be consistent with
+    # XTOR
+    aspct: float
+    B0: float
+    R0: float
+    snumber: float
+    slimit: float
+
+    # These are typically left as default in XTOR
+    norm_density: float = 1e20
+    total_ni0_bulk: float = 1e19
+    qi_bulk: float = 1.0
+    mi_bulk: float = 2.0
+    total_Ti0_bulk: float = 3.0
+    total_Te0: float = 3.0
+
+def generate_all_profiles_file(profiles: XTORProfiles, fname: str = 'ALL_PROFILES'):
     """
     Generate ALL_PROFILES file compatible with XTOR
-
-    :param r_mesh: List describing radial points
-    :param density_mesh: List describing density at each radial point
-    :param t_electron_mesh: List describing electron temperature at
-        each radial point
-    :param t_ion_mesh: List describing ion temperature at
-        each radial point
     """
-    xtor_lmax = n_psi+1
+    xtor_lmax = profiles.n_psi+1
     n_p = 2*xtor_lmax + 1
     if not np.all([
-        len(density_mesh)==n_p,
-        len(t_electron_mesh)==n_p,
-        len(t_ion_mesh)==n_p
+        len(profiles.density_mesh)==n_p,
+        len(profiles.t_electron_mesh)==n_p,
+        len(profiles.t_ion_mesh)==n_p
     ]):
         raise ValueError("All meshes should have the same length!")
 
-    with open('ALL_PROFILES', 'w') as f:
+    with open(fname, 'w') as f:
         f.write(f"{2*xtor_lmax}  0  0\n")
-        f.write("\n".join([f"{x}" for x in r_mesh]))
+        f.write("\n".join([f"{x}" for x in profiles.r_mesh]))
         f.write("\n")
-        f.write("\n".join([f"{x}" for x in density_mesh]))
+        f.write("\n".join([f"{x}" for x in profiles.density_mesh]))
         f.write("\n")
-        f.write("\n".join([f"{x}" for x in t_ion_mesh]))
+        f.write("\n".join([f"{x}" for x in profiles.t_ion_mesh]))
         f.write("\n")
-        f.write("\n".join([f"{x}" for x in t_electron_mesh]))
+        f.write("\n".join([f"{x}" for x in profiles.t_electron_mesh]))
         f.write("\n")
 
-        # Write dummy equil quantities
-        f.write("\n".join(["0" for x in range(11)]))
+        # Write equil quantities
+        dummy_vars = [
+            profiles.aspct,
+            profiles.B0,
+            profiles.R0,
+            profiles.snumber,
+            profiles.slimit,
+            profiles.norm_density,
+            profiles.total_ni0_bulk,
+            profiles.qi_bulk,
+            profiles.mi_bulk,
+            profiles.total_Ti0_bulk,
+            profiles.total_Te0
+        ]
+        f.write("\n".join([f"{v:.10e}" for v in dummy_vars]))
 
 def read_jorek_profile_ascii(filename: str) -> Tuple[np.array, np.array]:
     """
@@ -85,7 +112,10 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
                            jorek_temp_fname: str,
                            epsilon: float,
                            B0: float,
-                           npsi: int):
+                           npsi: int,
+                           R0: float = 0.0,
+                           snumber: float = 0.0,
+                           slimit: float = 0.0) -> XTORProfiles:
     """
     Convert JOREK density and temperature profiles to
     a format accepted by XTOR (via ALL_PROFILES)
@@ -153,13 +183,18 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     #plt.scatter(linear_rs_profile, density_val_rescale)
     #plt.show()
 
-    generate_all_profiles_file(
+    return XTORProfiles(
         npsi,
         linear_rs_profile,
         density_val_rescale,
         0.5*temp_val_rescale,
-        0.5*temp_val_rescale
-    )  
+        0.5*temp_val_rescale,
+        epsilon,
+        B0,
+        R0,
+        snumber,
+        slimit
+    ) 
 
 
 def _compare_upscaled_profile():
@@ -191,15 +226,25 @@ if __name__=='__main__':
     parser.add_argument('jorek_density', type=str, help="Path to jorek density file")
     parser.add_argument('jorek_temperature', type=str, help="Path to JOREK temperature file")
     parser.add_argument('-n','--npsi-chease', type=int, help="Number of flux surface (==NPSI in chease)")
-    parser.add_argument('-b','--B0', type=float, help="On-axis toroidal field of plasma")
-    parser.add_argument('-e','--epsilon',type=float, help="Inverse aspect ratio of plasma (a/R_0)")
+
+    parser.add_argument('-a','--aspct',type=float, help="Inverse aspect ratio of plasma (a/R_0)")
+    parser.add_argument('-b','--B0', type=float, help="On-axis toroidal field of plasma (T)")
+    parser.add_argument('-r','--R0',type=float, help="Major radius of plasma (m)")
+    parser.add_argument('-s','--snumber', type=float, help="On-axis lundquist number")
+    parser.add_argument('-sl','--slimit', type=float, help="Lundquist number limit")
+
 
     args = parser.parse_args()
 
-    jorek_to_xtor_profiles(
+    profiles = jorek_to_xtor_profiles(
         args.jorek_density,
         args.jorek_temperature,
-        args.epsilon,
+        args.aspct,
         args.B0,
-        args.npsi_chease
+        args.npsi_chease,
+        args.R0,
+        args.snumber,
+        args.slimit
     )
+
+    generate_all_profiles_file(profiles)
