@@ -42,7 +42,8 @@ def generate_all_profiles_file(n_psi: int,
     :param t_ion_mesh: List describing ion temperature at
         each radial point
     """
-    n_p = 2*(n_psi+1)
+    xtor_lmax = n_psi+1
+    n_p = 2*xtor_lmax + 1
     if not np.all([
         len(density_mesh)==n_p,
         len(t_electron_mesh)==n_p,
@@ -51,7 +52,7 @@ def generate_all_profiles_file(n_psi: int,
         raise ValueError("All meshes should have the same length!")
 
     with open('ALL_PROFILES', 'w') as f:
-        f.write(f"{n_p}  0  0\n")
+        f.write(f"{2*xtor_lmax}  0  0\n")
         f.write("\n".join([f"{x}" for x in r_mesh]))
         f.write("\n")
         f.write("\n".join([f"{x}" for x in density_mesh]))
@@ -95,7 +96,8 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     :param B0: On-axis toroidal field of the system
     :param xtor_lmax: Number of radial points in XTOR
     """
-    xtor_lmax = 2*(npsi) + 1
+    # Definition of lmax as per XTOR docs
+    xtor_lmax = npsi+1
     delta_r = 1.0/npsi
     density_rs, density_vals = read_jorek_profile_ascii(jorek_density_fname)
     temp_rs, temp_vals = read_jorek_profile_ascii(jorek_temp_fname)
@@ -111,12 +113,14 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     # Convert from JOREK units to XTOR units
     temp_vals = temp_vals * (B0*epsilon)**2
 
-    density_rs_rescale = upscale_profile(density_rs, xtor_lmax)**0.5
-    density_val_rescale = upscale_profile(density_vals, xtor_lmax)
-    temp_rs_rescale = upscale_profile(temp_rs, xtor_lmax)**0.5
-    temp_val_rescale = upscale_profile(temp_vals, xtor_lmax)
+    density_rs_rescale = upscale_profile(density_rs, 2*xtor_lmax)**0.5
+    density_val_rescale = upscale_profile(density_vals, 2*xtor_lmax)
+    temp_rs_rescale = upscale_profile(temp_rs, 2*xtor_lmax)**0.5
+    temp_val_rescale = upscale_profile(temp_vals, 2*xtor_lmax)
 
-    linear_rs_profile = np.linspace(0.0, 1.0+delta_r/2.0, xtor_lmax)
+    # In prof, r(xtor_lmax)=1+delta_r/2 by definition
+    linear_rs_profile = np.linspace(0.0, 1.0+delta_r/2.0, 2*xtor_lmax)
+
     temp_val_rescale = sample_radial_profile(
         temp_rs_rescale,
         temp_val_rescale,
