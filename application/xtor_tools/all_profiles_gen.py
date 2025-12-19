@@ -116,18 +116,32 @@ def generate_expeq_file(profiles: XTORProfiles, fname: str = 'EXPEQ_INIT'):
         s=0
     ).derivative()
 
-    pprime_array = pprime_spline(profiles.r_mesh)
+    # Above spline gives dp/ds. We need dp/psi for CHEASE
+    # which is dp/ds /(2.0*s) (ds/dpsi = 1/(2.0*s))
+    pprime_array = pprime_spline(profiles.r_mesh)/(2.0*profiles.r_mesh)
+    # Convert to CHEASE units
+    pprime_array = pprime_array / profiles.aspct
+
+    # Our pressure is given
+    # in terms of XTOR units to convert to CHEASE units through
+    p_ratio = 0.1*pressure_array[-1] * profiles.aspct**2
+
+    from matplotlib import pyplot as plt
+    fig, ax = plt.subplots(2)
+    ax[0].plot(profiles.r_mesh, pressure_array)
+    ax[1].plot(profiles.r_mesh, pprime_array)
+    plt.show()
 
     # See prof/save_files.f90. Following the format from that.
     with open(fname, 'w') as f:
         f.write(f"{profiles.aspct:.10e}\n")
         f.write(f"{0.0:.10e}\n") # Z=0.0
-        f.write(f"{pressure_array[-1]:.10e}\n") # Edge pressure
+        f.write(f"{p_ratio:.10e}\n") # Edge pressure
         f.write(f"{2*xtor_lmax-2}\n") # Number of data points to write
         f.write(f"1\n") # nsttp=1 for reading FF' in CHEASE
 
         to_write = np.concatenate((
-            profiles.r_mesh[2:-1], # Ignore array padding
+            profiles.r_mesh[2:-1], # Ignore array padding and r=0 index
             pprime_array[2:-1],
             profiles.ffprime_mesh[2:-1]    
         ))
@@ -140,8 +154,6 @@ def read_jorek_profile_ascii(filename: str) -> Tuple[np.array, np.array]:
     Read JOREK ascii profile (two column format)
 
     JOREK profiles are given in terms of psi_N and the quantity
-    of interest.
-
     Convert from psi_N to s via s = sqrt(psi_N)
     """
     data = np.loadtxt(filename)
@@ -180,7 +192,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     # temp_vals = temp_vals[t_r_filter]
 
     # Convert from JOREK units to XTOR units
-    temp_vals = temp_vals * (B0*epsilon)**2
+    temp_vals = temp_vals / (B0*epsilon)**2
     ff_vals = ff_vals / (epsilon*B0)
 
     density_rs_rescale = upscale_profile(density_rs, 2*xtor_lmax)**0.5
