@@ -122,14 +122,18 @@ def generate_expeq_file(profiles: XTORProfiles, fname: str = 'EXPEQ_INIT'):
     # Convert to CHEASE units
     pprime_array = pprime_array / profiles.aspct
 
+    # Convert FF prime to CHEASE units
+    ffprime_array = profiles.ffprime_mesh * profiles.aspct
+
     # Our pressure is given
     # in terms of XTOR units to convert to CHEASE units through
     p_ratio = 0.1*pressure_array[-1] * profiles.aspct**2
 
     from matplotlib import pyplot as plt
-    fig, ax = plt.subplots(2)
+    fig, ax = plt.subplots(3)
     ax[0].plot(profiles.r_mesh, pressure_array)
     ax[1].plot(profiles.r_mesh, pprime_array)
+    ax[2].plot(profiles.r_mesh, ffprime_array)
     plt.show()
 
     # See prof/save_files.f90. Following the format from that.
@@ -143,7 +147,7 @@ def generate_expeq_file(profiles: XTORProfiles, fname: str = 'EXPEQ_INIT'):
         to_write = np.concatenate((
             profiles.r_mesh[2:-1], # Ignore array padding and r=0 index
             pprime_array[2:-1],
-            profiles.ffprime_mesh[2:-1]    
+            ffprime_array[2:-1]    
         ))
 
         f.write("\n".join(f"{x:.10e}" for x in to_write))
@@ -195,6 +199,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     temp_vals = temp_vals / (B0*epsilon)**2
     ff_vals = ff_vals / (epsilon*B0)
 
+    # Rescale from psi_N to s=sqrt(psi_N)
     density_rs_rescale = upscale_profile(density_rs, 2*xtor_lmax)**0.5
     density_val_rescale = upscale_profile(density_vals, 2*xtor_lmax)
     temp_rs_rescale = upscale_profile(temp_rs, 2*xtor_lmax)**0.5
