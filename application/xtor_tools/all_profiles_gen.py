@@ -14,7 +14,7 @@ def upscale_profile(prof: np.array,
     """
     space = np.linspace(0.0, 1.0, len(prof))
 
-    spline = UnivariateSpline(space, prof, s=0.0)
+    spline = UnivariateSpline(space, prof, s=0.0, ext=3)
 
     new_points = np.linspace(0.0, 1.0, new_length)
 
@@ -35,6 +35,7 @@ class XTORProfiles:
     t_ion_mesh: np.array
     t_electron_mesh: np.array
     ffprime_mesh: np.array
+    pprime_mesh: np.array
 
     # Below quantities are appended to 
     # ALL_PROFILES. Must be consistent with
@@ -108,30 +109,31 @@ def generate_expeq_file(profiles: XTORProfiles, fname: str = 'EXPEQ_INIT'):
     ]):
         raise ValueError("All meshes should have the same length!")
 
-    pressure_array = profiles.density_mesh*(profiles.t_electron_mesh + profiles.t_ion_mesh)
+    # pressure_array = profiles.density_mesh*(profiles.t_electron_mesh + profiles.t_ion_mesh)
 
-    pprime_spline = UnivariateSpline(
-        profiles.r_mesh,
-        pressure_array,
-        s=0
-    ).derivative()
+    # pprime_spline = UnivariateSpline(
+    #     profiles.r_mesh,
+    #     pressure_array,
+    #     s=0
+    # ).derivative()
 
-    # Above spline gives dp/ds. We need dp/psi for CHEASE
-    # which is dp/ds /(2.0*s) (ds/dpsi = 1/(2.0*s))
-    pprime_array = pprime_spline(profiles.r_mesh)/(2.0*profiles.r_mesh)
+    # # Above spline gives dp/ds. We need dp/psi for CHEASE
+    # # which is dp/ds /(2.0*s) (ds/dpsi = 1/(2.0*s))
+    # pprime_array = pprime_spline(profiles.r_mesh)/(2.0*profiles.r_mesh)
     # Convert to CHEASE units
-    pprime_array = pprime_array / profiles.aspct
+    pprime_array = profiles.pprime_mesh / profiles.aspct
 
     # Convert FF prime to CHEASE units
     ffprime_array = profiles.ffprime_mesh * profiles.aspct
 
     # Our pressure is given
     # in terms of XTOR units to convert to CHEASE units through
-    p_ratio = 0.1*pressure_array[-1] * profiles.aspct**2
+    pressure_array = profiles.density_mesh*(profiles.t_electron_mesh + profiles.t_ion_mesh)
+    p_ratio = pressure_array[-1]/pressure_array[0]# * profiles.aspct**2
 
     from matplotlib import pyplot as plt
     fig, ax = plt.subplots(3)
-    ax[0].plot(profiles.r_mesh, pressure_array)
+    #ax[0].plot(profiles.r_mesh, pressure_array)
     ax[1].plot(profiles.r_mesh, pprime_array)
     ax[2].plot(profiles.r_mesh, ffprime_array)
     plt.show()
@@ -150,7 +152,7 @@ def generate_expeq_file(profiles: XTORProfiles, fname: str = 'EXPEQ_INIT'):
             ffprime_array[2:-1]    
         ))
 
-        f.write("\n".join(f"{x:.10e}" for x in to_write))
+        f.write("\n".join([f"{x:.10e}" for x in to_write]))
 
 
 def read_jorek_profile_ascii(filename: str) -> Tuple[np.array, np.array]:
@@ -187,6 +189,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     temp_rs, temp_vals = read_jorek_profile_ascii(jorek_temp_fname)
     ff_rs, ff_vals = read_jorek_profile_ascii(jorek_ffprime_fname)
 
+    print(density_rs[0], density_vals[0])
     # d_r_filter = density_rs < 1.0+delta_r/2.0
     # t_r_filter = temp_rs < 1.0+delta_r/2.0
 
@@ -200,15 +203,54 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     ff_vals = ff_vals / (epsilon*B0)
 
     # Rescale from psi_N to s=sqrt(psi_N)
-    density_rs_rescale = upscale_profile(density_rs, 2*xtor_lmax)**0.5
+    density_psi_vals = upscale_profile(density_rs, 2*xtor_lmax)
+    density_rs_rescale = density_psi_vals**0.5
     density_val_rescale = upscale_profile(density_vals, 2*xtor_lmax)
-    temp_rs_rescale = upscale_profile(temp_rs, 2*xtor_lmax)**0.5
+
+    temp_psi_vals = upscale_profile(temp_rs, 2*xtor_lmax)
+    temp_rs_rescale = temp_psi_vals**0.5
     temp_val_rescale = upscale_profile(temp_vals, 2*xtor_lmax)
     ff_rs_rescale = upscale_profile(ff_rs, 2*xtor_lmax)**0.5
     ff_val_rescale = upscale_profile(ff_vals, 2*xtor_lmax)
 
+    # Get pressure as function of psi
+    psi_array = np.linspace(0.0, 1.0, 2*xtor_lmax)
+    # Resample all arrays to ensure they have same radial scale
+    density_psi = sample_radial_profile(
+        density_psi_vals,
+        density_val_rescale,
+        psi_array
+    )
+    temp_psi = sample_radial_profile(
+        temp_psi_vals,
+        temp_val_rescale,
+        psi_array
+    )
+    pressure_psi = density_psi * temp_psi
+    p_psi_spline = UnivariateSpline(
+        psi_array,
+        pressure_psi,
+        s=0
+    )
+
+    dp_dpsi_spline = p_psi_spline.derivative()
+    dp_dpsi = dp_dpsi_spline(psi_array)
+
+    from matplotlib import pyplot as plt
+    plt.plot(psi_array, dp_dpsi)
+
     # In prof, r(xtor_lmax)=1+delta_r/2 by definition
     linear_rs_profile = np.linspace(0.0, 1.0+delta_r/2.0, 2*xtor_lmax)
+
+    # Now resample to get dp_dpsi in terms of s
+    dp_dpsi = sample_radial_profile(
+        psi_array**0.5,
+        dp_dpsi,
+        linear_rs_profile
+    )
+
+    plt.plot(linear_rs_profile, dp_dpsi)
+
 
     temp_val_rescale = sample_radial_profile(
         temp_rs_rescale,
@@ -240,6 +282,9 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     left_pad_ff = [ff_val_rescale[0]]
     ff_val_rescale = np.concatenate((left_pad_ff, ff_val_rescale))
 
+    left_pad_pp = [dp_dpsi[0]]
+    pp_val_rescale = np.concatenate((left_pad_pp, dp_dpsi))
+
 
     #from matplotlib import pyplot as plt
 
@@ -257,6 +302,7 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
         0.5*temp_val_rescale,
         0.5*temp_val_rescale,
         ff_val_rescale,
+        pp_val_rescale,
         epsilon,
         B0,
         R0,
