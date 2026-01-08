@@ -4,6 +4,8 @@ from scipy.interpolate import UnivariateSpline
 from typing import Tuple
 from dataclasses import dataclass
 
+from chease_tools.dr_term_at_q import read_columns
+
 def upscale_profile(prof: np.array,
                     new_length: int) -> np.array:
     """
@@ -65,7 +67,10 @@ def generate_all_profiles_file(profiles: XTORProfiles, fname: str = 'ALL_PROFILE
         len(profiles.t_electron_mesh)==n_p,
         len(profiles.t_ion_mesh)==n_p
     ]):
-        raise ValueError("All meshes should have the same length!")
+        raise ValueError(
+            f"All meshes should have the same length! "
+            f"np={n_p}. Mesh len={len(profiles.density_mesh)}"
+        )
 
     with open(fname, 'w') as f:
         f.write(f"{2*xtor_lmax}  0  0\n")
@@ -310,6 +315,76 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
         slimit
     ) 
 
+def poly(x: float, D1: float, D2: float, D3: float) -> float:
+    return 1.0 + D1*x + D2*x**2 + D3*x**3
+
+def tanh_prof(x: float, D4: float, D5: float) -> float:
+    return 0.5 * (1.0-np.tanh((x-D5)/D4))
+
+def mod_tanh_prof(x: float, 
+                  d: Tuple[float, float], 
+                  D: Tuple[float, float, float, float, float]) -> float:
+    d0, d1 = d
+    D1, D2, D3, D4, D5 = D
+
+    return (d0-d1)*poly(x, D1, D2, D3)*tanh_prof(x, D4, D5) + d1
+
+def chease_cols_to_xtor_profiles(chease_cols_filename: str,
+                                 epsilon: float,
+                                 B0: float,
+                                 R0: float = 0.0,
+                                 snumber: float = 0.0,
+                                 slimit: float = 0.0) -> XTORProfiles:
+    cols = read_columns(chease_cols_filename)
+
+    r = cols.s
+    pressure = cols.p
+
+    psi_n = r**2
+    density = mod_tanh_prof(
+        psi_n, 
+        (1.137, 0.01),
+        (-0.12, -0.1, -0.0, 0.08, 0.96)
+    )
+
+    temperature = pressure/density
+
+    # from matplotlib import pyplot as plt
+    # fig, ax = plt.subplots(2)
+    # ax[0].plot(r, density)
+    # ax[1].plot(r, temperature)
+    # plt.show()
+
+    print(len(r))
+    npsi = (len(r)-1)//2
+
+    delta_r = r[1]-r[0]
+    left_pad_r = [-delta_r]
+    right_pad_r = [r[-1]+delta_r]
+    r = np.concatenate((left_pad_r, r, right_pad_r))
+
+    left_pad_n = [density[0]]
+    right_pad_n = [density[-1]]
+    density = np.concatenate((left_pad_n, density, right_pad_n))
+
+    left_pad_t = [temperature[0]]
+    right_pad_t = [temperature[-1]]
+    temperature = np.concatenate((left_pad_t, temperature, right_pad_t))
+
+    return XTORProfiles(
+        npsi,
+        r,
+        density,
+        0.5*temperature,
+        0.5*temperature,
+        [0.0]*len(r),
+        [0.0]*len(r),
+        epsilon,
+        B0,
+        R0,
+        snumber,
+        slimit
+    )
 
 def _compare_upscaled_profile():
     r_old = np.linspace(-5.0, 5.0, 20)
@@ -333,8 +408,7 @@ def _test_all_profs_gen():
 
     generate_all_profiles_file(r_mesh, n_mesh, ti_mesh, te_mesh)
 
-
-if __name__=='__main__':
+def jorek_to_xtor_interface():
     parser = ArgumentParser()
 
     parser.add_argument('jorek_density', type=str, help="Path to jorek density file")
@@ -364,4 +438,33 @@ if __name__=='__main__':
     )
 
     generate_all_profiles_file(profiles)
-    generate_expeq_file(profiles)
+    generate_expeq_file(profiles)   
+
+def chease_to_xtor_interface():
+    parser = ArgumentParser()
+
+    parser.add_argument('chease_cols', type=str, help="Path to CHEASE columns")
+
+    parser.add_argument('-a','--aspct',type=float, help="Inverse aspect ratio of plasma (a/R_0)")
+    parser.add_argument('-b','--B0', type=float, help="On-axis toroidal field of plasma (T)")
+    parser.add_argument('-r','--R0',type=float, help="Major radius of plasma (m)")
+    parser.add_argument('-s','--snumber', type=float, help="On-axis lundquist number")
+    parser.add_argument('-sl','--slimit', type=float, help="Lundquist number limit")
+
+
+    args = parser.parse_args()
+
+    profiles = chease_cols_to_xtor_profiles(
+        args.chease_cols,
+        args.aspct,
+        args.B0,
+        args.R0,
+        args.snumber,
+        args.slimit
+    )
+
+    generate_all_profiles_file(profiles)
+    #generate_expeq_file(profiles)
+
+if __name__=='__main__':
+    chease_to_xtor_interface()

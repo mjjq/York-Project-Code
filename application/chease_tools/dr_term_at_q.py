@@ -13,6 +13,7 @@ class CheaseColumns():
 	"""
 	s: np.array # s co-ordinate
 	q: np.array # Safety factor
+	p: np.array # Pressure
 	dp_dpsi: np.array # dP/dPsi
 	shear: np.array # Magnetic shear
 	b_avg: np.array # <B>
@@ -32,6 +33,7 @@ def read_columns(filename: str) -> CheaseColumns:
 	return CheaseColumns(
 		s=raw_data[:,0],
 		q=raw_data[:,7],
+		p=raw_data[:,5],
 		dp_dpsi=raw_data[:,6],
 		shear=raw_data[:,9],
 		b_avg=raw_data[:,29],
