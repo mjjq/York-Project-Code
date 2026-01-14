@@ -347,7 +347,8 @@ def chease_cols_to_xtor_profiles(chease_cols_filename: str,
         (-0.12, -0.1, -0.0, 0.08, 0.96)
     )
 
-    temperature = pressure/density
+    # CHEASE to XTOR conversion: p_xtor = eps**2 p_chease
+    temperature = epsilon**2 * pressure/density
 
     # from matplotlib import pyplot as plt
     # fig, ax = plt.subplots(2)
