@@ -127,7 +127,7 @@ batchdiagnostic() {
 
 datarun() {
 	runnumber=$1
-	find $JOREK_DATA -name "*run_$1*" -type d | sort | head -n 1
+	find $PROJ_HOME_OLD -name "*run_$1*" -type d | sort | head -n 1
 }
 
 cdrun() {
