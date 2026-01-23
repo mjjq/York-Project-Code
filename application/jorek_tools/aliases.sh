@@ -173,6 +173,10 @@ gg() {
         --bind 'enter:execute(${EDITOR:-vim} +{2} {1})'
 }
 
+runm(){
+	matlab -nodisplay -nosplash -nodesktop -r "run('$1');"
+}
+
 source $(get_script_dir)/delta_psi_extraction/delta_psi_main.sh
 
 source $(get_script_dir)/postproc_wrapper.sh
