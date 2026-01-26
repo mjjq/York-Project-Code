@@ -61,9 +61,18 @@ def load_ff_vals_from_file(fname: str) -> Tuple[np.array, np.array]:
 
     return r_vals, ff_vals
 
+def apply_tanh_cutoff(r_vals: np.array,
+                      ff_vals: np.array) -> np.array:
+    tanh_cutoff_vals = ff_tanh(r_vals, 0.025, 0.85)
+    return ff_vals * tanh_cutoff_vals
+
 if __name__=='__main__':
     import sys
     fname = sys.argv[1]
 
     r_vals, ff_vals = load_ff_vals_from_file(fname)
-    fit_ffprime_profile(r_vals, ff_vals)
+    #fit_ffprime_profile(r_vals, ff_vals)
+
+    ff_vals_new = apply_tanh_cutoff(r_vals, ff_vals)
+
+    print("\n".join([f"{r:.10f} {ff:.10f}" for r,ff in zip(r_vals, ff_vals_new)]))
