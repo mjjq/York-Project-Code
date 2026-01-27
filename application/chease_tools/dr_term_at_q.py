@@ -22,6 +22,12 @@ class CheaseColumns():
 	d_i: np.array # Ideal mercier interchange
 	shift_prime: np.array # Shafranov shift radial derivative
 	F: np.array # F=RB_phi (F=T in CHEASE)
+	beta_p: np.array # Poloidal beta (propto p/<Bp>**2)
+	r_avg: np.array # Poloidally averaged major radius
+ 	# Poloidally averaged bootstrap current 
+	# (choose the zerocoll version)
+	j_bs: np.array
+		
 
 def read_columns(filename: str) -> CheaseColumns:
 	"""
@@ -41,7 +47,10 @@ def read_columns(filename: str) -> CheaseColumns:
 		d_r=raw_data[:,-7],
 		d_i=raw_data[:,80],
 		shift_prime=raw_data[:,60],
-		F=raw_data[:,3]
+		F=raw_data[:,3],
+		beta_p=raw_data[:,75],
+		r_avg=raw_data[:,25],
+		j_bs=raw_data[:,33]
 	)
 
 
