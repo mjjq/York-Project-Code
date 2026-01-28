@@ -71,6 +71,11 @@ def ql_tm_vs_time():
         default=None
     )
     parser.add_argument(
+        '-c', '--chease-filename', type=str,
+        help='Use chease columns as input',
+        default=None
+    )
+    parser.add_argument(
         '-qm', '--q-scale-factor', type=float,
         help="Constant scale factor for the safety factor profile",
         default=1.0
@@ -87,6 +92,15 @@ def ql_tm_vs_time():
         rs, qs = zip(*params.q_profile)
         qs = args.q_scale_factor * np.array(qs)
         params.q_profile = list(zip(rs, qs))
+        tm = solve_system(params)
+    elif args.chease_filename:
+        from chease_tools.dr_term_at_q import read_columns
+        from chease_tools.get_tm_parameters import get_parameters
+        cols = read_columns(args.chease_filename)
+        params = get_parameters(
+            cols,
+            2,1
+        )
         tm = solve_system(params)
     else:
         params, tm = solution_new_version()

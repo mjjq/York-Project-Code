@@ -7,6 +7,8 @@ from tearing_mode_solver.outer_region_solver import solve_system
 from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
 from tearing_mode_plotter.plot_outer_region import plot_outer_region_solution
 from jorek_tools.quasi_linear_model.get_tm_parameters import get_parameters
+from chease_tools.get_tm_parameters import get_parameters as chease_params
+from chease_tools.dr_term_at_q import read_columns
 from matplotlib import colors, cm
 
 def ql_tm_vs_time():
@@ -19,11 +21,18 @@ def ql_tm_vs_time():
     )
     parser.add_argument(
         '-ex', '--exprs-filename', type=str,
-        help="Use JOREK postproc expressions as input"
+        help="Use JOREK postproc expressions as input",
+        default=""
     )
     parser.add_argument(
         '-q', '--qprofile-filename', type=str,
-        help="Use JOREK qprofile as input"
+        help="Use JOREK qprofile as input",
+        default=""
+    )
+    parser.add_argument(
+        '-c', '--chease-filename', type=str,
+        help="Use CHEASE columns as input",
+        default=""
     )
     parser.add_argument(
         '-m', '--poloidal-mode-number',
@@ -39,14 +48,25 @@ def ql_tm_vs_time():
     )
     args=parser.parse_args()
 
-    params = get_parameters(
-        args.exprs_filename,
-        args.qprofile_filename,
-        args.poloidal_mode_number,
-        args.toroidal_mode_number
-    )
+    if args.exprs_filename and args.qprofile_filename:
+        params = get_parameters(
+            args.exprs_filename,
+            args.qprofile_filename,
+            args.poloidal_mode_number,
+            args.toroidal_mode_number
+        )
+    elif args.chease_filename:
+        cols = read_columns(args.chease_filename)
+        params = chease_params(
+            cols,
+            args.poloidal_mode_number,
+            args.toroidal_mode_number
+        )
+    else:
+        print("Must specify either JOREK or CHEASE inputs! Exiting...")
+        exit()
 
-    b_phi_scale_factors = np.arange(0.7, 1.3, 0.005)
+    b_phi_scale_factors = np.arange(0.8, 1.2, 0.01)
     delta_primes = []
     r_s_vals = []
 
@@ -66,7 +86,7 @@ def ql_tm_vs_time():
 
     fig_w, ax_w = plt.subplots(1, figsize=(6,5))
     ax_w.set_xlabel("w/a")
-    ax_w.set_ylabel("$B_{\phi,0}$ (T)")
+    ax_w.set_ylabel("$B_{\phi,0}/B_{\phi,0,exp}$")
 
     min_dp = np.nanmin(np.array(delta_primes))
     max_dp = np.nanmax(np.array(delta_primes))
@@ -75,7 +95,7 @@ def ql_tm_vs_time():
     else:
         max_dp = -min_dp
 
-    b_phi = params.B0 * b_phi_scale_factors
+    b_phi = b_phi_scale_factors
     im = ax_w.imshow(
         delta_primes, 
         cmap='coolwarm',
