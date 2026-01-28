@@ -27,6 +27,8 @@ class CheaseColumns():
  	# Poloidally averaged bootstrap current 
 	# (choose the zerocoll version)
 	j_bs: np.array
+	# Poloidally averaged j_phi (not including j_bs)
+	j_phi: np.array
 		
 
 def read_columns(filename: str) -> CheaseColumns:
@@ -50,7 +52,8 @@ def read_columns(filename: str) -> CheaseColumns:
 		F=raw_data[:,3],
 		beta_p=raw_data[:,75],
 		r_avg=raw_data[:,25],
-		j_bs=raw_data[:,33]
+		j_bs=raw_data[:,33],
+		j_phi=raw_data[:,10]
 	)
 
 

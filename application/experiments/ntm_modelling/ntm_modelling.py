@@ -1,12 +1,15 @@
 from argparse import ArgumentParser
 import numpy as np
 
+from debug.log import logger
+
 from chease_tools.dr_term_at_q import read_columns, CheaseColumns
+from chease_tools.get_tm_parameters import get_parameters
 from jorek_tools.macroscopic_vars_analysis.plot_quantities import MacroscopicQuantity
 
 from tearing_mode_solver.bootstrap import ntm_bootstrap_term
 from tearing_mode_solver.ggj import ntm_ggj_term
-from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu
+from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
 
 def ggj_term(w: float,
              poloidal_mode_number: float,
@@ -59,11 +62,16 @@ def bootstrap_term(w: float,
     mu0 = 4e-7 * np.pi
     j_bs_rs = j_bs_rs/mu0
 
+    logger.debug(
+        "r_maj, f_val, q_s, shear_rs, j_bs_rs", 
+        r_maj, f_val, q_s, shear_rs, j_bs_rs
+    )
     return ntm_bootstrap_term(
         w, r_maj, f_val, q_s, shear_rs, j_bs_rs, w_d
     )
 
 if __name__=='__main__':
+    logger.setLevel(1)
     parser = ArgumentParser()
 
     parser.add_argument(
@@ -109,10 +117,23 @@ if __name__=='__main__':
         args.wd
     )
 
+    params = get_parameters(
+        chease_cols,
+        args.poloidal_mode_number,
+        args.toroidal_mode_number
+    )
+    loizu_coefs = calculate_coefficients(params)
+    delta_p_classical = delta_prime_loizu(
+        w_vals,
+        loizu_coefs
+    )
+    
+
     from matplotlib import pyplot as plt
+    plt.plot(w_vals, delta_p_classical)
     plt.plot(w_vals, ggj_vals)
     plt.plot(w_vals, bootstrap_vals)
-    plt.plot(w_vals, ggj_vals+bootstrap_vals)
+    plt.plot(w_vals, delta_p_classical+ggj_vals+bootstrap_vals)
     plt.grid()
     plt.show()
 
