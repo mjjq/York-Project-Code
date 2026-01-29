@@ -24,7 +24,7 @@ def ggj_term(w: float,
 
     print(d_r)
 
-    return ntm_ggj_term(w, d_r, beta_p, w_d)
+    return ntm_ggj_term(w, d_r, w_d)
 
 def bootstrap_term(w: float,
                    poloidal_mode_number: float,
@@ -94,12 +94,24 @@ if __name__=='__main__':
         '-wd', "--wd", type=float, default=0.0,
         help="Diffusion width (normalised to minor radius)"
     )
+    parser.add_argument(
+        '-s', "--scale-factor", type=float, default=1.0,
+        help="Scale factor for q-profile (to simulate B_phi ramp)"
+    )
 
     args = parser.parse_args()
 
     chease_cols = read_columns(args.chease_cols_file)
+    chease_cols.q = args.scale_factor*chease_cols.q
 
-    w_vals = np.logspace(-3, -1, 100)
+    q_s = args.poloidal_mode_number/args.toroidal_mode_number
+    r_s = np.interp(
+        q_s,
+        chease_cols.q,
+        chease_cols.eps
+    )
+
+    w_vals = np.logspace(-3, np.log10(0.5), 100)
 
     ggj_vals = ggj_term(
         w_vals, 
@@ -130,11 +142,23 @@ if __name__=='__main__':
     
 
     from matplotlib import pyplot as plt
-    plt.plot(w_vals, delta_p_classical)
-    plt.plot(w_vals, ggj_vals)
-    plt.plot(w_vals, bootstrap_vals)
-    plt.plot(w_vals, delta_p_classical+ggj_vals+bootstrap_vals)
-    plt.grid()
+    fig, ax = plt.subplots(1, figsize=(5,4))
+    ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
+    ax.plot(w_vals, r_s*delta_p_classical, label="$r_s \Delta'_{CL}$", linestyle='--')
+    ax.plot(w_vals, r_s*ggj_vals, label="$r_s \Delta'_{GGJ}$", linestyle='--')
+    ax.plot(w_vals, r_s*bootstrap_vals, label="$r_s \Delta'_{BS}$", linestyle='--')
+    ax.plot(
+        w_vals, 
+        r_s*(delta_p_classical+ggj_vals+bootstrap_vals), 
+        label="$r_s \Delta'_{all}$",
+        color='black'
+    )
+    ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
+    ax.set_xlabel("w/a")
+    ax.set_ylabel("$r_s \Delta'(w)$")
+    ax.legend()
+    ax.grid()
+    fig.tight_layout()
     plt.show()
 
 
