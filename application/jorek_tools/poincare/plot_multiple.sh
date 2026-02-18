@@ -17,16 +17,23 @@ __plq() {
 function gen_poincare() {
 	restart_file=$1
 	restart_no=$(restart_number $restart_file)
-	poincare_rz_filename=$(echo poinc_R-Z_$restart_no.dat)
-	poincare_rt_filename=$(echo poinc_rho-theta_$restart_no.dat)
+	poincare_rz_filename=$(echo poinc_R-Z_$restart_no.txt)
+	poincare_rt_filename=$(echo poinc_rho-theta_$restart_no.txt)
 
 	if [ ! -f $poincare_rz_filename ]; then
-		mv jorek_restart.h5 jorek_restart.h5.old
-		cp $restart_file jorek_restart.h5
+		tmp_folder=tmp_$restart_no
+		mkdir $tmp_folder
+		cd $tmp_folder
+		ln -s ../* .
+		rm jorek_restart.h5
+
+		cp ../$restart_file jorek_restart.h5
 		./jorek2_poincare < inmastu
-		mv poinc_R-Z.dat $poincare_rz_filename
-		mv poinc_rho-theta.dat $poincare_rt_filename
-		mv jorek_restart.h5.old jorek_restart.h5
+		mv poinc_R-Z.dat ../$poincare_rz_filename
+		mv poinc_rho-theta.dat ../$poincare_rt_filename
+
+		cd ../
+		rm -r $tmp_folder
 	fi
 }
 
@@ -53,4 +60,11 @@ function plot_poincare_multiple() {
 	do
 		plot_poincare $var
 	done
+}
+
+
+function gen_poincare_parallel() {
+	export -f gen_poincare
+	export -f restart_number
+	ls jorek[0-9]*.h5 | xargs -t -P $1 -I {} bash -c 'gen_poincare "{}"'
 }
