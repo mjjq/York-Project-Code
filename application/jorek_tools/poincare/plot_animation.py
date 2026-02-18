@@ -23,7 +23,7 @@ if __name__=='__main__':
         "-ms", "--marker-size", type=float, help="Size of scatter markers", default=0.125
     )
     parser.add_argument(
-        "-t", "--timestep-map", type=str, help="Path to timestep->time map", default=None
+        "-t", "--timestep-map", type=str, help="Path to timestep->time map", default="time_map.txt"
     )
     parser.add_argument(
         "-p", "--plot-interactive", action="store_true", help="Whether to plot interactively"
@@ -58,9 +58,12 @@ if __name__=='__main__':
 
     
     tstep_map = None
-    if args.timestep_map:
-        tstepmap = read_timestep_map(args.timestep_map)
-        ax.set_title(f"Time {tstepmap.times[0]:.2g}s")
+    try:
+        tstep_map = read_timestep_map(args.timestep_map)
+        ax.set_title(f"Time {tstep_map.times[0]:.2g}s")
+    except Exception as e:
+        print(e)
+        print("Unable to load timestep map. Plotting without...")
 
     sp = ax.scatter(
         frames[0][:,0], frames[0][:,1],
@@ -75,11 +78,11 @@ if __name__=='__main__':
             pos = int(pos)
             sp.set_offsets(frames[pos])
 
-            if args.timestep_map:
+            if tstep_map:
                 time = np.interp(
                     timesteps[pos],
-                    tstepmap.time_steps,
-                    tstepmap.times
+                    tstep_map.time_steps,
+                    tstep_map.times
                 )
                 ax.set_title(f"Time {time:.4g}s")
 
@@ -95,18 +98,19 @@ if __name__=='__main__':
         fig.tight_layout()
         print("Saving animations...")
         from matplotlib.animation import FuncAnimation
+        import os
         def animate(pos):
             pos = int(pos)
             sp.set_offsets(frames[pos])
 
-            if args.timestep_map:
+            if tstep_map:
                 time = np.interp(
                     timesteps[pos],
-                    tstepmap.time_steps,
-                    tstepmap.times
+                    tstep_map.time_steps,
+                    tstep_map.times
                 )
                 ax.set_title(f"Time {time:.4g}s")
-                
+
             return (sp,)
 
         ani = FuncAnimation(fig, animate, frames=len(frames)-1)
@@ -116,12 +120,18 @@ if __name__=='__main__':
         else:
             file_prefix = "poinc_rho-theta"
 
+        folder = "poincare_output"
         try:
-            ani.save(f"{file_prefix}.mp4", writer="ffmpeg",dpi=150)
+            os.mkdir(folder)
+        except FileExistsError:
+            print(f"{folder} already exists.")
+
+        try:
+            ani.save(f"{folder}/{file_prefix}.mp4", writer="ffmpeg",dpi=150)
         except:
             print("Couldn't save as .mp4. Missing ffmpeg. Trying .gif...")
-            ani.save(f"{file_prefix}.gif", writer="imagemagick",dpi=150)
-        ani.save(f"{file_prefix}.png", writer="imagemagick",dpi=300)
+            ani.save(f"{folder}/{file_prefix}.gif", writer="imagemagick",dpi=150)
+        ani.save(f"{folder}/{file_prefix}.png", writer="imagemagick",dpi=300)
 
 
 

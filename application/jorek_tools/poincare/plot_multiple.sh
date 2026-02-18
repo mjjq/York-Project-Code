@@ -38,27 +38,13 @@ function gen_poincare() {
 }
 
 function plot_poincare() {
-	restart_file=$1
-	gen_poincare $restart_file
-	restart_no=$(restart_number $restart_file)
-	poincare_rz_filename=$(echo poinc_R-Z_$restart_no.dat)
-	__plq -f $poincare_rz_filename -t o -xl "R (m)" -yl "Z (m)" -ms 0.25 -a equal -o poinc_R-Z_$restart_no.png
-
-	poincare_rt_filename=$(echo poinc_rho-theta_$restart_no.dat) 
-	__plq -f $poincare_rt_filename -t o -xl "$\rho/a$" -yl "$\theta$ (rad)" -fs 4 4 -ms 0.25 -o poinc_rho-theta_$restart_no.png 
+	python3 -m jorek_tools.poincare.plot_animation "$@"
 }
 
 function gen_poincare_multiple() {
 	for var in "$@"
 	do
 		gen_poincare $var
-	done
-}
-
-function plot_poincare_multiple() {
-	for var in "$@"
-	do
-		plot_poincare $var
 	done
 }
 
