@@ -177,6 +177,10 @@ runm(){
 	matlab -nodisplay -nosplash -nodesktop -r "run('$1');"
 }
 
+helena(){
+	~/software/helena/bin/hel13_64_freia
+}
+
 source $(get_script_dir)/delta_psi_extraction/delta_psi_main.sh
 
 source $(get_script_dir)/postproc_wrapper.sh
