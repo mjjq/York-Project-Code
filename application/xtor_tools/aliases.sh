@@ -8,6 +8,7 @@ load_xtor_mod_csd() {
 	module load intel-oneapi-mkl
 	module load fftw
 	module load petsc/3.17-icl
+	module load netcdf-fortran
 }
 
 xtorpythonenv() {
