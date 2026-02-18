@@ -142,7 +142,7 @@ if __name__=='__main__':
         tstep_map
     )
 
-    fig, ax = plt.subplots(1)
+    fig, ax = plt.subplots(1, figsize=(5,4))
 
     for i,mode in enumerate(args.poloidal_modes):
         psi_vs_time = sols[i].psi_t
@@ -151,12 +151,13 @@ if __name__=='__main__':
 
     ax.legend()
     ax.grid()
+    ax.set_yscale('log')
 
     ax.set_xlabel('Time step (arb)')
     if args.time_map_filename:
         ax.set_xlabel("Time (s)")
 
-    ax.set_ylabel(r"$\delta\psi$ (arb)")
+    ax.set_ylabel(r"$\delta\psi(r_s)$ (arb)")
 
     fig.tight_layout()
     plt.show()
