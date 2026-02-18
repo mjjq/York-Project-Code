@@ -263,12 +263,13 @@ def read_four2d_profile_filter(four2d_filename: str,
 
 @dataclass
 class PostprocProfile:
-    psi_norm: np.ndarray
-    r_minor: np.ndarray
-    prof: np.ndarray
+    x_vals: np.ndarray
+    y_vals: np.ndarray
     timestep: int
 
-def read_postproc_profiles(postproc_filename: str, prof_index: int = 1) -> List[PostprocProfile]:
+def read_postproc_profiles(postproc_filename: str, 
+                           x_index: int = 0,
+                           y_index: int = 1) -> List[PostprocProfile]:
     """
     Read a postproc output file and return arrays of 
     Psi_N vs profile given the index of the profile to be read.
@@ -285,19 +286,26 @@ def read_postproc_profiles(postproc_filename: str, prof_index: int = 1) -> List[
     ret: List[PostprocProfile] = []
     for raw_profile in split_data:
         # Some regex magic.
-        timestep = int(re.findall(
-            r'#(\d+)', raw_profile
-        )[0])
+        try:
+            timestep = int(re.findall(
+                r'#(\d+)', raw_profile
+            )[0])
+        except IndexError:
+            # Couldn't find a timestep
+            timestep = 0
 
-        profile_data = np.loadtxt(StringIO(raw_profile))
-        psi_n_data = profile_data[:,0]
-        r_minor_data = profile_data[:,1]
-        prof_data = profile_data[:,prof_index]
+        try:
+            profile_data = np.loadtxt(StringIO(raw_profile))
+        except ValueError:
+            # Sometimes the comment is denoted by a percent
+            # symbol. Retry if this is the case
+            profile_data = np.loadtxt(StringIO(raw_profile), comments="%")
+        x_data = profile_data[:,x_index]
+        y_data = profile_data[:,y_index]
 
         profile: PostprocProfile = PostprocProfile(
-            psi_norm = psi_n_data,
-            r_minor=r_minor_data,
-            prof = prof_data,
+            x_vals = x_data,
+            y_vals = y_data, 
             timestep=timestep
         )
 
@@ -321,7 +329,7 @@ def test_postproc_read():
     for i,prof in enumerate(profs):
         cnorm = i/len(profs)
 
-        plt.plot(prof.psi_norm, prof.prof, color=cmap(cnorm))
+        plt.plot(prof.x_vals, prof.y_vals, color=cmap(cnorm))
 
     plt.show()
 

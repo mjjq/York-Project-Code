@@ -3,6 +3,11 @@ import numpy as np
 from argparse import ArgumentParser
 from typing import List, Optional, Tuple
 
+from jorek_tools.jorek_dat_to_array import (
+	read_postproc_profiles, PostprocProfile,
+	read_timestep_map, TimestepMap
+)
+
 
 class MacroscopicQuantity:
 	"""
@@ -99,8 +104,9 @@ class MacroscopicQuantity:
 			self.y_errors = None
 
 
-def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
+def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 								labels: Optional[List[str]],
+								time_map: Optional[TimestepMap],
 								x_axis_label: Optional[str],
 								y_axis_label: Optional[str],
 								x_scale: str,
@@ -119,11 +125,7 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 
 	ax.set_aspect(aspect_ratio)
 	xlabel = x_axis_label
-	if xlabel is None:
-		xlabel = quantities[0].x_val_name
 	ylabel = y_axis_label
-	if ylabel is None:
-		ylabel = quantities[0].y_val_name
 
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
@@ -132,27 +134,40 @@ def plot_macroscopic_quantities(quantities: List[MacroscopicQuantity],
 	ax.set_yscale(y_scale)
 	ax.set_xscale(x_scale)
 
-	if labels is None:
-		labels = [mq.y_val_name for mq in quantities]
-	for label, mac_quantity in zip(labels, quantities):
-		ax.errorbar(
-			mac_quantity.x_values,
-			mac_quantity.y_values,
-			fmt=marker_style,
-			xerr=mac_quantity.x_errors,
-			yerr=mac_quantity.y_errors,
-			label=label,
-			capsize=2.0,
-			markersize=marker_size
-		)
+	cmap = plt.cm.coolwarm
+
+	if labels is not None:
+		for i,pair in enumerate(zip(labels, quantities)):
+			label, mac_quantity = pair
+			color = cmap(i/len(quantities))
+			ax.errorbar(
+				mac_quantity.x_vals,
+				mac_quantity.y_vals,
+				fmt=marker_style,
+				label=label,
+				capsize=2.0,
+				markersize=marker_size,
+				color=color
+			)
+		if len(quantities) > 1:
+			ax.legend()
+	else:
+		for i,q in enumerate(quantities):
+			color = cmap(i/len(quantities))
+			ax.errorbar(
+				q.x_vals,
+				q.y_vals,
+				fmt=marker_style,
+				capsize=2.0,
+				markersize=marker_size,
+				color=color
+			)
 
 	if xmin:
 		ax.set_xlim(left=xmin)
 	if xmax:
 		ax.set_xlim(right=xmax)
 
-	if len(quantities) > 1:
-		ax.legend()
 
 	if 'lin' in x_scale:
 		ax.ticklabel_format(axis='x', style='sci', scilimits=(-2, 2), useOffset=True)
@@ -188,6 +203,9 @@ if __name__ == "__main__":
 	parser.add_argument('-yl', '--y-label', help="Name of y-axis quantity")
 	parser.add_argument(
 		'-l', '--labels', nargs='+', help="Legend labels for each input file"
+	)
+	parser.add_argument(
+		'-tm', '--time-map', type=str, help="Path to timestep-> time file", default=None
 	)
 	parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
 	parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
@@ -226,22 +244,24 @@ if __name__ == "__main__":
 	# 		quantities.append(mq)
 	if args.ycolumn_index:
 		for filename in args.files:
-			mq = MacroscopicQuantity(filename)
-			mq.load_x_values_by_index(args.xcolumn_index)
-			mq.load_y_values_by_index(args.ycolumn_index)
-			if args.x_error_index is not None:
-				mq.load_x_errors_by_index(args.x_error_index)
-			if args.y_error_index is not None:
-				mq.load_y_errors_by_index(args.y_error_index)
+
+			mq = read_postproc_profiles(filename, args.xcolumn_index, args.ycolumn_index)
 			quantities.append(mq)
+
+	quantities = np.array(quantities).flatten()
 
 	labels = None
 	if args.labels:
 		labels = args.labels
 
+	time_map = None
+	if args.time_map:
+		time_map = read_timestep_map(args.time_map)
+
 	plot_macroscopic_quantities(
 		quantities,
 		labels,
+		time_map,
 		args.x_label,
 		args.y_label,
 		args.x_scale,
