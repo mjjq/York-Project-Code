@@ -261,6 +261,69 @@ def read_four2d_profile_filter(four2d_filename: str,
         poloidal_mode_number
     )
 
+@dataclass
+class PostprocProfile:
+    psi_norm: np.ndarray
+    r_minor: np.ndarray
+    prof: np.ndarray
+    timestep: int
+
+def read_postproc_profiles(postproc_filename: str, prof_index: int = 1) -> List[PostprocProfile]:
+    """
+    Read a postproc output file and return arrays of 
+    Psi_N vs profile given the index of the profile to be read.
+    """ 
+    split_data = []
+    with open(postproc_filename, 'r') as f:
+        raw_data = f.read()
+
+        # Data for each m/n mode is split by a 
+        # double line-break separated by a space
+        # i.e. "\n \n"
+        split_data = raw_data.split("\n \n")
+
+    ret: List[PostprocProfile] = []
+    for raw_profile in split_data:
+        # Some regex magic.
+        timestep = int(re.findall(
+            r'#(\d+)', raw_profile
+        )[0])
+
+        profile_data = np.loadtxt(StringIO(raw_profile))
+        psi_n_data = profile_data[:,0]
+        r_minor_data = profile_data[:,1]
+        prof_data = profile_data[:,prof_index]
+
+        profile: PostprocProfile = PostprocProfile(
+            psi_norm = psi_n_data,
+            r_minor=r_minor_data,
+            prof = prof_data,
+            timestep=timestep
+        )
+
+        ret.append(profile)
+
+    return ret
+
+def test_postproc_read():
+    import sys
+    from matplotlib import colormaps
+
+    pp_filename = sys.argv[1]
+
+    from matplotlib import pyplot as plt
+    
+    profs = read_postproc_profiles(pp_filename)
+
+    profs = profs
+
+    cmap = plt.cm.coolwarm
+    for i,prof in enumerate(profs):
+        cnorm = i/len(profs)
+
+        plt.plot(prof.psi_norm, prof.prof, color=cmap(cnorm))
+
+    plt.show()
 
 def main():
     import sys
@@ -350,4 +413,4 @@ def test():
     plot_profiles(profiles)
 
 if __name__=='__main__':
-    main()
+    test_postproc_read()
