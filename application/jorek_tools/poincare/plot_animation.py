@@ -1,7 +1,9 @@
 from argparse import ArgumentParser
 import numpy as np
-
 from matplotlib import pyplot as plt
+import re
+
+from jorek_tools.jorek_dat_to_array import read_timestep_map
 
 if __name__=='__main__':
     parser = ArgumentParser()
@@ -21,6 +23,9 @@ if __name__=='__main__':
         "-ms", "--marker-size", type=float, help="Size of scatter markers", default=0.125
     )
     parser.add_argument(
+        "-t", "--timestep-map", type=str, help="Path to timestep->time map", default=None
+    )
+    parser.add_argument(
         "-p", "--plot-interactive", action="store_true", help="Whether to plot interactively"
     )
     args = parser.parse_args()
@@ -31,6 +36,7 @@ if __name__=='__main__':
     frames = [
         np.loadtxt(f) for f in args.files
     ]
+    timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
 
 
     is_rz_plot = np.all(['R-Z' in f for f in args.files])
@@ -50,35 +56,61 @@ if __name__=='__main__':
     if(np.all(args.z_range)):
         ax.set_ylim(args.z_range)
 
+    
+    tstep_map = None
+    if args.timestep_map:
+        tstepmap = read_timestep_map(args.timestep_map)
+        ax.set_title(f"Time {tstepmap.times[0]:.2g}s")
+
     sp = ax.scatter(
         frames[0][:,0], frames[0][:,1],
         marker=".",
         s=args.marker_size
     )
 
+
     if args.plot_interactive:
         from matplotlib.widgets import Slider
         def bar(pos):
             pos = int(pos)
             sp.set_offsets(frames[pos])
+
+            if args.timestep_map:
+                time = np.interp(
+                    timesteps[pos],
+                    tstepmap.time_steps,
+                    tstepmap.times
+                )
+                ax.set_title(f"Time {time:.4g}s")
+
             fig.canvas.draw()
 
         barpos = plt.axes([0.18,0.0,0.65,0.03], facecolor="skyblue")
-        slider = Slider(barpos, "Frame", 0, len(frames), valinit=0, valstep=1)
+        slider = Slider(barpos, "Frame", 0, len(frames)-1, valinit=0, valstep=1)
         slider.on_changed(bar)
         fig.tight_layout()
         plt.show()
 
     else:
+        fig.tight_layout()
         print("Saving animations...")
         from matplotlib.animation import FuncAnimation
         def animate(pos):
             pos = int(pos)
             sp.set_offsets(frames[pos])
+
+            if args.timestep_map:
+                time = np.interp(
+                    timesteps[pos],
+                    tstepmap.time_steps,
+                    tstepmap.times
+                )
+                ax.set_title(f"Time {time:.4g}s")
+                
             return (sp,)
 
-        ani = FuncAnimation(fig, animate, frames=len(frames))
-        
+        ani = FuncAnimation(fig, animate, frames=len(frames)-1)
+
         if(is_rz_plot):
             file_prefix = "poinc_R-Z"
         else:
