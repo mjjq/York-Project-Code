@@ -1,4 +1,6 @@
 from matplotlib import pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 import numpy as np
 from argparse import ArgumentParser
 from typing import List, Optional, Tuple
@@ -152,16 +154,38 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 		if len(quantities) > 1:
 			ax.legend()
 	else:
+		color_vals = np.arange(0,len(quantities))
+		cbar_label = "Normalised timestep"
+		if time_map:
+			q_timesteps = [q.timestep for q in quantities]
+			q_times = np.interp(
+				q_timesteps,
+				time_map.time_steps,
+				time_map.times
+			)
+			color_vals = q_times
+			cbar_label = "Time (s)"
+
+		normalise = mcolors.Normalize(
+			vmin=min(color_vals), vmax=max(color_vals)
+		)
+
 		for i,q in enumerate(quantities):
-			color = cmap(i/len(quantities))
+			c_val = color_vals[i]
 			ax.errorbar(
 				q.x_vals,
 				q.y_vals,
 				fmt=marker_style,
 				capsize=2.0,
 				markersize=marker_size,
-				color=color
+				color=cmap(normalise(c_val))
 			)
+
+		if(len(quantities) > 1):
+			scalarmappaple = cm.ScalarMappable(norm=normalise, cmap=cmap)
+			scalarmappaple.set_array(color_vals)
+			cbar = fig.colorbar(scalarmappaple, ax=ax)
+			cbar.ax.set_ylabel(cbar_label)
 
 	if xmin:
 		ax.set_xlim(left=xmin)
@@ -176,6 +200,11 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 
 	plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 	plt.tight_layout()
+
+	def on_resize(event):
+		fig.tight_layout()
+		fig.canvas.draw()
+	cid = fig.canvas.mpl_connect("resize_event", on_resize)
 
 	if output_filename:
 		plt.savefig(output_filename, dpi=300, bbox_inches='tight')
