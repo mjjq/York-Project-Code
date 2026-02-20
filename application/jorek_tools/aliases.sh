@@ -29,7 +29,7 @@ th() {
 load_jorek_mod_csd() {
 	module purge
 	module load rhel8/default-icl intel-oneapi-tbb intel-oneapi-mkl fftw
-	export HDF5_HOME="/usr/local/Cluster-Apps/hdf5/impi/1.8.9"
+	export HDF5_HOME="/usr/local/Cluster-Apps/hdf5/mpi/intel/2019.3/1.10.5"
 	export SZIP_LIB="/usr/local/Cluster-Apps/szip/2.1/lib"
 }
 
@@ -188,3 +188,5 @@ source $(get_script_dir)/postproc_wrapper.sh
 source $(get_script_dir)/quasi_linear_model/model_params.sh
 
 source $(get_script_dir)/poincare/plot_multiple.sh
+
+source $(get_script_dir)/profile_evolution/get_all_profiles.sh
