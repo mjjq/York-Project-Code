@@ -63,7 +63,7 @@ def load_ff_vals_from_file(fname: str) -> Tuple[np.array, np.array]:
 
 def apply_tanh_cutoff(r_vals: np.array,
                       ff_vals: np.array) -> np.array:
-    tanh_cutoff_vals = ff_tanh(r_vals, 0.025, 0.85)
+    tanh_cutoff_vals = ff_tanh(r_vals, 0.005, 0.95)
     return ff_vals * tanh_cutoff_vals
 
 if __name__=='__main__':
