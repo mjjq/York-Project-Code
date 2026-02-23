@@ -1,0 +1,73 @@
+# Configuration file for jorek
+
+# model directory
+MODEL = model710
+
+# Fortran compiler 
+FC               = mpiifort
+CC               = mpiicc
+CXX              = mpiicpc
+FFLAGS_OMP       = -qopenmp -mt_mpi
+FFLAGS           = -r8 -i4 -fpp -msse4.2 -align
+FFLAGS          := $(FFLAGS) -O3 -mcmodel=medium -DUSE_BLOCK
+
+# --- DEBUGGING
+#   --- Debug symbols for debuggers
+DEBUGFLAGS  = #-g -p
+#DEBUGFLAGS += -warn all,nounused -check all,noarg_temp_created -debug all -debug-parameters -fstack-security-check -traceback
+
+FFLAGS_FIXEDFORM := $(FFLAGS) $(DEBUGFLAGS) $(FFLAGS_OMP)
+FFLAGS_NOBOUNDS  := $(FFLAGS)               $(FFLAGS_OMP)
+FFLAGS           := $(FFLAGS) $(DEBUGFLAGS) $(FFLAGS_OMP)
+
+FFLAGS_NO_OMP    = $(FFLAGS) $(DEBUGFLAGS)
+
+# Solvers dependencies
+USE_HIPS   = 0
+USE_PASTIX = 1
+USE_PASTIX_MURGE = 1
+USE_MUMPS  = 0
+USE_WSMP   = 0
+USE_FFTW = 1
+USE_HDF5 = 1
+
+#Scotch library
+SCOTCH_HOME  = $(SCOTCH_INSTALL)
+LIB_SCOTCH   = -L$(SCOTCH_HOME)/lib -lptscotch -lptscotcherr
+INC_SCOTCH   = -I$(SCOTCH_HOME)/include
+
+# PASTIX
+PASTIX_HOME=$(PASTIX_INSTALL)
+#LIB_PASTIX       = -L$(PASTIX_HOME)/lib -lpastix_murge -lpastix $(LIB_SCOTCH) $(LIB_HWLOC)
+#LIB_PASTIX_MURGE = -L$(PASTIX_HOME)/lib -lpastix_murge -lpastix $(LIB_SCOTCH)
+#LIB_PASTIX_BLAS  = 
+#INC_PASTIX       = -I$(PASTIX_HOME)/include $(INC_SCOTCH)
+
+LIB_PASTIX        = $(shell $(PASTIX_HOME)/pastix-conf --libs) 
+LIB_PASTIX_MURGE  = $(shell $(PASTIX_HOME)/pastix-conf --libs_murge)
+LIB_PASTIX_BLAS   = $(shell $(PASTIX_HOME)/pastix-conf --blas)
+INC_PASTIX        = $(shell $(PASTIX_HOME)/pastix-conf --incs)
+
+# LIBFFTW
+FFTW_HOME = /usr/local/software/spack/spack-views/rocky8-icelake-20220710/fftw-3.3.10/intel-2021.6.0/intel-oneapi-mpi-2021.6.0/uqgpuef76pscvsrakd7gwnmdki5yk6hk/
+INC_FFTW = -I$(FFTW_HOME)/include
+LIBFFTW = $(FFTW_HOME)/lib/libfftw3.a
+
+#LAPACK
+MKL_INC  = $(MKLROOT)/include/
+MKL_LIB  = $(MKLROOT)/lib/intel64
+LIBLAPACK = -L$(MKL_LIB)  -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -limf
+SCALAP    = -L$(MKL_LIB)  -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64
+
+#HDF5
+HDF5_HOME   = /usr/local/Cluster-Apps/hdf5/mpi/intel/2019.3/1.10.5
+SZIP_LIB = /usr/local/Cluster-Apps/szip/2.1/lib
+
+HDF5INCLUDE = $(HDF5_HOME)/include
+HDF5LIB     = $(HDF5_HOME)/lib/libhdf5hl_fortran.a \
+              $(HDF5_HOME)/lib/libhdf5_hl.a \
+              $(HDF5_HOME)/lib/libhdf5_fortran.a \
+              $(HDF5_HOME)/lib/libhdf5.a \
+	      $(SZIP_LIB)/libsz.a -lz
+
+LIBDIERCKX = $(PROJ_HOME)/libs/libdierckx/libdierckx.a
