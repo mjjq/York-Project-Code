@@ -2,6 +2,7 @@ import argparse
 from typing import List
 import numpy as np
 from matplotlib import pyplot as plt
+import os
 
 from jorek_tools.jorek_dat_to_array import (
     read_four2d_profile, filter_four2d_mode,
@@ -14,7 +15,7 @@ if __name__=='__main__':
         "surface as a function of time"
     )
     parser.add_argument(
-        '-f', '--fourier-data',
+        'fourier_data',
         help='Fourier data postproc file',
         type=str
     )
@@ -34,6 +35,11 @@ if __name__=='__main__':
         '-t', '--time-map-filename',
         help='Location of file containing map between timestep and SI time',
         type=str
+    )
+    parser.add_argument(
+        '-p', '--plot-interactive',
+        help="Whether to plot interactively. If not specified, default behaviour is to save",
+        action="store_true"
     )
 
     args = parser.parse_args()
@@ -58,13 +64,28 @@ if __name__=='__main__':
         time = np.interp(
             modes[0].timestep, tstep_map.time_steps, tstep_map.times
         )
-        title = f"Time: {time:.2g} s"
+        title = f"Time: {time:.4g} s"
 
     ax.set_title(title)
     ax.legend()
     ax.grid()
     ax.set_xlabel(r'$\psi_N$')
-    ax.set_ylabel(r"$\delta\psi$ (arb)")
+
+    if('absolute' in args.fourier_data):
+        ax.set_ylabel(r"$|\delta\psi|$ (arb)")
+    else:
+        ax.set_ylabel(r"$\delta\psi$ phase (rad)")
 
     fig.tight_layout()
-    plt.show()
+
+    if args.plot_interactive:
+        plt.show()
+    else:
+        basename, ext = os.path.splitext(os.path.basename(args.fourier_data))
+        try:
+            os.mkdir("postproc_plots")
+            plt.savefig(f"postproc_plots/{basename}.pdf")
+        except FileExistsError:
+            plt.savefig(f"postproc_plots/{basename}.pdf")
+        except:
+            plt.savefig(f"{basename}.pdf")

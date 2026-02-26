@@ -32,5 +32,5 @@ function plot_delta_psi_time()
 
 function plot_delta_psi_psin()
 {
-    python3 -m jorek_tools.delta_psi_extraction.plot_delta_psi_vs_psin -f $1 -t postproc/times.txt
+    python3 -m jorek_tools.delta_psi_extraction.plot_delta_psi_vs_psin "$@" -t postproc/times.txt
 }
