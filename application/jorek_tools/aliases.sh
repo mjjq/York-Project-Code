@@ -112,8 +112,8 @@ batchplotqprof() {
 get_tstep() {
 	logfile=$1
 	plot=$2
-	grep "time step" $logfile | awk '{print $8}' > t_step.tmp
-	grep t_now $logfile | awk '{print $NF}' | sed 's/)://' > t_now.tmp
+	grep -a "time step" $logfile | awk '{print $8}' > t_step.tmp
+	grep -a t_now $logfile | awk '{print $NF}' | sed 's/)://' > t_now.tmp
 	paste t_now.tmp t_step.tmp | head -n -1 > tnow_tstep.txt
 	if [[ "$plot" == "-p" ]]
 	then
