@@ -109,6 +109,8 @@ class MacroscopicQuantity:
 def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 								labels: Optional[List[str]],
 								time_map: Optional[TimestepMap],
+								time_min: Optional[float],
+								time_max: Optional[float],
 								x_axis_label: Optional[str],
 								y_axis_label: Optional[str],
 								x_scale: str,
@@ -136,7 +138,7 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 	ax.set_yscale(y_scale)
 	ax.set_xscale(x_scale)
 
-	cmap = plt.cm.coolwarm
+	cmap = plt.cm.jet
 
 	if labels is not None:
 		for i,pair in enumerate(zip(labels, quantities)):
@@ -166,8 +168,14 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 			color_vals = q_times
 			cbar_label = "Time (s)"
 
+		min_color = min(color_vals)
+		if time_min:
+			min_color = time_min
+		max_color = max(color_vals)
+		if time_max:
+			max_color = time_max
 		normalise = mcolors.Normalize(
-			vmin=min(color_vals), vmax=max(color_vals)
+			vmin=min_color, vmax=max_color
 		)
 
 		for i,q in enumerate(quantities):
@@ -224,7 +232,7 @@ if __name__ == "__main__":
 	parser.add_argument('-f', '--files',  nargs='+')
 	parser.add_argument('-xi', '--xcolumn-index', type=int, default=0)
 	#parser.add_argument('-c', '--columns', nargs='+')
-	parser.add_argument('-yi', '--ycolumn-index', type=int, default=1)
+	parser.add_argument('-yi', '--ycolumn-index', type=int, nargs="+", default=[1])
 	parser.add_argument('-xerr', '--x-error-index', type=int, default=None)
 	parser.add_argument('-yerr', '--y-error-index', type=int, default=None)
 	parser.add_argument(
@@ -235,6 +243,12 @@ if __name__ == "__main__":
 	)
 	parser.add_argument(
 		'-tm', '--time-map', type=str, help="Path to timestep-> time file", default=None
+	)
+	parser.add_argument(
+		'-t0', '--time-min', type=float, help="Min time filter", default=None
+	)
+	parser.add_argument(
+		'-t1', '--time-max', type=float, help="Max time filter", default=None
 	)
 	parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
 	parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
@@ -261,7 +275,6 @@ if __name__ == "__main__":
 	parser.add_argument('-a', '--aspect-ratio', help="Axes aspect ratio", default='auto')
 	parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
 	args = parser.parse_args()
-
 	quantities = []
 	# if args.columns:
 	# 	assert len(args.files)==len(args.columns), \
@@ -273,9 +286,9 @@ if __name__ == "__main__":
 	# 		quantities.append(mq)
 	if args.ycolumn_index:
 		for filename in args.files:
-
-			mq = read_postproc_profiles(filename, args.xcolumn_index, args.ycolumn_index)
-			quantities.append(mq)
+			for yi in args.ycolumn_index:
+				mq = read_postproc_profiles(filename, args.xcolumn_index, yi)
+				quantities.append(mq)
 
 	quantities = np.array(quantities).flatten()
 
@@ -291,6 +304,8 @@ if __name__ == "__main__":
 		quantities,
 		labels,
 		time_map,
+		args.time_min,
+		args.time_max,
 		args.x_label,
 		args.y_label,
 		args.x_scale,
