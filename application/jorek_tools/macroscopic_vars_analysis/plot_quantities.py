@@ -138,9 +138,9 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 	ax.set_yscale(y_scale)
 	ax.set_xscale(x_scale)
 
-	cmap = plt.cm.jet
 
 	if labels is not None:
+		cmap = plt.cm.tab10
 		for i,pair in enumerate(zip(labels, quantities)):
 			label, mac_quantity = pair
 			color = cmap(i/len(quantities))
@@ -150,12 +150,13 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 				fmt=marker_style,
 				label=label,
 				capsize=2.0,
-				markersize=marker_size,
-				color=color
+				markersize=marker_size
+				#color=color
 			)
 		if len(quantities) > 1:
 			ax.legend()
 	else:
+		cmap = plt.cm.jet
 		color_vals = np.arange(0,len(quantities))
 		cbar_label = "Normalised timestep"
 		if time_map:
