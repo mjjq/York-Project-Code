@@ -41,3 +41,8 @@ chease_dr_at_q2() {
 	python3 -m chease_tools.dr_term_at_q $@ -q 2.0
 }
 
+chease_tools_dir() {
+	cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd
+}
+
+source $(chease_tools_dir)/chease_analysis.sh
