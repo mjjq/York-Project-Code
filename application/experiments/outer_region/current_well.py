@@ -4,7 +4,10 @@ from argparse import ArgumentParser
 from scipy.special import erf
 from typing import Tuple
 
-from tearing_mode_solver.outer_region_solver import delta_prime_non_linear, solve_system, delta_prime
+from tearing_mode_solver.outer_region_solver import (
+    delta_prime_non_linear, solve_system, delta_prime,
+    OuterRegionSolution
+)
 from tearing_mode_solver.helpers import (
     savefig, 
     savecsv, 
@@ -74,12 +77,20 @@ def q_profile_gauss_mod(gauss_amp: float,
 
     return list(zip(x, q))
 
-def solution_new_version():
+def solution_new_version(gauss_amp: float, 
+                         gauss_loc: float, 
+                         gauss_width: float, 
+                         equil_width: float, 
+                         q0: float)\
+        -> Tuple[TearingModeParameters, OuterRegionSolution]:
+    """
+    Solve outer region for a gaussian current profile.
+    """
     from tearing_mode_solver.profiles import generate_j_profile, generate_q_profile
 
-    A, x0, b, a = 0.5, 0.7, 0.125, 0.53
+    A, x0, b, a = gauss_amp, gauss_loc, gauss_width, equil_width
     j_profile = j_profile_gauss_mod(A, x0, b, a)
-    q_profile = q_profile_gauss_mod(A, x0, b, a, 1.45)
+    q_profile = q_profile_gauss_mod(A, x0, b, a, q0)
 
     # fig, axs = plt.subplots(2)
     # r, q = zip(*q_profile)
@@ -105,6 +116,48 @@ def solution_new_version():
     print("Finished outer solution")
 
     return params, outer_sol
+
+def plot_inputs(params: TearingModeParameters, ax3 = None):
+    if ax3 is None:
+        fig3, ax3 = plt.subplots(2, sharex=True)
+
+    axj, axq = ax3
+    axj.grid(True); axq.grid(True)
+
+    axj.set_ylabel("$J_\phi$ (arb)")
+    axq.set_ylabel("q")
+
+    axq.set_xlabel("r/a")
+
+    rs, js = zip(*params.j_profile)
+    axj.plot(rs, js)
+
+    rs, qs = zip(*params.q_profile)
+    axq.plot(rs, qs)
+
+def loop_gaussian_solns():
+    gauss_amps = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    gauss_loc = 0.7
+    gauss_width = 0.125
+    equil_width = 0.53
+    q0 = 1.3
+
+    fig_inp, ax_inp = plt.subplots(2)
+
+    dps = []
+    for gauss_amp in gauss_amps:
+        params, sol = solution_new_version(
+            gauss_amp, gauss_loc, gauss_width, equil_width, q0
+        )
+
+        dps.append(delta_prime(sol))
+
+        plot_inputs(params, ax_inp)
+
+    fig, ax = plt.subplots(1)
+    ax.plot(gauss_amps, dps)
+
+
 
 def ql_tm_vs_time():
     """
@@ -215,4 +268,6 @@ def ql_tm_vs_time():
     return
 
 if __name__=='__main__':
-    ql_tm_vs_time()
+    loop_gaussian_solns()
+
+    plt.show()
