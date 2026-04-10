@@ -18,6 +18,24 @@ load_jorek_mod_csd() {
 	export SZIP_LIB="/usr/local/Cluster-Apps/szip/2.1/lib"
 }
 
+load_jorek_mod_pita(){
+    module purge
+    module load gcc/12.3.0
+    module load openmpi/4.1.6--gcc--12.3.0
+    module load openblas/0.3.26--gcc--12.3.0
+    module load netlib-scalapack/2.2.0--openmpi--4.1.6--gcc--12.3.0
+    module load fftw/3.3.10--openmpi--4.1.6--gcc--12.3.0
+    module load boost/1.85.0--openmpi--4.1.6--gcc--12.3.0
+    module load hdf5/1.14.3--openmpi--4.1.6--gcc--12.3.0
+    module load metis/5.1.0--gcc--12.3.0
+    module load parmetis/4.0.3--openmpi--4.1.6--gcc--12.3.0
+    module load netcdf-fortran/4.6.1--openmpi--4.1.6--gcc--12.3.0
+
+    # Other module loads
+    # module load python/3.11.7
+}
+
+
 jtvtk() {
         $JOREK_UTIL/convert2vtk.sh -j 32 "$@" ./jorek2vtk ./inmastu
 }
