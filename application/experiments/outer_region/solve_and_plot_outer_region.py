@@ -80,6 +80,12 @@ def ql_tm_vs_time():
         help="Constant scale factor for the safety factor profile",
         default=1.0
     )
+    parser.add_argument(
+        '-bs', '--include-bootstrap', action='store_true',
+        help="Whether to add bootstrap current profile to regular j_phi profile "
+        "Note: Only implemented for JOREK inputs, not CHEASE.",
+        default=False
+    )
     args=parser.parse_args()
 
     if args.exprs_filename:
@@ -87,7 +93,8 @@ def ql_tm_vs_time():
         params = get_parameters(
             args.exprs_filename,
             args.qprofile_filename,
-            2, 1
+            2, 1,
+            args.include_bootstrap
         )
         rs, qs = zip(*params.q_profile)
         qs = args.q_scale_factor * np.array(qs)
