@@ -18,10 +18,10 @@ export XTOR=$HPC_SOFTWARE/xtor_k
 export JOREK=$HPC_SOFTWARE/jorek
 export JOREK_UTIL=$JOREK/util
 
-export YP_CODE=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/
-export JOREK_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/jorek_tools
-export CHEASE_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/chease_tools
-export XTOR_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/xtor_tools
+export YP_CODE=$HPC_SOFTWARE/York-Project-Code/application/
+export JOREK_TOOLS=$YP_CODE/jorek_tools
+export CHEASE_TOOLS=$YP_CODE/chease_tools
+export XTOR_TOOLS=$YP_CODE/xtor_tools
 
 alias sq="squeue --user=mquantri"
 
