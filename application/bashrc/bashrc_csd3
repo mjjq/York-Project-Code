@@ -1,0 +1,58 @@
+# User specific aliases and functions
+
+# Source this file in your ~/.bashrc. 
+
+# Set HPC_SOFTWARE to folder containing all software (jorek, libs, this code, etc.)
+export HPC_SOFTWARE=/home/ir-quan1/rds/rds-ukaea-shared-bLH38hg3nf0/ir-quan1/
+# Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
+export HPC_DATA=/home/ir-quan1/rds/rds-ukaea-ap002-mOlK9qn0PlQ/ir-quan1/ 
+
+
+
+# Libraries for CSD3
+export SCOTCH_DIR=$HPC_SOFTWARE/libs/scotch_5.1.12_esmumps
+export SCOTCH_INSTALL=$SCOTCH_DIR/install
+export HDF5=/usr/local/Cluster-Apps/hdf5/impi/1.8.9
+export SZIP=/usr/local/Cluster-Apps/szip/2.1/lib
+#export HWLOC=/usr/local/Cluster-Apps/hwloc/1.8/
+export HWLOC=/usr/local/software/spack/spack-views/rocky8-icelake-20220710/hwloc-2.7.1/intel-2021.6.0/kymznbgdzlhavmw75auud5pnyjfbeorc/
+export JOREK_LIBS=$HPC_SOFTWARE/libs
+export GKLIB_HOME=$JOREK_LIBS/GKlib/install/
+export METIS_HOME=$JOREK_LIBS/METIS/install/
+export PARMETIS_HOME=$JOREK_LIBS/ParMETIS/install/
+export STRUMPACK_HOME=$JOREK_LIBS/STRUMPACK-7.1.0/install/
+export PASTIX_DIR=$HPC_SOFTWARE/libs/pastix_5.2.3/
+export PASTIX_INSTALL=$PASTIX_DIR/install
+
+export JOREK=$HPC_SOFTWARE/jorek
+export JOREK_MODELS=$HPC_DATA/jorek_models
+export JOREK_UTIL=$JOREK/util
+export JOREK_DATA=$HPC_DATA/jorek_data
+
+export YP_CODE=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/
+export JOREK_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/jorek_tools
+
+export CHEASE_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/chease_tools
+
+export XTOR=$HPC_SOFTWARE/xtor_k
+export XTOR_DATA=$HPC_DATA/xtor_data
+export XTOR_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/xtor_tools
+
+export MASTU=$HPC_DATA/mastu_equilibria
+
+export JX_DATA=$HPC_DATA/jorek_xtor_benchmark_data
+
+alias sqip="squeue -p ukaea-icl | grep Priority"
+alias sqsp="squeue -p ukaea-spr | grep Priority"
+alias jsintr="sintr -A ukaea-ap002-cpu -p ukaea-icl"
+alias sq="squeue --user=ir-quan1"
+
+source $YP_CODE/bashrc/generic_aliases
+
+# Disable "smart" tab completion (stops it from escaping $ symbols
+shopt -u progcomp 
+
+# Set unlimited to avoid segfault in JOREK
+#ulimit -s unlimited
+
+#source ~/load_modules.sh

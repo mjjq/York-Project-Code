@@ -6,25 +6,10 @@ get_script_dir() {
 	cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd
 }
 
-alias analysis-venv="source $PROJ_HOME/jorek_analysis/York-Project-Code/venv/bin/activate"
 
 alias plg="$JOREK_UTIL/plot_grids.sh"
 alias pld="$JOREK_UTIL/plot_live_data.sh"
 alias plq="python3 $JOREK_TOOLS/macroscopic_vars_analysis/plot_quantities.py"
-
-alias grept="grep -riI"
-
-c() {
-	python3 $(get_script_dir)/calculator.py "$1"
-}
-
-tv() {
-	tmux split-window -v "$@"
-}
-
-th() {
-	tmux split-window -h "$@"
-}
 
 load_jorek_mod_csd() {
 	module purge
@@ -125,19 +110,6 @@ batchdiagnostic() {
 	cat useful_runs.txt | parallel 'cd {}; ./jorek2_postproc < $JOREK_TOOLS/diagnostics.pp'
 }
 
-datarun() {
-	runnumber=$1
-	find $PROJ_HOME_OLD -name "*run_$1*" -type d | sort | head -n 1
-}
-
-cdrun() {
-	runnumber=$1
-	cd "$(datarun $1)"
-}
-
-cdl() {
-	cd $(realpath $1 | xargs dirname)
-}
 
 get_latest_h5_in_folder() {
 	find $1 | grep -P 'jorek[0-9].*\.h5' | sort -r | head -n 1
@@ -152,30 +124,6 @@ gather_restart_files() {
 	done
 }
 
-cdlr() {
-	cd $(find . -name "run_*" -printf "%T@ %Tc %p\n" | sort -n | tail -1 | awk '{print $NF}')
-}
-
-
-alias fzf='~/applications/fzf'
-gg() {
-  git grep --line-number --untracked . \
-  | fzf --ansi --delimiter : \
-        --preview '
-          FILE=$(echo {} | cut -d: -f1);
-          LINE=$(echo {} | cut -d: -f2);
-          START=$((LINE - 10));
-          [ $START -lt 1 ] && START=1;
-          END=$((LINE + 10));
-          sed -n "${START},${END}p" "$FILE" 2>/dev/null
-        ' \
-        --preview-window=up:60% \
-        --bind 'enter:execute(${EDITOR:-vim} +{2} {1})'
-}
-
-runm(){
-	matlab -nodisplay -nosplash -nodesktop -r "run('$1');"
-}
 
 helena(){
 	~/software/helena/bin/hel13_64_freia

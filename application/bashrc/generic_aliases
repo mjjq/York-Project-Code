@@ -1,0 +1,57 @@
+alias refresh-tmux="eval \$(tmux showenv -s | grep -E '^(SSH|DISPLAY)')"
+alias emacs="emacs -nw"
+
+alias analysis-venv="source $HPC_SOFTWARE/venv/bin/activate"
+
+alias grept="grep -riI"
+
+
+datarun() {
+	runnumber=$1
+	find $HPC_DATA -name "*run_$1*" -type d | sort | head -n 1
+}
+
+cdrun() {
+	runnumber=$1
+	cd "$(datarun $1)"
+}
+
+cdl() {
+	cd $(realpath $1 | xargs dirname)
+}
+
+cdlr() {
+	cd $(find . -name "run_*" -printf "%T@ %Tc %p\n" | sort -n | tail -1 | awk '{print $NF}')
+}
+
+tv() {
+	tmux split-window -v "$@"
+}
+
+th() {
+	tmux split-window -h "$@"
+}
+
+alias fzf='~/applications/fzf'
+gg() {
+  git grep --line-number --untracked . \
+  | fzf --ansi --delimiter : \
+        --preview '
+          FILE=$(echo {} | cut -d: -f1);
+          LINE=$(echo {} | cut -d: -f2);
+          START=$((LINE - 10));
+          [ $START -lt 1 ] && START=1;
+          END=$((LINE + 10));
+          sed -n "${START},${END}p" "$FILE" 2>/dev/null
+        ' \
+        --preview-window=up:60% \
+        --bind 'enter:execute(${EDITOR:-vim} +{2} {1})'
+}
+
+runm(){
+	matlab -nodisplay -nosplash -nodesktop -r "run('$1');"
+}
+
+source $JOREK_TOOLS/aliases.sh
+source $CHEASE_TOOLS/aliases.sh
+source $XTOR_TOOLS/aliases.sh
