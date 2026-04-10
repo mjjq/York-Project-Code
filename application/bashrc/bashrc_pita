@@ -1,0 +1,36 @@
+# User specific aliases and functions
+
+# Source this file in your ~/.bashrc. 
+
+# Set HPC_SOFTWARE to folder containing all software (jorek, libs, this code, etc.)
+export HPC_SOFTWARE=/pitagora/home/userexternal/mquantri/software
+# Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
+export HPC_DATA=/pitagora_scratch/userexternal/mquantri
+
+
+export JOREK_MODELS=$HPC_DATA/jorek_models
+export JOREK_DATA=$HPC_DATA/jorek_data
+export XTOR_DATA=$HPC_DATA/xtor_data
+export MASTU=$HPC_DATA/mastu_equilibria
+export JX_DATA=$HPC_DATA/jorek_xtor_benchmark_data
+
+export XTOR=$HPC_SOFTWARE/xtor_k
+export JOREK=$HPC_SOFTWARE/jorek
+export JOREK_UTIL=$JOREK/util
+
+export YP_CODE=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/
+export JOREK_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/jorek_tools
+export CHEASE_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/chease_tools
+export XTOR_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/xtor_tools
+
+alias sq="squeue --user=mquantri"
+
+source $YP_CODE/bashrc/generic_aliases
+
+# Disable "smart" tab completion (stops it from escaping $ symbols
+shopt -u progcomp 
+
+# Set unlimited to avoid segfault in JOREK
+#ulimit -s unlimited
+
+#source ~/load_modules.sh
