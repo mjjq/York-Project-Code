@@ -204,8 +204,8 @@ def jorek_to_xtor_profiles(jorek_density_fname: str,
     # temp_vals = temp_vals[t_r_filter]
 
     # Convert from JOREK units to XTOR units
-    temp_vals = temp_vals / (B0*epsilon)**2
-    ff_vals = ff_vals / (epsilon*B0)
+    #temp_vals = temp_vals / (B0*epsilon)**2
+    #ff_vals = ff_vals / (epsilon*B0)
 
     # Rescale from psi_N to s=sqrt(psi_N)
     density_psi_vals = upscale_profile(density_rs, 2*xtor_lmax)
@@ -409,6 +409,18 @@ def _test_all_profs_gen():
 
     generate_all_profiles_file(r_mesh, n_mesh, ti_mesh, te_mesh)
 
+def write_xtor_profiles(profiles: XTORProfiles):
+    with open("bulk_density", 'w') as f:
+        f.write("".join([f"{y:.10f}\n" for x,y in zip(profiles.r_mesh, profiles.density_mesh)]))
+    with open("bulk_ion_temp", 'w') as f:
+        f.write("".join([f"{y:.10f}\n" for x,y in zip(profiles.r_mesh, profiles.t_ion_mesh)]))
+    with open("bulk_electron_temp", 'w') as f:
+        f.write("".join([f"{y:.10f}\n" for x,y in zip(profiles.r_mesh, profiles.t_electron_mesh)]))
+    with open("FFprime", 'w') as f:
+        f.write("".join([f"{y:.10f}\n" for x,y in zip(profiles.r_mesh, profiles.ffprime_mesh)]))
+
+
+
 def jorek_to_xtor_interface():
     parser = ArgumentParser()
 
@@ -440,6 +452,7 @@ def jorek_to_xtor_interface():
 
     generate_all_profiles_file(profiles)
     generate_expeq_file(profiles)   
+    #write_xtor_profiles(profiles)
 
 def chease_to_xtor_interface():
     parser = ArgumentParser()
@@ -468,4 +481,4 @@ def chease_to_xtor_interface():
     #generate_expeq_file(profiles)
 
 if __name__=='__main__':
-    chease_to_xtor_interface()
+    jorek_to_xtor_interface()
