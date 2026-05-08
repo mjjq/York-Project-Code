@@ -3,7 +3,7 @@
 # Source this file in your ~/.bashrc. 
 
 # Set HPC_SOFTWARE to folder containing all software (jorek, libs, this code, etc.)
-export HPC_SOFTWARE=/home/ir-quan1/rds/rds-ukaea-shared-bLH38hg3nf0/ir-quan1/
+export HPC_SOFTWARE=/home/ir-quan1/software/
 # Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
 export HPC_DATA=/home/ir-quan1/rds/rds-ukaea-ap002-mOlK9qn0PlQ/ir-quan1/ 
 
