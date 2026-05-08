@@ -7,6 +7,8 @@ export HPC_SOFTWARE=/pitagora/home/userexternal/mquantri/software
 # Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
 export HPC_DATA=/pitagora_scratch/userexternal/mquantri
 
+export FZF_EDITOR=nvim
+
 export PROJ_HOME=/pitagora/home/userexternal/mquantri/software
 
 export JOREK_MODELS=$HPC_DATA/jorek_models

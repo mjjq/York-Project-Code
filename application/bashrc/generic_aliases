@@ -33,6 +33,7 @@ th() {
 }
 
 alias fzf='$HPC_SOFTWARE/fzf'
+
 gg() {
   git grep --line-number --untracked . \
   | fzf --ansi --delimiter : \
@@ -45,7 +46,7 @@ gg() {
           sed -n "${START},${END}p" "$FILE" 2>/dev/null
         ' \
         --preview-window=up:60% \
-        --bind 'enter:execute(${EDITOR:-nvim} +{2} {1})'
+        --bind 'enter:execute(${FZF_EDITOR} +{2} {1})'
 }
 
 runm(){

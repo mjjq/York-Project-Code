@@ -7,7 +7,7 @@ export HPC_SOFTWARE=/home/ir-quan1/software/
 # Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
 export HPC_DATA=/home/ir-quan1/rds/rds-ukaea-ap002-mOlK9qn0PlQ/ir-quan1/ 
 
-
+export FZF_EDITOR=vim
 
 # Libraries for CSD3
 export SCOTCH_DIR=$HPC_SOFTWARE/libs/scotch_5.1.12_esmumps
@@ -46,6 +46,7 @@ alias sqip="squeue -p ukaea-icl | grep Priority"
 alias sqsp="squeue -p ukaea-spr | grep Priority"
 alias jsintr="sintr -A ukaea-ap002-cpu -p ukaea-icl"
 alias sq="squeue --user=ir-quan1"
+alias nvim="vim"
 
 source $YP_CODE/bashrc/generic_aliases
 
