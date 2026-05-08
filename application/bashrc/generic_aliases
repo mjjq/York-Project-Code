@@ -52,6 +52,10 @@ runm(){
 	matlab -nodisplay -nosplash -nodesktop -r "run('$1');"
 }
 
+sbatchdep() {
+	sbatch --dependency=afterany:$2 --export=ALL,PREV_JOB_ID=$2 $1
+}
+
 source $JOREK_TOOLS/aliases.sh
 source $CHEASE_TOOLS/aliases.sh
 source $XTOR_TOOLS/aliases.sh

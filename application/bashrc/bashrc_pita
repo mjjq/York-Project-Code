@@ -7,6 +7,7 @@ export HPC_SOFTWARE=/pitagora/home/userexternal/mquantri/software
 # Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
 export HPC_DATA=/pitagora_scratch/userexternal/mquantri
 
+export PROJ_HOME=/pitagora/home/userexternal/mquantri/software
 
 export JOREK_MODELS=$HPC_DATA/jorek_models
 export JOREK_DATA=$HPC_DATA/jorek_data
@@ -25,10 +26,11 @@ export XTOR_TOOLS=$YP_CODE/xtor_tools
 
 alias sq="squeue --user=mquantri"
 alias tmux="$HPC_SOFTWARE/tmux-3.6a/tmux"
+PATH=$PATH:$WORK/JOREK_LIBRARIES/new_gnuplot/bin/
 
 source $YP_CODE/bashrc/generic_aliases
 
-# Disable "smart" tab completion (stops it from escaping $ symbols
+# Disable "smart" tab completion (stops it from escaping $ symbolsi
 shopt -u progcomp 
 
 # Set unlimited to avoid segfault in JOREK

@@ -215,14 +215,19 @@ def read_four2d_profile(four2d_filename: str) -> List[Four2DProfile]:
         # Data for each m/n mode is split by a 
         # double line-break separated by a space
         # i.e. "\n \n"
-        split_data = raw_data.split("\n \n")
+        # split_data = raw_data.split("\n \n")
+        split_data = re.split('\n \n|\n\n', raw_data)
 
     ret: List[Four2DProfile] = []
     for raw_profile in split_data:
         # Some regex magic.
-        poloidal_mode_str, toroidal_mode_str = re.findall(
-            r'[+-]\d{3}', raw_profile
-        )
+        try:
+            poloidal_mode_str, toroidal_mode_str = re.findall(
+                r'[+-]\d{3}', raw_profile
+            )
+        except ValueError as e:
+            print(raw_profile)
+            raise(e)
 
         profile_data = np.loadtxt(StringIO(raw_profile))
         psi_n_data = profile_data[:,0]
@@ -403,7 +408,16 @@ class TimestepMap:
 def read_timestep_map(map_filename: str) -> TimestepMap:
     data=np.genfromtxt(map_filename)
 
-    tsteps, times = zip(*data)
+    # Unzip data if array is 2D, i.e. if there is more than one
+    # timestep in data
+    if(len(data.shape)==2):
+        tsteps, times = zip(*data)
+    else:
+        tsteps, times = data
+        # These variables will have type float, but need to be
+        # of array type
+        tsteps=[tsteps]
+        times=[times]
 
     return TimestepMap(tsteps, times)
 
