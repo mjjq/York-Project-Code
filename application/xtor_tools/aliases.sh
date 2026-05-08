@@ -11,6 +11,17 @@ load_xtor_mod_csd() {
 	module load netcdf-fortran
 }
 
+load_xtor_mod_pita() {
+	module purge
+
+	module load intel-oneapi-tbb
+	module load intel-oneapi-mkl
+	module load intel-oneapi-compilers
+	module load fftw
+	module load petsc
+	module load netcdf-fortran
+}
+
 xtorpythonenv() {
 	export PYTHONPATH=$PROJ_HOME/xtor_python
 	source $PROJ_HOME/xtor_python/.venv/bin/activate
