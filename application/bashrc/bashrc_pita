@@ -30,6 +30,8 @@ alias sq="squeue --user=mquantri"
 alias tmux="$HPC_SOFTWARE/tmux-3.6a/tmux"
 PATH=$PATH:$WORK/JOREK_LIBRARIES/new_gnuplot/bin/
 
+alias inode="srun -N 1 --ntasks-per-node=1 --cpus-per-task=4 -t 06:00:00 -p dcgp_fua_prod -A FUPA2_JOREKUK --pty /bin/bash"
+
 source $YP_CODE/bashrc/generic_aliases
 
 # Disable "smart" tab completion (stops it from escaping $ symbolsi
