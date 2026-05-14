@@ -286,7 +286,8 @@ def read_postproc_profiles(postproc_filename: str,
         # Data for each m/n mode is split by a 
         # double line-break separated by a space
         # i.e. "\n \n"
-        split_data = raw_data.split("\n \n")
+        #split_data = raw_data.split("\n \n")
+        split_data = re.split('\n \n|\n\n', raw_data)
 
     ret: List[PostprocProfile] = []
     for raw_profile in split_data:
