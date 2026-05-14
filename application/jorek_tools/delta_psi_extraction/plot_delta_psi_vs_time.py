@@ -121,6 +121,10 @@ if __name__=='__main__':
         help='Toroidal mode number',
         default=1,
     )
+    parser.add_argument(
+        '-o', '--output-filename', type=str,
+        help="Output filename for plot. Use .txt extension to output as text."
+    )
 
     args = parser.parse_args()
 
