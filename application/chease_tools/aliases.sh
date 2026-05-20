@@ -45,4 +45,29 @@ chease_tools_dir() {
 	cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd
 }
 
+function chease_single_timeslice() {
+        # Note: This requires rdcon and all relevant .in files in your cwd
+        fullpath=$1
+        filename=$(basename ${fullpath})
+        mkdir $filename
+        cd $filename
+        cp ../* .
+        cp $fullpath EXPEQ
+        #sed -i "s/.*eq_filename.*/eq_filename=\"$filename\"/" equil.in
+	echo "Running for $filename"
+        ./chease < chease_namelist > chease_output.out
+	./o.chease_to_cols chease_output.out chease_cols.out
+	echo "Done for $filename"
+        cd ..
+}
+
+function chease_parallel() {
+        export -f chease_single_timeslice
+        ncores=$1
+        files="${@:2}"
+        ls $files | xargs -t -P $ncores -I {} bash -c 'chease_single_timeslice "{}"'
+}
+
+
+
 source $(chease_tools_dir)/chease_analysis.sh
