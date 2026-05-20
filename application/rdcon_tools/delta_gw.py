@@ -1,5 +1,7 @@
 import numpy as np
 from io import StringIO
+from argparse import ArgumentParser
+import re
 
 def read_delta_gw_raw(filename: str) -> np.array:
     with open(filename, 'r') as f:
@@ -54,15 +56,41 @@ def delta_prime(delta_gw_raw: np.array, surface_index: int) -> float:
     return delta_re_nlnl+delta_re_nrnr - (delta_re_nrnl+delta_re_nlnr)
 
 
-
+def time_from_g_filename(filename: str) -> float:
+    """
+    Extract time from geqdsk filename
+    """
+    return float(re.findall(r'[+-]?\d+\.\d+(?:[Ee][+-]?\d+)?', filename)[0])
     
 
 if __name__=='__main__':
-    import sys
-    filename = sys.argv[1]
-    dgw_raw = read_delta_gw_raw(filename)
+    parser = ArgumentParser()
+    parser.add_argument(
+        "filenames", nargs="+", type=str, 
+        help="List of delta_gw.out ascii files"
+    )
+    parser.add_argument(
+        "-s", "--surfaces", nargs="+", type=int, 
+        help="List of singular surfaces to evaluate", default=[1]
+    )
+    parser.add_argument(
+        "-t", "--print-times", action='store_true',
+        help="Enable this flag to print the time alongside the delta value"
+    )
+    args = parser.parse_args()
 
-    for surf in range(1,9):
-        print(delta_prime(dgw_raw, surf))
+    filenames = args.filenames
+    surface_indices = args.surfaces
+    #dgw_raw = read_delta_gw_raw(filename)
+
+    for filename in filenames:
+        dgw_raw = read_delta_gw_raw(filename)
+        for surf in surface_indices:
+            dp = delta_prime(dgw_raw, surf)
+            if args.print_times:
+                time = time_from_g_filename(filename)
+                print(time, dp)
+            else:
+                print(dp)
 
 

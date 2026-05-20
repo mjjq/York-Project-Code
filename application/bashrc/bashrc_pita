@@ -25,6 +25,7 @@ export YP_CODE=$HPC_SOFTWARE/York-Project-Code/application/
 export JOREK_TOOLS=$YP_CODE/jorek_tools
 export CHEASE_TOOLS=$YP_CODE/chease_tools
 export XTOR_TOOLS=$YP_CODE/xtor_tools
+export RDCON_TOOLS=$YP_CODE/rdcon_tools
 
 alias sq="squeue --user=mquantri"
 alias tmux="$HPC_SOFTWARE/tmux-3.6a/tmux"

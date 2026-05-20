@@ -60,3 +60,4 @@ sbatchdep() {
 source $JOREK_TOOLS/aliases.sh
 source $CHEASE_TOOLS/aliases.sh
 source $XTOR_TOOLS/aliases.sh
+source $RDCON_TOOLS/aliases.sh
