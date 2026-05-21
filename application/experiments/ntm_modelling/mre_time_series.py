@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import numpy as np
 from dataclasses import dataclass, fields
-from typing import List
+from typing import List, Optional
 from matplotlib import pyplot as plt
 
 from debug.log import logger
@@ -19,10 +19,31 @@ class DeltaCLTimeSeries:
     times: np.array
     delta_p_cl: np.array
 
+def read_measured_delta_prime_data(filename: str) -> DeltaCLTimeSeries:
+    times, dp_measured = np.loadtxt(filename).T
+
+    return DeltaCLTimeSeries(
+        times = times,
+        delta_p_cl=dp_measured
+    )
+
 @dataclass
 class MeasuredIslandWidth:
+    # Time in [s]
     times: np.array
+    # Measured island width [m]
     w_measured: np.array
+    # Error in measured island width [m]
+    w_measured_err: np.array
+
+def read_measured_w_data(filename: str) -> MeasuredIslandWidth:
+    times, w_measured, w_measured_err = np.loadtxt(filename).T
+
+    return MeasuredIslandWidth(
+        times = times,
+        w_measured= w_measured,
+        w_measured_err=w_measured_err
+    )
 
 
 @dataclass
@@ -76,9 +97,11 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
                                   chease_times: np.array,
                                   poloidal_mode_number: int,
                                   toroidal_mode_number: int,
-                                  w_measured: MeasuredIslandWidth,
                                   chi_perp_0: float,
-                                  chi_par_0: float) -> MREContributions:
+                                  chi_par_0: float,
+                                  w_measured: MeasuredIslandWidth,
+                                  delta_p_cl: Optional[DeltaCLTimeSeries] = None,
+                                  r0exp_chease: float = 0.8) -> MREContributions:
     """
     Calculate different contributions to modified Rutherford equation
     from a set of CHEASE equilibria, classical delta_prime measurements
@@ -100,15 +123,34 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
     q_surf = float(poloidal_mode_number/toroidal_mode_number)
 
     for time, equil in zip(chease_times, chease_cols_list):
-        w_at_time = np.interp(time, w_measured.times, w_measured.w_measured)
+        R_in_rs = np.interp(q_surf, equil.q, equil.r_inboard)
+        R_out_rs = np.interp(q_surf, equil.q, equil.r_outboard)
+        eps_rs = (R_out_rs-R_in_rs)/(R_out_rs+R_in_rs)
+        
+        R_in_max = equil.r_inboard[-1]
+        R_out_max = equil.r_outboard[-1]
+        eps_max = (R_out_max-R_in_max)/(R_out_max+R_in_max)
 
-        r_s = np.interp(q_surf, equil.q, equil.r_avg)
-        eps = np.interp(q_surf, equil.q, equil.eps)
+        R0_chease = 0.5*(R_in_rs+R_out_rs)
+        a_chease = eps_max * R0_chease
+        a_si = a_chease*r0exp_chease
+
+        # Island width given in units of metres. Convert to w/a
+        # for consistency with units in this code.
+        w_at_time = np.interp(
+            time, w_measured.times, w_measured.w_measured
+        )/a_si
+
+        #eps_rs = np.interp(q_surf, equil.q, equil.r_avg)
+        #eps_max = equil.eps[-1]
+
+        # Calculate r_s in units of minor radius, not units of chease!
+        r_s = eps_rs/eps_max
         shear = np.interp(q_surf, equil.q, equil.shear)
 
         w_d = diffusion_width(
             chi_perp_0, chi_par_0,
-            r_s, eps, toroidal_mode_number,
+            r_s, 1.0/eps_max, toroidal_mode_number,
             shear
         )
 
@@ -128,21 +170,36 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
             w_d
         )
 
-        params = get_parameters(
-            equil,
-            args.poloidal_mode_number,
-            args.toroidal_mode_number
-        )
-        loizu_coefs = calculate_coefficients(params)
-        delta_p_classical = delta_prime_loizu(
-            w_at_time,
-            loizu_coefs
-        )
+        if delta_p_cl:
+            # RDCON gives delta' in units of [/m]
+            # Convert to units of aDelta' by multiplying
+            # by minor radius
+            delta_p_classical = a_si*np.interp(
+                time,
+                delta_p_cl.times,
+                delta_p_cl.delta_p_cl
+            )
+            delta_p_classical_finite_w = a_si*delta_p_classical
+        else:
+            # Estimate using cylindrical outer region solver
+            params = get_parameters(
+                equil,
+                args.poloidal_mode_number,
+                args.toroidal_mode_number
+            )
+            loizu_coefs = calculate_coefficients(params)
+            delta_p_classical_finite_w = delta_prime_loizu(
+                w_at_time,
+                loizu_coefs
+            )
+            delta_p_classical = loizu_coefs.delta_prime
 
         ret.times = np.append(ret.times, time)
         ret.w_measured = np.append(ret.w_measured, w_at_time)
-        ret.delta_p_cl = np.append(ret.delta_p_cl, loizu_coefs.delta_prime)
-        ret.delta_p_cl_finite_island = np.append(ret.delta_p_cl_finite_island, delta_p_classical)
+        ret.delta_p_cl = np.append(ret.delta_p_cl, delta_p_classical)
+        ret.delta_p_cl_finite_island = np.append(
+            ret.delta_p_cl_finite_island, delta_p_classical_finite_w
+        )
         ret.delta_p_ggj = np.append(ret.delta_p_ggj, ggj_vals)
         ret.delta_p_bs = np.append(ret.delta_p_bs, bootstrap_vals)
         ret.w_d = np.append(ret.w_d, w_d)
@@ -153,21 +210,22 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
 
 
 def plot_mre_contributions(mre: MREContributions):
-    fig, ax = plt.subplots(1, figsize=(5,4))
+    fig, axs = plt.subplots(2, figsize=(5,6), sharex=True)
+    ax, ax2 = axs
 
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_cl_finite_island, 
-        label=r"$\Delta'_{CL}$",
+        label=r"Classical",
         linestyle='--'
     )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_ggj,
-        label=r"$\Delta'_{GGJ}$",
+        label=r"GGJ",
         linestyle='--'
     )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_bs,
-        label=r"$\Delta'_{BS}$",
+        label=r"Bootstrap",
         linestyle='--'
     )
     
@@ -179,14 +237,24 @@ def plot_mre_contributions(mre: MREContributions):
 
     ax.plot(
         mre.times, sum_of_contribs,
-        label="$\Delta'$",
+        label="Total",
         color='black'
     )
     ax.legend()
 
-    ax.set_xlabel("Time (s)")
+    #ax.set_xlabel("Time (s)")
     ax.set_ylabel("$r_s \Delta'$")
 
+    #fig2, ax2 = plt.subplots(1, figsize=(5,4))
+    ax2.plot(mre.times, 100.0*mre.w_measured)
+    ax2.set_ylabel("Measured island width (cm)")
+
+    axs[-1].set_xlabel("Time (s)")
+    for ax_l in axs:
+        ax_l.grid()
+
+    figwd, axwd = plt.subplots(1)
+    axwd.plot(mre.times, mre.w_d)
 
 if __name__=='__main__':
     logger.setLevel(1)
@@ -204,6 +272,18 @@ if __name__=='__main__':
         "-d", "--mre-data-filename",
         type=str,
         help = "Path to MRE data. Overrides -c.",
+        default=""
+    )
+    parser.add_argument(
+        "-w", "--island-width-data-filename",
+        type=str,
+        help="Path to measured island width time trace.",
+        default=""
+    )
+    parser.add_argument(
+        "-rd", "--rdcon-data-filename",
+        type=str,
+        help="Path to RDCON island width data vs time",
         default=""
     )
     parser.add_argument(
@@ -229,19 +309,33 @@ if __name__=='__main__':
         col_list = [read_columns(f) for f in args.chease_cols_files]
         times = [time_from_g_filename(f) for f in args.chease_cols_files]
 
-        w_measured = MeasuredIslandWidth(
-            np.linspace(0.0, 1.0, 100),
-            [0.05]*100
-        )
+        if args.island_width_data_filename:
+            w_measured = read_measured_w_data(
+                args.island_width_data_filename
+            )
+        else:
+            print("No island width data supplied, using w=0.05.")
+            w_measured = MeasuredIslandWidth(
+                np.linspace(0.0, 1.0, 100),
+                [0.05]*100
+            )
+
+        if args.rdcon_data_filename:
+            deltap_data = read_measured_delta_prime_data(
+                args.rdcon_data_filename
+            )
+        else:
+            deltap_data = None
 
         mre_vals = mre_contributions_from_chease(
             col_list,
             times,
             args.poloidal_mode_number,
             args.toroidal_mode_number,
-            w_measured,
             args.chi_perp,
-            args.chi_parallel
+            args.chi_parallel,
+            w_measured,
+            deltap_data
         )
 
         plot_mre_contributions(mre_vals)

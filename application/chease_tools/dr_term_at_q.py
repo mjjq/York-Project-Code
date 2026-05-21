@@ -33,6 +33,8 @@ class CheaseColumns():
 	F: np.array # F=RB_phi (F=T in CHEASE)
 	beta_p: np.array # Poloidal beta (propto p/<Bp>**2)
 	r_avg: np.array # Poloidally averaged major radius
+	r_inboard: np.array
+	r_outboard: np.array
  	# Poloidally averaged bootstrap current 
 	# (choose the zerocoll version)
 	j_bs: np.array
@@ -62,7 +64,9 @@ def read_columns(filename: str) -> CheaseColumns:
 		beta_p=raw_data[:,75],
 		r_avg=raw_data[:,25],
 		j_bs=raw_data[:,33],
-		j_phi=raw_data[:,10]
+		j_phi=raw_data[:,10],
+        r_inboard=raw_data[:,63],
+        r_outboard=raw_data[:,64]
 	)
 
 

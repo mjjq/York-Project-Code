@@ -31,7 +31,9 @@ def ntm_bootstrap_term(w: float,
         Tesla.Amp/m^2
     """
     mu0 = 4e-7 * np.pi
-    return 64.0/(3*np.pi) * (
+    geom_factor = 64.0/(3*np.pi)
+    geom_factor = 1.0
+    return geom_factor * (
         mu0 * r_major**3 * q_s / (f_val**2 * shear_rs) *
         j_bs_avg_rs * w / (w**2 + w_d**2)
     )
