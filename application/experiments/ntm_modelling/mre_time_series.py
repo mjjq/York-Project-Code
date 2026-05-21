@@ -255,7 +255,8 @@ def plot_mre_contributions(mre: MREContributions):
         mre.times,
         mre.r_s*(mre.delta_p_ggj-mre.delta_p_ggj_err),
         mre.r_s*(mre.delta_p_ggj+mre.delta_p_ggj_err),
-        alpha=0.5
+        alpha=0.3,
+        color='tab:orange'
     )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_bs,
@@ -266,7 +267,8 @@ def plot_mre_contributions(mre: MREContributions):
         mre.times,
         mre.r_s*(mre.delta_p_bs-mre.delta_p_bs_err),
         mre.r_s*(mre.delta_p_bs+mre.delta_p_bs_err),
-        alpha=0.5
+        alpha=0.3,
+        color='tab:green'
     )
     
     sum_of_contribs = mre.r_s*(
@@ -288,7 +290,7 @@ def plot_mre_contributions(mre: MREContributions):
         mre.times,
         sum_of_contribs-sum_err,
         sum_of_contribs+sum_err,
-        alpha=0.5,
+        alpha=0.3,
         color='black'
     )
     ax.legend(loc='upper center',bbox_to_anchor=(0.5, 1.1),ncol=4,prop={'size': 8})
@@ -304,7 +306,15 @@ def plot_mre_contributions(mre: MREContributions):
         100.0*(mre.w_measured+mre.w_measured_err),
         alpha=0.5
     )
+    ax2.hlines(
+        2.0, 
+        min(mre.times), max(mre.times), 
+        linestyle='--',
+        color='black',
+        label='Noise threshold'
+    )
     ax2.set_ylabel("Measured island width (cm)")
+    ax2.legend()
 
     axs[-1].set_xlabel("Time (s)")
     for ax_l in axs:
@@ -313,7 +323,8 @@ def plot_mre_contributions(mre: MREContributions):
     fig.tight_layout()
 
     figwd, axwd = plt.subplots(1)
-    axwd.plot(mre.times, mre.w_d)
+    axwd.plot(mre.times, mre.w_d, label='Measured width')
+    
 
 if __name__=='__main__':
     logger.setLevel(1)
