@@ -58,8 +58,12 @@ class MREContributions:
     delta_p_cl_finite_island: np.array
     # Array of GGJ delta prime contributions
     delta_p_ggj: np.array
+    # Array of GGJ delta prime errors
+    delta_p_ggj_err: np.array
     # Array of bootstrap delta prime contributions
     delta_p_bs: np.array
+    # Array of bootstrap delta prime errors
+    delta_p_bs_err: np.array
     # Array of island diffusion width values
     w_d: np.array
     # Array of rational surface radii
@@ -84,7 +88,7 @@ def read_mre_contributions(filename: str) -> MREContributions:
     cols = np.loadtxt(filename)
 
     mre = MREContributions(
-        [],[],[],[],[],[],[],[],[]
+        [],[],[],[],[],[],[],[],[],[],[]
     )
 
     for i,field in enumerate(fields(MREContributions)):
@@ -117,6 +121,8 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         np.array([]),
         np.array([]),
         np.array([]),
+        np.array([]),
+        np.array([]),
         np.array([])
     )
 
@@ -140,9 +146,15 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         w_at_time = np.interp(
             time, w_measured.times, w_measured.w_measured
         )/a_si
+        w_err_at_time = np.interp(
+            time, w_measured.times, w_measured.w_measured_err
+        )/a_si
 
-        #eps_rs = np.interp(q_surf, equil.q, equil.r_avg)
-        #eps_max = equil.eps[-1]
+        w_min = w_at_time-w_err_at_time
+        w_max = w_at_time+w_err_at_time
+
+        # Evaluate for average width, and error bounds
+        w=np.array([w_at_time, w_min, w_max])
 
         # Calculate r_s in units of minor radius, not units of chease!
         r_s = eps_rs/eps_max
@@ -155,20 +167,24 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         )
 
         ggj_vals = ggj_term(
-            w_at_time, 
+            w, 
             poloidal_mode_number,
             toroidal_mode_number,
             equil,
             w_d
         )
+        ggj_avg, ggj_min, ggj_max = ggj_vals
+        ggj_err = (ggj_max-ggj_min)/2.0
 
         bootstrap_vals = bootstrap_term(
-            w_at_time,
+            w,
             poloidal_mode_number,
             toroidal_mode_number,
             equil,
             w_d
         )
+        bs_avg, bs_min, bs_max = bootstrap_vals
+        bs_err = (bs_max-bs_min)/2.0
 
         if delta_p_cl:
             # RDCON gives delta' in units of [/m]
@@ -188,11 +204,13 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
                 args.toroidal_mode_number
             )
             loizu_coefs = calculate_coefficients(params)
+            # For now, don't evaluate at finite width
             delta_p_classical_finite_w = delta_prime_loizu(
-                w_at_time,
+                0.0,
                 loizu_coefs
             )
             delta_p_classical = loizu_coefs.delta_prime
+        
 
         ret.times = np.append(ret.times, time)
         ret.w_measured = np.append(ret.w_measured, w_at_time)
@@ -200,8 +218,10 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         ret.delta_p_cl_finite_island = np.append(
             ret.delta_p_cl_finite_island, delta_p_classical_finite_w
         )
-        ret.delta_p_ggj = np.append(ret.delta_p_ggj, ggj_vals)
-        ret.delta_p_bs = np.append(ret.delta_p_bs, bootstrap_vals)
+        ret.delta_p_ggj = np.append(ret.delta_p_ggj, ggj_avg)
+        ret.delta_p_ggj_err = np.append(ret.delta_p_ggj_err, ggj_err)
+        ret.delta_p_bs = np.append(ret.delta_p_bs, bs_avg)
+        ret.delta_p_bs_err = np.append(ret.delta_p_bs_err, bs_err)
         ret.w_d = np.append(ret.w_d, w_d)
         ret.r_s = np.append(ret.r_s, r_s)
         ret.resistivity = np.append(ret.resistivity, 0.0)
@@ -210,7 +230,7 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
 
 
 def plot_mre_contributions(mre: MREContributions):
-    fig, axs = plt.subplots(2, figsize=(5,6), sharex=True)
+    fig, axs = plt.subplots(2, figsize=(5,5), sharex=True)
     ax, ax2 = axs
 
     ax.plot(
@@ -223,10 +243,22 @@ def plot_mre_contributions(mre: MREContributions):
         label=r"GGJ",
         linestyle='--'
     )
+    ax.fill_between(
+        mre.times,
+        mre.r_s*(mre.delta_p_ggj-mre.delta_p_ggj_err),
+        mre.r_s*(mre.delta_p_ggj+mre.delta_p_ggj_err),
+        alpha=0.5
+    )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_bs,
         label=r"Bootstrap",
         linestyle='--'
+    )
+    ax.fill_between(
+        mre.times,
+        mre.r_s*(mre.delta_p_bs-mre.delta_p_bs_err),
+        mre.r_s*(mre.delta_p_bs+mre.delta_p_bs_err),
+        alpha=0.5
     )
     
     sum_of_contribs = mre.r_s*(
@@ -234,13 +266,24 @@ def plot_mre_contributions(mre: MREContributions):
         mre.delta_p_ggj+
         mre.delta_p_bs
     )
+    sum_err = mre.r_s*np.sqrt(
+        mre.delta_p_bs_err**2+
+        mre.delta_p_ggj_err**2
+    )
 
     ax.plot(
         mre.times, sum_of_contribs,
         label="Total",
         color='black'
     )
-    ax.legend()
+    ax.fill_between(
+        mre.times,
+        sum_of_contribs-sum_err,
+        sum_of_contribs+sum_err,
+        alpha=0.5,
+        color='black'
+    )
+    ax.legend(bbox_to_anchor=(1.1, 1.05))
 
     #ax.set_xlabel("Time (s)")
     ax.set_ylabel("$r_s \Delta'$")
@@ -252,6 +295,8 @@ def plot_mre_contributions(mre: MREContributions):
     axs[-1].set_xlabel("Time (s)")
     for ax_l in axs:
         ax_l.grid()
+
+    fig.tight_layout()
 
     figwd, axwd = plt.subplots(1)
     axwd.plot(mre.times, mre.w_d)
