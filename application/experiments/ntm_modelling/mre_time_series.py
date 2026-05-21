@@ -126,7 +126,7 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         R_in_rs = np.interp(q_surf, equil.q, equil.r_inboard)
         R_out_rs = np.interp(q_surf, equil.q, equil.r_outboard)
         eps_rs = (R_out_rs-R_in_rs)/(R_out_rs+R_in_rs)
-        
+
         R_in_max = equil.r_inboard[-1]
         R_out_max = equil.r_outboard[-1]
         eps_max = (R_out_max-R_in_max)/(R_out_max+R_in_max)
@@ -156,16 +156,16 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
 
         ggj_vals = ggj_term(
             w_at_time, 
-            args.poloidal_mode_number,
-            args.toroidal_mode_number,
+            poloidal_mode_number,
+            toroidal_mode_number,
             equil,
             w_d
         )
 
         bootstrap_vals = bootstrap_term(
             w_at_time,
-            args.poloidal_mode_number,
-            args.toroidal_mode_number,
+            poloidal_mode_number,
+            toroidal_mode_number,
             equil,
             w_d
         )
