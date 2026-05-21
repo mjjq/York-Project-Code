@@ -51,7 +51,11 @@ class MREContributions:
     # Array of times
     times: np.array
     # Array of measured island width as a function of time
+    # units of [m]
     w_measured: np.array
+    # Array of errors in measured island width as a function
+    # of time units of [m]
+    w_measured_err: np.array
     # Array of classical delta_prime at zero island width
     delta_p_cl: np.array
     # Array of classical delta prime with finite island width
@@ -88,7 +92,7 @@ def read_mre_contributions(filename: str) -> MREContributions:
     cols = np.loadtxt(filename)
 
     mre = MREContributions(
-        [],[],[],[],[],[],[],[],[],[],[]
+        [],[],[],[],[],[],[],[],[],[],[],[]
     )
 
     for i,field in enumerate(fields(MREContributions)):
@@ -123,6 +127,7 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         np.array([]),
         np.array([]),
         np.array([]),
+        np.array([]),
         np.array([])
     )
 
@@ -143,12 +148,14 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
 
         # Island width given in units of metres. Convert to w/a
         # for consistency with units in this code.
-        w_at_time = np.interp(
+        w_at_time_si = np.interp(
             time, w_measured.times, w_measured.w_measured
-        )/a_si
-        w_err_at_time = np.interp(
+        )
+        w_at_time = w_at_time_si/a_si
+        w_err_at_time_si = np.interp(
             time, w_measured.times, w_measured.w_measured_err
-        )/a_si
+        )
+        w_err_at_time = w_err_at_time_si/a_si
 
         w_min = w_at_time-w_err_at_time
         w_max = w_at_time+w_err_at_time
@@ -213,7 +220,8 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         
 
         ret.times = np.append(ret.times, time)
-        ret.w_measured = np.append(ret.w_measured, w_at_time)
+        ret.w_measured = np.append(ret.w_measured, w_at_time_si)
+        ret.w_measured_err = np.append(ret.w_measured_err, w_err_at_time_si)
         ret.delta_p_cl = np.append(ret.delta_p_cl, delta_p_classical)
         ret.delta_p_cl_finite_island = np.append(
             ret.delta_p_cl_finite_island, delta_p_classical_finite_w
@@ -290,6 +298,12 @@ def plot_mre_contributions(mre: MREContributions):
 
     #fig2, ax2 = plt.subplots(1, figsize=(5,4))
     ax2.plot(mre.times, 100.0*mre.w_measured)
+    ax2.fill_between(
+        mre.times, 
+        100.0*(mre.w_measured-mre.w_measured_err),
+        100.0*(mre.w_measured+mre.w_measured_err),
+        alpha=0.5
+    )
     ax2.set_ylabel("Measured island width (cm)")
 
     axs[-1].set_xlabel("Time (s)")
