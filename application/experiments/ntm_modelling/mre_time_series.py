@@ -291,7 +291,7 @@ def plot_mre_contributions(mre: MREContributions):
         alpha=0.5,
         color='black'
     )
-    ax.legend(bbox_to_anchor=(1.1, 1.05))
+    ax.legend(loc='upper center',bbox_to_anchor=(0.5, 1.1),ncol=4,prop={'size': 8})
 
     #ax.set_xlabel("Time (s)")
     ax.set_ylabel("$r_s \Delta'$")
