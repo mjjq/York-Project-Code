@@ -60,6 +60,8 @@ class MREContributions:
     delta_p_cl: np.array
     # Array of classical delta prime with finite island width
     delta_p_cl_finite_island: np.array
+    # Array of error in classical delta prime
+    delta_p_cl_finite_island_err: np.array
     # Array of GGJ delta prime contributions
     delta_p_ggj: np.array
     # Array of GGJ delta prime errors
@@ -92,7 +94,7 @@ def read_mre_contributions(filename: str) -> MREContributions:
     cols = np.loadtxt(filename)
 
     mre = MREContributions(
-        [],[],[],[],[],[],[],[],[],[],[],[]
+        [],[],[],[],[],[],[],[],[],[],[],[],[]
     )
 
     for i,field in enumerate(fields(MREContributions)):
@@ -117,6 +119,7 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
     widths
     """
     ret = MREContributions(
+        np.array([]),
         np.array([]),
         np.array([]),
         np.array([]),
@@ -205,18 +208,27 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
             delta_p_classical_finite_w = a_si*delta_p_classical
         else:
             # Estimate using cylindrical outer region solver
-            params = get_parameters(
-                equil,
-                args.poloidal_mode_number,
-                args.toroidal_mode_number
-            )
-            loizu_coefs = calculate_coefficients(params)
-            # For now, don't evaluate at finite width
-            delta_p_classical_finite_w = delta_prime_loizu(
-                0.0,
-                loizu_coefs
-            )
-            delta_p_classical = loizu_coefs.delta_prime
+            try:
+                params = get_parameters(
+                    equil,
+                    args.poloidal_mode_number,
+                    args.toroidal_mode_number
+                )
+                loizu_coefs = calculate_coefficients(params)
+                # For now, don't evaluate at finite width
+                delta_p_classical_finite_w = delta_prime_loizu(
+                    w,
+                    loizu_coefs
+                )
+                delta_p_classical = loizu_coefs.delta_prime
+                delta_pw_avg, delta_pw_min, delta_pw_max = delta_p_classical_finite_w
+                delta_pw_err = (delta_pw_max-delta_pw_min)/2.0
+            except ValueError as e:
+                print(f"Could not calculate delta prime at t={time}s")
+                delta_p_classical = 0.0
+                delta_pw_avg = 0.0
+                delta_pw_err = 0.0
+
         
 
         ret.times = np.append(ret.times, time)
@@ -224,7 +236,10 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         ret.w_measured_err = np.append(ret.w_measured_err, w_err_at_time_si)
         ret.delta_p_cl = np.append(ret.delta_p_cl, delta_p_classical)
         ret.delta_p_cl_finite_island = np.append(
-            ret.delta_p_cl_finite_island, delta_p_classical_finite_w
+            ret.delta_p_cl_finite_island, delta_pw_avg
+        )
+        ret.delta_p_cl_finite_island_err = np.append(
+            ret.delta_p_cl_finite_island_err, delta_pw_err
         )
         ret.delta_p_ggj = np.append(ret.delta_p_ggj, ggj_avg)
         ret.delta_p_ggj_err = np.append(ret.delta_p_ggj_err, ggj_err)
@@ -246,10 +261,18 @@ def plot_mre_contributions(mre: MREContributions):
         label=r"Classical",
         linestyle='--'
     )
+    ax.fill_between(
+        mre.times, 
+        mre.r_s*(mre.delta_p_cl_finite_island-mre.delta_p_cl_finite_island_err),
+        mre.r_s*(mre.delta_p_cl_finite_island+mre.delta_p_cl_finite_island_err),
+        alpha=0.3,
+        color='tab:blue'
+    )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_ggj,
         label=r"GGJ",
-        linestyle='--'
+        linestyle='--',
+        color='tab:orange'
     )
     ax.fill_between(
         mre.times,
@@ -261,7 +284,8 @@ def plot_mre_contributions(mre: MREContributions):
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_bs,
         label=r"Bootstrap",
-        linestyle='--'
+        linestyle='--',
+        color='tab:green'
     )
     ax.fill_between(
         mre.times,
@@ -277,6 +301,7 @@ def plot_mre_contributions(mre: MREContributions):
         mre.delta_p_bs
     )
     sum_err = mre.r_s*np.sqrt(
+        mre.delta_p_cl_finite_island_err**2+
         mre.delta_p_bs_err**2+
         mre.delta_p_ggj_err**2
     )
