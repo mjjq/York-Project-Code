@@ -1,12 +1,40 @@
 #!/bin/bash
 
+load_rdcon_mod_csd() {
+        module purge
+
+        module load rhel8/default-icl
+        module load intel-oneapi-tbb
+        module load intel-oneapi-mkl
+        module load fftw
+        module load petsc/3.17-icl
+        module load netcdf-fortran
+
+	export FC=ifort
+}
+
+load_rdcon_mod_pita() {
+        module purge
+
+        module load intel-oneapi-tbb
+        module load intel-oneapi-mkl
+        module load intel-oneapi-compilers
+        module load fftw
+        module load petsc
+        module load netcdf-fortran
+
+	export FC=ifort
+}
+
+
 function rdcon_single_timeslice() {
 	# Note: This requires rdcon and all relevant .in files in your cwd
         fullpath=$1
         filename=$(basename ${fullpath})
         mkdir $filename
+        cp ../{rdcon,*.in} $filename
         cd $filename
-        cp ../{rdcon,*.in} .
+	cp ../{rdcon,*.in} .
         cp $fullpath .
         sed -i "s/.*eq_filename.*/eq_filename=\"$filename\"/" equil.in
         ./rdcon
