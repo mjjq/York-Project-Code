@@ -206,6 +206,8 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
                 delta_p_cl.delta_p_cl
             )
             delta_p_classical_finite_w = a_si*delta_p_classical
+            delta_pw_avg = delta_p_classical_finite_w
+            delta_pw_err = 0.0
         else:
             # Estimate using cylindrical outer region solver
             try:
