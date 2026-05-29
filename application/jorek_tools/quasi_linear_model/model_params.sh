@@ -15,6 +15,11 @@ extract_jorek_mac_vars_si(){
 	$JOREK_UTIL/extract_live_data.sh -si magnetic_growth_rates > magnetic_growth_rates_si.dat
 }
 
+extract_jorek_mac_vars_parallel(){
+    export -f extract_jorek_mac_vars;
+    find . -name 'run_*' | xargs -t -P 4 -I {} bash -c 'cd "{}" && extract_jorek_mac_vars'
+}
+
 extract_params(){
 	extract_jorek_inputs
 	extract_jorek_mac_vars_si
