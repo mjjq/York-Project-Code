@@ -4,7 +4,8 @@ import numpy as np
 from debug.log import logger
 
 from chease_tools.dr_term_at_q import read_columns
-from experiments.ntm_modelling.mre_time_series import mre_contributions_single
+from experiments.ntm_modelling.mre_time_series import mre_contributions_single, read_measured_w_data
+from experiments.ntm_modelling.compare_dw_dt import compare_dw_dt
 
 if __name__=='__main__':
     logger.setLevel(1)
@@ -31,8 +32,18 @@ if __name__=='__main__':
         help="On-axis perpendicular thermal diffusion coefficient"
     )
     parser.add_argument(
+        "-e", "--resistivity", type=float, default=2.14e-7,
+        help="Resistivity at the rational surface"
+    )
+    parser.add_argument(
         '-s', "--scale-factor", type=float, default=1.0,
         help="Scale factor for q-profile (to simulate B_phi ramp)"
+    )
+    parser.add_argument(
+        "-w", "--island-width-data-filename",
+        type=str,
+        help="Path to measured island width time trace.",
+        default=""
     )
 
     args = parser.parse_args()
@@ -42,17 +53,17 @@ if __name__=='__main__':
 
     w_vals = np.logspace(-3, np.log10(0.3), 100)
 
-    mre = mre_contributions_single(
+    mre_theory = mre_contributions_single(
         w_vals, chease_cols,
         args.poloidal_mode_number,
         args.toroidal_mode_number,
         args.chi_perp,
         args.chi_parallel
     )
-    r_s = mre.r_s
-    delta_p_classical = mre.delta_p_cl_finite_island
-    ggj_vals = mre.delta_p_ggj
-    bootstrap_vals = mre.delta_p_bs
+    r_s = mre_theory.r_s
+    delta_p_classical = mre_theory.delta_p_cl_finite_island
+    ggj_vals = mre_theory.delta_p_ggj
+    bootstrap_vals = mre_theory.delta_p_bs
     
 
     from matplotlib import pyplot as plt
@@ -73,13 +84,22 @@ if __name__=='__main__':
     ax.legend()
     ax.grid()
     fig.tight_layout()
-    plt.show()
-
-
-    # j_bs_profile = MacroscopicQuantity(args.bootstrap_exprs_file)
-    # j_bs_profile.load_x_values_by_index(0)
-    # j_bs_profile.load_y_values_by_index(1)
-
     
+    
+    if args.island_width_data_filename:
+        measured_data = read_measured_w_data(args.island_width_data_filename)
+        times = measured_data.times
+        w_vals = measured_data.w_measured
+        mre_measured = mre_contributions_single(
+            w_vals, chease_cols,
+            args.poloidal_mode_number,
+            args.toroidal_mode_number,
+            args.chi_perp,
+            args.chi_parallel
+        )
+        mre_measured.times = times
+        mre_measured.resistivity = args.resistivity
+        compare_dw_dt(mre_measured)    
 
+    plt.show()
     
