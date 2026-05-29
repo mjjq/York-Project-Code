@@ -127,6 +127,95 @@ def read_mre_contributions(filename: str) -> MREContributions:
 
     return mre
 
+def mre_contributions_single(w_vals: np.array,
+                             equil: CheaseColumns,
+                             poloidal_mode_number: int,
+                             toroidal_mode_number: int,
+                             chi_perp_0: float,
+                             chi_par_0: float,
+                             calc_delta_p_cl: bool = True) -> MREContributions:
+    """
+    Calculate all MRE contributions for a given CHEASE equilibrium
+
+    Assume w_vals is normalised, i.e. in units of minor radius
+    """
+    q_surf = float(poloidal_mode_number/toroidal_mode_number)
+
+    R_in_rs = np.interp(q_surf, equil.q, equil.r_inboard)
+    R_out_rs = np.interp(q_surf, equil.q, equil.r_outboard)
+    eps_rs = (R_out_rs-R_in_rs)/(R_out_rs+R_in_rs)
+
+    R_in_max = equil.r_inboard[-1]
+    R_out_max = equil.r_outboard[-1]
+    eps_max = (R_out_max-R_in_max)/(R_out_max+R_in_max)
+
+    w=w_vals
+
+    # Calculate r_s in units of minor radius, not units of chease!
+    r_s = eps_rs/eps_max
+    shear = np.interp(q_surf, equil.q, equil.shear)
+
+    w_d = diffusion_width(
+        chi_perp_0, chi_par_0,
+        r_s, 1.0/eps_max, toroidal_mode_number,
+        shear
+    )
+
+    ggj_vals = ggj_term(
+        w, 
+        poloidal_mode_number,
+        toroidal_mode_number,
+        equil,
+        w_d
+    )
+
+    bootstrap_vals = bootstrap_term(
+        w,
+        poloidal_mode_number,
+        toroidal_mode_number,
+        equil,
+        w_d
+    )
+
+    if calc_delta_p_cl:
+        try:
+            params = get_parameters(
+                equil,
+                args.poloidal_mode_number,
+                args.toroidal_mode_number
+            )
+            loizu_coefs = calculate_coefficients(params)
+            # For now, don't evaluate at finite width
+            delta_p_classical_finite_w = delta_prime_loizu(
+                w,
+                loizu_coefs
+            )
+            delta_p_classical = loizu_coefs.delta_prime
+        except ValueError as e:
+            print(f"Could not calculate delta prime")
+            delta_p_classical = 0.0
+            delta_p_classical_finite_w = [0.0]*len(w)
+    else:
+        delta_p_classical = 0.0
+        delta_p_classical_finite_w = [0.0]*len(w)
+
+    ret = MREContributions(
+        None,
+        w,
+        None,
+        delta_p_classical,
+        delta_p_classical_finite_w,
+        None,
+        ggj_vals,
+        None,
+        bootstrap_vals,
+        None,
+        w_d,
+        r_s,
+        None
+    )
+
+    return ret
 
 def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
                                   chease_times: np.array,
@@ -159,22 +248,14 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         np.array([])
     )
 
-    q_surf = float(poloidal_mode_number/toroidal_mode_number)
-
     for time, equil in zip(chease_times, chease_cols_list):
-        R_in_rs = np.interp(q_surf, equil.q, equil.r_inboard)
-        R_out_rs = np.interp(q_surf, equil.q, equil.r_outboard)
-        eps_rs = (R_out_rs-R_in_rs)/(R_out_rs+R_in_rs)
-
         R_in_max = equil.r_inboard[-1]
         R_out_max = equil.r_outboard[-1]
         eps_max = (R_out_max-R_in_max)/(R_out_max+R_in_max)
 
-        R0_mag_chease = 0.5*(R_in_rs+R_out_rs)
         R0_geom_chease = 1.0
         a_chease = eps_max * R0_geom_chease
         a_si = a_chease*r0exp_chease
-
         # Island width given in units of metres. Convert to w/a
         # for consistency with units in this code.
         w_at_time = np.interp(
@@ -193,34 +274,18 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         # Evaluate for average width, and error bounds
         w=np.array([w_at_time, w_min, w_max])
 
-        # Calculate r_s in units of minor radius, not units of chease!
-        r_s = eps_rs/eps_max
-        shear = np.interp(q_surf, equil.q, equil.shear)
+        calc_cylindrical_delta_p = True
+        if delta_p_cl:
+            calc_cylindrical_delta_p = False
 
-        w_d = diffusion_width(
-            chi_perp_0, chi_par_0,
-            r_s, 1.0/eps_max, toroidal_mode_number,
-            shear
+        mre_contribs = mre_contributions_single(
+            w, equil, poloidal_mode_number, toroidal_mode_number,
+            chi_perp_0, chi_par_0, calc_cylindrical_delta_p
         )
-
-        ggj_vals = ggj_term(
-            w, 
-            poloidal_mode_number,
-            toroidal_mode_number,
-            equil,
-            w_d
-        )
-        ggj_avg, ggj_min, ggj_max = ggj_vals
+        ggj_avg, ggj_min, ggj_max = mre_contribs.delta_p_ggj
         ggj_err = (ggj_max-ggj_min)/2.0
 
-        bootstrap_vals = bootstrap_term(
-            w,
-            poloidal_mode_number,
-            toroidal_mode_number,
-            equil,
-            w_d
-        )
-        bs_avg, bs_min, bs_max = bootstrap_vals
+        bs_avg, bs_min, bs_max = mre_contribs.delta_p_bs
         bs_err = (bs_max-bs_min)/2.0
 
         if delta_p_cl:
@@ -236,27 +301,9 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
             delta_pw_avg = delta_p_classical_finite_w
             delta_pw_err = 0.0
         else:
-            # Estimate using cylindrical outer region solver
-            try:
-                params = get_parameters(
-                    equil,
-                    args.poloidal_mode_number,
-                    args.toroidal_mode_number
-                )
-                loizu_coefs = calculate_coefficients(params)
-                # For now, don't evaluate at finite width
-                delta_p_classical_finite_w = delta_prime_loizu(
-                    w,
-                    loizu_coefs
-                )
-                delta_p_classical = loizu_coefs.delta_prime
-                delta_pw_avg, delta_pw_min, delta_pw_max = delta_p_classical_finite_w
-                delta_pw_err = (delta_pw_max-delta_pw_min)/2.0
-            except ValueError as e:
-                print(f"Could not calculate delta prime at t={time}s")
-                delta_p_classical = 0.0
-                delta_pw_avg = 0.0
-                delta_pw_err = 0.0
+            delta_p_classical = mre_contribs.delta_p_cl
+            delta_pw_avg, delta_pw_min, delta_pw_max = mre_contribs.delta_p_cl_finite_island
+            delta_pw_err = 0.5*(delta_pw_max-delta_pw_min)
 
         w_at_time_si = a_si*w_at_time
         w_err_at_time_si = a_si*w_err_at_time
@@ -275,8 +322,8 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         ret.delta_p_ggj_err = np.append(ret.delta_p_ggj_err, ggj_err)
         ret.delta_p_bs = np.append(ret.delta_p_bs, bs_avg)
         ret.delta_p_bs_err = np.append(ret.delta_p_bs_err, bs_err)
-        ret.w_d = np.append(ret.w_d, w_d)
-        ret.r_s = np.append(ret.r_s, r_s)
+        ret.w_d = np.append(ret.w_d, mre_contribs.w_d)
+        ret.r_s = np.append(ret.r_s, mre_contribs.r_s)
         ret.resistivity = np.append(ret.resistivity, 0.0)
 
     return ret
