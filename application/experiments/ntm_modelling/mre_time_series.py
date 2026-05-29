@@ -181,8 +181,8 @@ def mre_contributions_single(w_vals: np.array,
         try:
             params = get_parameters(
                 equil,
-                args.poloidal_mode_number,
-                args.toroidal_mode_number
+                poloidal_mode_number,
+                toroidal_mode_number
             )
             loizu_coefs = calculate_coefficients(params)
             # For now, don't evaluate at finite width

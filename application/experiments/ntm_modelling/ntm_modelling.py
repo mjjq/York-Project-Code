@@ -4,11 +4,7 @@ import numpy as np
 from debug.log import logger
 
 from chease_tools.dr_term_at_q import read_columns
-from chease_tools.get_tm_parameters import get_parameters, ggj_term, bootstrap_term
-from jorek_tools.macroscopic_vars_analysis.plot_quantities import MacroscopicQuantity
-
-from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
-
+from experiments.ntm_modelling.mre_time_series import mre_contributions_single
 
 if __name__=='__main__':
     logger.setLevel(1)
@@ -18,10 +14,6 @@ if __name__=='__main__':
         "chease_cols_file", 
         type=str, help="Path to chease_cols.out"
     )
-    # parser.add_argument(
-    #     "bootstrap_exprs_file", 
-    #     type=str, help="Path to JOREK postproc bootstrap current file"
-    # )
     parser.add_argument(
         "-m", "--poloidal-mode-number", type=int, default=2,
         help="Poloidal mode number"
@@ -31,8 +23,12 @@ if __name__=='__main__':
         help="Toroidal mode number"
     )
     parser.add_argument(
-        '-wd', "--wd", type=float, default=0.0,
-        help="Diffusion width (normalised to minor radius)"
+        "-xp", "--chi-perp", type=float, default=7e-8,
+        help="On-axis perpendicular thermal diffusion coefficient"
+    )
+    parser.add_argument(
+        "-xpa", "--chi-parallel", type=float, default=17.5,
+        help="On-axis perpendicular thermal diffusion coefficient"
     )
     parser.add_argument(
         '-s', "--scale-factor", type=float, default=1.0,
@@ -44,49 +40,27 @@ if __name__=='__main__':
     chease_cols = read_columns(args.chease_cols_file)
     chease_cols.q = args.scale_factor*chease_cols.q
 
-    q_s = args.poloidal_mode_number/args.toroidal_mode_number
-    r_s = np.interp(
-        q_s,
-        chease_cols.q,
-        chease_cols.eps
-    )
+    w_vals = np.logspace(-3, np.log10(0.3), 100)
 
-    w_vals = np.logspace(-3, np.log10(0.5), 100)
-
-    ggj_vals = ggj_term(
-        w_vals, 
+    mre = mre_contributions_single(
+        w_vals, chease_cols,
         args.poloidal_mode_number,
         args.toroidal_mode_number,
-        chease_cols,
-        args.wd
+        args.chi_perp,
+        args.chi_parallel
     )
-
-    bootstrap_vals = bootstrap_term(
-        w_vals,
-        args.poloidal_mode_number,
-        args.toroidal_mode_number,
-        chease_cols,
-        args.wd
-    )
-
-    params = get_parameters(
-        chease_cols,
-        args.poloidal_mode_number,
-        args.toroidal_mode_number
-    )
-    loizu_coefs = calculate_coefficients(params)
-    delta_p_classical = delta_prime_loizu(
-        w_vals,
-        loizu_coefs
-    )
+    r_s = mre.r_s
+    delta_p_classical = mre.delta_p_cl_finite_island
+    ggj_vals = mre.delta_p_ggj
+    bootstrap_vals = mre.delta_p_bs
     
 
     from matplotlib import pyplot as plt
     fig, ax = plt.subplots(1, figsize=(5,4))
     ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
-    ax.plot(w_vals, r_s*delta_p_classical, label="$r_s \Delta'_{CL}$", linestyle='--')
-    ax.plot(w_vals, r_s*ggj_vals, label="$r_s \Delta'_{GGJ}$", linestyle='--')
-    ax.plot(w_vals, r_s*bootstrap_vals, label="$r_s \Delta'_{BS}$", linestyle='--')
+    ax.plot(w_vals, r_s*delta_p_classical, label="Classical", linestyle='--')
+    ax.plot(w_vals, r_s*ggj_vals, label="GGJ", linestyle='--')
+    ax.plot(w_vals, r_s*bootstrap_vals, label="Bootstrap", linestyle='--')
     ax.plot(
         w_vals, 
         r_s*(delta_p_classical+ggj_vals+bootstrap_vals), 
@@ -95,7 +69,7 @@ if __name__=='__main__':
     )
     ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
     ax.set_xlabel("w/a")
-    ax.set_ylabel("$r_s \Delta'(w)$")
+    ax.set_ylabel("$r_s \Delta'(w/a)$")
     ax.legend()
     ax.grid()
     fig.tight_layout()
