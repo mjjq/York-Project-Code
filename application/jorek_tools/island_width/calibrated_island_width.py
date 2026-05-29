@@ -5,6 +5,8 @@ from jorek_tools.delta_psi_extraction.plot_delta_psi_vs_time import get_psi_vs_t
 from jorek_tools.jorek_dat_to_array import read_four2d_profile, read_q_profile, read_timestep_map
 from tearing_mode_solver.helpers import TimeDependentSolution
 
+from experiments.ntm_modelling.mre_time_series import MeasuredIslandWidth
+
 @dataclass
 class IslandCalibrations:
     # List of times at which calibrations took place
@@ -15,7 +17,8 @@ class IslandCalibrations:
     # Outer radial extent of the island X-point surface
     # in s=sqrt(psi_N) co-ords
     rho_max_avg: np.array
-    # Average island width
+    # Average island width (rho_max-rho_min), 
+    # normalised to minor radius
     w_avg: np.array
 
 def read_island_width_calibrations(filename: str) -> IslandCalibrations:
@@ -116,6 +119,10 @@ def plot_calibration_main():
         help='Toroidal mode number',
         default=1,
     )
+    parser.add_argument(
+        '-p', '--plot-calibration', action='store_true',
+        help="Use this flag to enable debug plotting"
+    )
 
     args = parser.parse_args()
 
@@ -135,11 +142,18 @@ def plot_calibration_main():
 
     sol_calib = get_calibrated_island_width_series(sol, calibrations)
 
-    from matplotlib import pyplot as plt
-    plt.plot(sol_calib.times, sol_calib.w_t)
-    plt.show()
+    if args.plot_calibration:
+        from matplotlib import pyplot as plt
+        plt.plot(sol_calib.times, sol_calib.w_t)
+        plt.show()
 
-
+    measured_width = MeasuredIslandWidth(
+        sol_calib.times,
+        sol_calib.w_t,
+        np.zeros(len(sol_calib.times)),
+        normalised=True
+    )
+    measured_width.write("w_measured.txt")
 
 
 if __name__=='__main__':

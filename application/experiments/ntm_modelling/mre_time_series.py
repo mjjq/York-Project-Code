@@ -31,18 +31,43 @@ def read_measured_delta_prime_data(filename: str) -> DeltaCLTimeSeries:
 class MeasuredIslandWidth:
     # Time in [s]
     times: np.array
-    # Measured island width [m]
+    # Measured island width [m] if normalised=False, else [a]
     w_measured: np.array
-    # Error in measured island width [m]
+    # Error in measured island width [m] if normalised=False, else [a]
     w_measured_err: np.array
+    # Whether the island widths are normalised to minor radius
+    normalised: bool
+
+    def write(self, filename: str):
+        cols = np.array([
+            self.times, self.w_measured, self.w_measured_err
+        ]).T
+
+        header = f"times w_measured w_measured_err normalised {self.normalised}"
+        np.savetxt(filename, cols, header=header)
 
 def read_measured_w_data(filename: str) -> MeasuredIslandWidth:
     times, w_measured, w_measured_err = np.loadtxt(filename).T
 
+    with open(filename, 'r') as f:
+        header = f.readlines(1)[0]
+        if "normalised True" in header:
+            normalised = True
+        elif "normalised False" in header:
+            normalised = False
+        else:
+            print(
+                "Warning: Unable to determine if island"
+                "width data is normalised. Assume it is not."
+            )
+            normalised = False
+
+
     return MeasuredIslandWidth(
         times = times,
         w_measured= w_measured,
-        w_measured_err=w_measured_err
+        w_measured_err=w_measured_err,
+        normalised=normalised
     )
 
 
@@ -145,20 +170,22 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
         R_out_max = equil.r_outboard[-1]
         eps_max = (R_out_max-R_in_max)/(R_out_max+R_in_max)
 
-        R0_chease = 0.5*(R_in_rs+R_out_rs)
-        a_chease = eps_max * R0_chease
+        R0_mag_chease = 0.5*(R_in_rs+R_out_rs)
+        R0_geom_chease = 1.0
+        a_chease = eps_max * R0_geom_chease
         a_si = a_chease*r0exp_chease
 
         # Island width given in units of metres. Convert to w/a
         # for consistency with units in this code.
-        w_at_time_si = np.interp(
+        w_at_time = np.interp(
             time, w_measured.times, w_measured.w_measured
         )
-        w_at_time = w_at_time_si/a_si
-        w_err_at_time_si = np.interp(
+        w_err_at_time = np.interp(
             time, w_measured.times, w_measured.w_measured_err
         )
-        w_err_at_time = w_err_at_time_si/a_si
+        if not w_measured.normalised:
+            w_at_time = w_at_time/a_si
+            w_err_at_time = w_err_at_time/a_si
 
         w_min = w_at_time-w_err_at_time
         w_max = w_at_time+w_err_at_time
@@ -231,7 +258,8 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
                 delta_pw_avg = 0.0
                 delta_pw_err = 0.0
 
-        
+        w_at_time_si = a_si*w_at_time
+        w_err_at_time_si = a_si*w_err_at_time
 
         ret.times = np.append(ret.times, time)
         ret.w_measured = np.append(ret.w_measured, w_at_time_si)
@@ -399,13 +427,16 @@ if __name__=='__main__':
         "-xpa", "--chi-parallel", type=float, default=17.5,
         help="On-axis perpendicular thermal diffusion coefficient"
     )
+    parser.add_argument(
+        '-s', '--stationary-equilibrium', action='store_true',
+        help="If activated, MRE is evaluated for"
+        " the first equilibrium in chease_cols_files for the "
+        "duration of the island width evolution"
+    )
 
     args = parser.parse_args()
 
     if not args.mre_data_filename:
-        col_list = [read_columns(f) for f in args.chease_cols_files]
-        times = [time_from_g_filename(f) for f in args.chease_cols_files]
-
         if args.island_width_data_filename:
             w_measured = read_measured_w_data(
                 args.island_width_data_filename
@@ -416,6 +447,13 @@ if __name__=='__main__':
                 np.linspace(0.0, 1.0, 100),
                 [0.05]*100
             )
+
+        col_list = [read_columns(f) for f in args.chease_cols_files]
+        times = [time_from_g_filename(f) for f in args.chease_cols_files]
+
+        if args.stationary_equilibrium:
+            times = w_measured.times
+            col_list = [col_list[0]]*len(times)
 
         if args.rdcon_data_filename:
             deltap_data = read_measured_delta_prime_data(
