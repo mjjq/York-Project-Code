@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from debug.log import logger
 
 from chease_tools.dr_term_at_q import read_columns, CheaseColumns
-from chease_tools.get_tm_parameters import get_parameters, ggj_term, bootstrap_term
+from chease_tools.get_tm_parameters import get_parameters, ggj_term, ggj_term_kleiner, bootstrap_term
 
 from tearing_mode_solver.outer_region_solver import diffusion_width
 from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
@@ -161,7 +161,7 @@ def mre_contributions_single(w_vals: np.array,
         shear
     )
 
-    ggj_vals = ggj_term(
+    ggj_vals = ggj_term_kleiner(
         w, 
         poloidal_mode_number,
         toroidal_mode_number,

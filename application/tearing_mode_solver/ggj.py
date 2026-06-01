@@ -135,6 +135,28 @@ def ntm_ggj_term(w: float,
     """
     return 6.35 * d_r / np.sqrt(w**2 + 0.65*w_d**2)
 
+def ntm_ggj_term_kleiner(w: float,
+                         d_r: float,
+                         w_d: float,
+                         beta_p: float) -> float:
+    """
+    Calculate GGJ contribution to MRE.
+
+    See Kleiner NF 56 2016, equation 10
+
+    We normalise island width to minor radius. Delta' is
+    normalised to minor radius also, i.e. we return a*Delta'.
+
+    Parameters
+    ------------
+    :param w: Magnetic island width normalised to minor radius
+    :param d_r: Resistive interchange parameter at the rational
+        surface
+    :param w_d: Correction due to finite diffusion width 
+    :param beta_p: Poloidal beta at the rational surface
+    """
+    return 6.0*(d_r/beta_p) * w/(w**2 + 0.2*w_d**2)
+
 
 
 if __name__=='__main__':

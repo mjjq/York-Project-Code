@@ -1,7 +1,7 @@
 import numpy as np
 
 from tearing_mode_solver.bootstrap import ntm_bootstrap_term
-from tearing_mode_solver.ggj import ntm_ggj_term
+from tearing_mode_solver.ggj import ntm_ggj_term, ntm_ggj_term_kleiner
 from chease_tools.dr_term_at_q import CheaseColumns, read_columns
 from tearing_mode_solver.helpers import TearingModeParameters
 from tearing_mode_solver.outer_region_solver import (
@@ -48,9 +48,20 @@ def ggj_term(w: float,
     d_r = -np.interp(q_s, chease_cols.q, chease_cols.d_r)
     beta_p = np.interp(q_s, chease_cols.q, chease_cols.beta_p)
 
-    print(d_r)
-
     return ntm_ggj_term(w, d_r, w_d)
+
+def ggj_term_kleiner(w: float,
+                     poloidal_mode_number: float,
+                     toroidal_mode_number: float,
+                     chease_cols: CheaseColumns,
+                     w_d: float) -> float:
+    q_s = poloidal_mode_number/toroidal_mode_number
+
+    # Note: Chease outputs -d_r, so negate here
+    d_r = -np.interp(q_s, chease_cols.q, chease_cols.d_r)
+    beta_p = np.interp(q_s, chease_cols.q, chease_cols.beta_p)
+
+    return ntm_ggj_term_kleiner(w, d_r, w_d, beta_p)
 
 def bootstrap_term(w: float,
                    poloidal_mode_number: float,
@@ -89,8 +100,8 @@ def bootstrap_term(w: float,
     j_bs_rs = j_bs_rs/mu0
 
     logger.debug(
-        "r_maj, f_val, q_s, shear_rs, j_bs_rs", 
-        r_maj, f_val, q_s, shear_rs, j_bs_rs
+        "r_maj, f_val, q_s, shear_rs, j_bs_rs, w_d", 
+        r_maj, f_val, q_s, shear_rs, j_bs_rs, w_d
     )
     return ntm_bootstrap_term(
         w, r_maj, f_val, q_s, shear_rs, j_bs_rs, w_d

@@ -421,8 +421,8 @@ def diffusion_width(chi_perp: float,
 
     :return: Diffusion length scale normalised to plasma minor radius a.
     """
-    return (64*chi_perp/chi_parallel)**(1/4) * \
-        (aspect_ratio*r_s/(toroidal_mode_number*magnetic_shear))**(1/2)
+    return r_s * 2**0.5*(chi_perp/chi_parallel)**(1/4) * \
+        (aspect_ratio/(toroidal_mode_number*magnetic_shear))**(1/2)
 
 def chi_perp_ratio(diff_width: float,
                    r_s: float,
