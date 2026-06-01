@@ -158,3 +158,5 @@ source $(get_script_dir)/poincare/plot_multiple.sh
 source $(get_script_dir)/profile_evolution/get_all_profiles.sh
 
 source $(get_script_dir)/delta_psi_extraction/time_restart.sh
+
+source $(get_script_dir)/island_width/island_width_main.sh
