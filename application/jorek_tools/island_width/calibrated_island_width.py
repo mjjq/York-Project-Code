@@ -123,6 +123,10 @@ def plot_calibration_main():
         '-p', '--plot-calibration', action='store_true',
         help="Use this flag to enable debug plotting"
     )
+    parser.add_argument(
+        '-d', '--debug-plot', action='store_true',
+        help="Enable debug plotting (plot delta_psi vs calibrated w)"
+    )
 
     args = parser.parse_args()
 
@@ -140,11 +144,16 @@ def plot_calibration_main():
 
     calibrations = read_island_width_calibrations(args.island_calibrations)
 
-    sol_calib = get_calibrated_island_width_series(sol, calibrations)
+    sol_calib = get_calibrated_island_width_series(sol, calibrations, args.debug_plot)
 
     if args.plot_calibration:
         from matplotlib import pyplot as plt
-        plt.plot(sol_calib.times, sol_calib.w_t)
+        fig, ax = plt.subplots(1, figsize=(5,4))
+        ax.plot(sol_calib.times, sol_calib.w_t)
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("$w_{avg}/a$")
+        ax.grid()
+        fig.tight_layout()
         plt.show()
 
     measured_width = MeasuredIslandWidth(

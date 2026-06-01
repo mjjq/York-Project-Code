@@ -24,20 +24,24 @@ if __name__=='__main__':
         help="Toroidal mode number"
     )
     parser.add_argument(
-        "-xp", "--chi-perp", type=float, default=7e-8,
+        "-xp", "--chi-perp", type=float, default=0.15499,
         help="On-axis perpendicular thermal diffusion coefficient"
     )
     parser.add_argument(
-        "-xpa", "--chi-parallel", type=float, default=17.5,
+        "-xpa", "--chi-parallel", type=float, default=1.0934e7,
         help="On-axis perpendicular thermal diffusion coefficient"
     )
     parser.add_argument(
-        "-e", "--resistivity", type=float, default=2.14e-7,
+        "-e", "--resistivity", type=float, default=1.9413e-7,
         help="Resistivity at the rational surface"
     )
     parser.add_argument(
         '-s', "--scale-factor", type=float, default=1.0,
         help="Scale factor for q-profile (to simulate B_phi ramp)"
+    )
+    parser.add_argument(
+        '-g', "--ggj-scale-factor", type=float, default=1.0,
+        help="Scale factor for GGJ (to simulate rMHD)"
     )
     parser.add_argument(
         "-w", "--island-width-data-filename",
@@ -62,7 +66,7 @@ if __name__=='__main__':
     )
     r_s = mre_theory.r_s
     delta_p_classical = mre_theory.delta_p_cl_finite_island
-    ggj_vals = mre_theory.delta_p_ggj
+    ggj_vals = args.ggj_scale_factor * mre_theory.delta_p_ggj
     bootstrap_vals = mre_theory.delta_p_bs
     
 
@@ -81,25 +85,34 @@ if __name__=='__main__':
     ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
     ax.set_xlabel("w/a")
     ax.set_ylabel("$r_s \Delta'(w/a)$")
-    ax.legend()
-    ax.grid()
-    fig.tight_layout()
+#    fig.tight_layout()
     
     
     if args.island_width_data_filename:
         measured_data = read_measured_w_data(args.island_width_data_filename)
         times = measured_data.times
         w_vals = measured_data.w_measured
-        mre_measured = mre_contributions_single(
-            w_vals, chease_cols,
-            args.poloidal_mode_number,
-            args.toroidal_mode_number,
-            args.chi_perp,
-            args.chi_parallel
-        )
-        mre_measured.times = times
-        mre_measured.resistivity = args.resistivity
-        compare_dw_dt(mre_measured)    
+        dw_dt = np.diff(w_vals)/np.diff(times)
+        mu0 = 4e-7*np.pi
+        eta = args.resistivity
+        rutherford_scale = 1.22 # See Kleiner 2016, expression for f_n
+        measured_delta_prime = dw_dt*mu0/eta/rutherford_scale
+        measured_rs_delta_prime = mre_theory.r_s * measured_delta_prime
+        ax.plot(w_vals[:-1], measured_rs_delta_prime, label="JOREK")
 
+        #mre_measured = mre_contributions_single(
+        #    w_vals, chease_cols,
+        #    args.poloidal_mode_number,
+        #    args.toroidal_mode_number,
+        #    args.chi_perp,
+        #    args.chi_parallel
+        #)
+        #mre_measured.times = times
+        #mre_measured.resistivity = args.resistivity
+        #compare_dw_dt(mre_measured)    
+
+    ax.legend()
+    ax.grid()
+    fig.tight_layout()
     plt.show()
     
