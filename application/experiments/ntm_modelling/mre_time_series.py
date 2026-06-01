@@ -161,7 +161,7 @@ def mre_contributions_single(w_vals: np.array,
         shear
     )
 
-    ggj_vals = ggj_term_kleiner(
+    ggj_vals = ggj_term(
         w, 
         poloidal_mode_number,
         toroidal_mode_number,
