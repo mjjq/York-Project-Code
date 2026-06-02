@@ -9,8 +9,9 @@ from debug.log import logger
 from chease_tools.dr_term_at_q import read_columns, CheaseColumns
 from chease_tools.get_tm_parameters import get_parameters, ggj_term, ggj_term_kleiner, bootstrap_term
 
-from tearing_mode_solver.outer_region_solver import diffusion_width
+from tearing_mode_solver.outer_region_solver import diffusion_width, diffusion_width_kleiner
 from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
+from tearing_mode_solver.outer_region_solver import solve_system, delta_prime_non_linear
 
 from rdcon_tools.delta_gw import time_from_g_filename
 
@@ -184,13 +185,16 @@ def mre_contributions_single(w_vals: np.array,
                 poloidal_mode_number,
                 toroidal_mode_number
             )
-            loizu_coefs = calculate_coefficients(params)
-            # For now, don't evaluate at finite width
-            delta_p_classical_finite_w = delta_prime_loizu(
-                w,
-                loizu_coefs
-            )
-            delta_p_classical = loizu_coefs.delta_prime
+            # loizu_coefs = calculate_coefficients(params)
+            # # For now, don't evaluate at finite width
+            # delta_p_classical_finite_w = delta_prime_loizu(
+            #     w,
+            #     loizu_coefs
+            # )
+            # delta_p_classical = loizu_coefs.delta_prime
+            sol = solve_system(params)
+            delta_p_classical_finite_w = delta_prime_non_linear(sol, w)
+            delta_p_classical = delta_prime_non_linear(sol, 1e-5)
         except ValueError as e:
             print(f"Could not calculate delta prime")
             delta_p_classical = 0.0
