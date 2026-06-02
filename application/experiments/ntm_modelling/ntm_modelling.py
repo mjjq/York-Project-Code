@@ -3,9 +3,55 @@ import numpy as np
 
 from debug.log import logger
 
-from chease_tools.dr_term_at_q import read_columns
-from experiments.ntm_modelling.mre_time_series import mre_contributions_single, read_measured_w_data
+from chease_tools.dr_term_at_q import read_columns, CheaseColumns
+from experiments.ntm_modelling.mre_time_series import (
+    mre_contributions_single, read_measured_w_data, MeasuredIslandWidth
+)
 from experiments.ntm_modelling.compare_dw_dt import compare_dw_dt
+
+def avg_island_width_to_outboard(chease_cols: CheaseColumns,
+                                 w_measured: MeasuredIslandWidth,
+                                 poloidal_mode_number: int,
+                                 toroidal_mode_number: int) -> MeasuredIslandWidth:
+    """
+    Convert poloidally averaged island
+    width to outboard island width
+
+    :param chease_cols: CHEASE equilibrium data
+    :param w_measured: Measured island width normalised to minor radius
+    """
+    if not w_measured.normalised:
+        raise ValueError("Island width must be normalised!")
+    
+    q_s = float(poloidal_mode_number/toroidal_mode_number)
+
+    rho_rs = np.interp(
+        q_s,
+        chease_cols.q,
+        chease_cols.s
+    )
+
+    rho_max = rho_rs + 0.5*w_measured.w_measured
+    rho_min = rho_rs - 0.5*w_measured.w_measured
+
+    a_min = 0.5*(chease_cols.r_outboard[-1]+chease_cols.r_inboard[-1])
+
+    R_min, R_max = np.interp(
+        [rho_min, rho_max],
+        chease_cols.s,
+        chease_cols.r_outboard
+    )
+
+    w_out = (R_max - R_min)/a_min
+
+    return MeasuredIslandWidth(
+        w_measured.times,
+        w_out,
+        w_measured.w_measured_err,
+        True
+    )
+
+        
 
 if __name__=='__main__':
     logger.setLevel(1)
@@ -89,7 +135,12 @@ if __name__=='__main__':
     
     
     if args.island_width_data_filename:
-        measured_data = read_measured_w_data(args.island_width_data_filename)
+        measured_data = avg_island_width_to_outboard(
+            chease_cols,
+            read_measured_w_data(args.island_width_data_filename),
+            args.poloidal_mode_number,
+            args.toroidal_mode_number
+        )
         times = measured_data.times
         w_vals = measured_data.w_measured
         dw_dt = np.diff(w_vals)/np.diff(times)
