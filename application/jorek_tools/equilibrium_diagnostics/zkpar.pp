@@ -1,4 +1,5 @@
 namelist inmastu
+set_postproc_dir ./postproc_zkpar/
 
 si-units
 
