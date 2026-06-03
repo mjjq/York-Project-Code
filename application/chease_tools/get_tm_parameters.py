@@ -37,6 +37,20 @@ def get_parameters(chease_cols: CheaseColumns,
 
     return params
 
+def scale_profiles(chease_cols: CheaseColumns,
+                   scale_factor: float):
+    """
+    Scale CHEASE q-profile, F0, shear by a scaling factor.
+
+    Note this is an in-place modification!
+
+    :param chease_cols: The chease data to scale
+    :param scale_factor: The scale factor
+    """
+    chease_cols.q = scale_factor*chease_cols.q
+    chease_cols.F = scale_factor*chease_cols.F
+
+
 def ggj_term(w: float,
              poloidal_mode_number: float,
              toroidal_mode_number: float,

@@ -4,6 +4,7 @@ import numpy as np
 from debug.log import logger
 
 from chease_tools.dr_term_at_q import read_columns, CheaseColumns
+from chease_tools.get_tm_parameters import scale_profiles
 from experiments.ntm_modelling.mre_time_series import (
     mre_contributions_single, read_measured_w_data, MeasuredIslandWidth
 )
@@ -99,7 +100,7 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     chease_cols = read_columns(args.chease_cols_file)
-    chease_cols.q = args.scale_factor*chease_cols.q
+    scale_profiles(chease_cols, args.scale_factor)
 
     w_vals = np.logspace(-3, np.log10(0.3), 100)
 
