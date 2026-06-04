@@ -115,7 +115,6 @@ if __name__=='__main__':
     delta_p_classical = mre_theory.delta_p_cl_finite_island
     ggj_vals = args.ggj_scale_factor * mre_theory.delta_p_ggj
     bootstrap_vals = mre_theory.delta_p_bs
-    
 
     from matplotlib import pyplot as plt
     fig, ax = plt.subplots(1, figsize=(5,4))
@@ -136,14 +135,17 @@ if __name__=='__main__':
     
     
     if args.island_width_data_filename:
+        measured_data = read_measured_w_data(args.island_width_data_filename)
         measured_data = avg_island_width_to_outboard(
-            chease_cols,
-            read_measured_w_data(args.island_width_data_filename),
+           chease_cols,
+            measured_data,
             args.poloidal_mode_number,
             args.toroidal_mode_number
         )
-        times = measured_data.times
-        w_vals = measured_data.w_measured
+        # Allow simulation to equilibriate after a millisecond
+        t_filter = measured_data.times > 1e-3
+        times = measured_data.times[t_filter]
+        w_vals = measured_data.w_measured[t_filter]
         dw_dt = np.diff(w_vals)/np.diff(times)
         mu0 = 4e-7*np.pi
         eta = args.resistivity

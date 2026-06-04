@@ -65,7 +65,7 @@ def get_calibrated_island_width_series(delta_psi_sol: TimeDependentSolution,
         ax.plot(dpsi_calibs, calibrations.w_avg, label="Calibrations")
 
 
-        ax.plot(delta_psi_sol.psi_t, calibrated_w_avg, label=f"Fit (A,B={coefs[0]:.2g}, {coefs[1]:.2g})")
+        ax.plot(delta_psi_sol.psi_t, calibrated_w_avg, label=f"Fit (A,B={coefs[0]:.4g}, {coefs[1]:.4g})")
         ax.legend()
         ax.grid()
         fig.tight_layout()

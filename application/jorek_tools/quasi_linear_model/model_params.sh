@@ -17,7 +17,7 @@ extract_jorek_mac_vars_si(){
 
 extract_jorek_mac_vars_parallel(){
     export -f extract_jorek_mac_vars;
-    find . -name 'run_*' | xargs -t -P 4 -I {} bash -c 'cd "{}" && extract_jorek_mac_vars'
+    printf "%s\n" "$@" | xargs -t -P 4 -I {} bash -c 'cd "{}" && extract_jorek_mac_vars'
 }
 
 extract_params(){

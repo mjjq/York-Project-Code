@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import numpy as np
 from dataclasses import dataclass, fields
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from matplotlib import pyplot as plt
 
 from debug.log import logger
@@ -220,6 +220,7 @@ def mre_contributions_single(w_vals: np.array,
     )
 
     return ret
+
 
 def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
                                   chease_times: np.array,
@@ -478,13 +479,6 @@ if __name__=='__main__':
         "-xpa", "--chi-parallel", type=float, default=17.5,
         help="On-axis perpendicular thermal diffusion coefficient"
     )
-    parser.add_argument(
-        '-s', '--stationary-equilibrium', action='store_true',
-        help="If activated, MRE is evaluated for"
-        " the first equilibrium in chease_cols_files for the "
-        "duration of the island width evolution"
-    )
-
     args = parser.parse_args()
 
     if not args.mre_data_filename:
@@ -501,10 +495,6 @@ if __name__=='__main__':
 
         col_list = [read_columns(f) for f in args.chease_cols_files]
         times = [time_from_g_filename(f) for f in args.chease_cols_files]
-
-        if args.stationary_equilibrium:
-            times = w_measured.times
-            col_list = [col_list[0]]*len(times)
 
         if args.rdcon_data_filename:
             deltap_data = read_measured_delta_prime_data(
