@@ -111,26 +111,32 @@ if __name__=='__main__':
         args.chi_perp,
         args.chi_parallel
     )
-    r_s = mre_theory.r_s
+    r_s = mre_theory.r_s 
+    mu0 = 4e-7*np.pi
+    eta = args.resistivity
+    rutherford_scale = 1.22 # See Kleiner 2016, expression for f_n
+    scale_fac = rutherford_scale*eta/mu0
+    print(scale_fac)
+
     delta_p_classical = mre_theory.delta_p_cl_finite_island
     ggj_vals = args.ggj_scale_factor * mre_theory.delta_p_ggj
     bootstrap_vals = mre_theory.delta_p_bs
 
     from matplotlib import pyplot as plt
-    fig, ax = plt.subplots(1, figsize=(5,4))
-    ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
-    ax.plot(w_vals, r_s*delta_p_classical, label="Classical", linestyle='--')
-    ax.plot(w_vals, r_s*ggj_vals, label="GGJ", linestyle='--')
-    ax.plot(w_vals, r_s*bootstrap_vals, label="Bootstrap", linestyle='--')
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    #ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
+    ax.plot(w_vals, scale_fac*delta_p_classical, label="Classical", linestyle='--')
+    ax.plot(w_vals, scale_fac*ggj_vals, label="GGJ", linestyle='--')
+    ax.plot(w_vals, scale_fac*bootstrap_vals, label="Bootstrap", linestyle='--')
     ax.plot(
         w_vals, 
-        r_s*(delta_p_classical+ggj_vals+bootstrap_vals), 
-        label="$r_s \Delta'_{all}$",
+        scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals), 
+        label="Total",
         color='black'
     )
     ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
     ax.set_xlabel("w/a")
-    ax.set_ylabel("$r_s \Delta'(w/a)$")
+    ax.set_ylabel("$d(w/a)/dt$ (/s)")
 #    fig.tight_layout()
     
     
@@ -147,12 +153,9 @@ if __name__=='__main__':
         times = measured_data.times[t_filter]
         w_vals = measured_data.w_measured[t_filter]
         dw_dt = np.diff(w_vals)/np.diff(times)
-        mu0 = 4e-7*np.pi
-        eta = args.resistivity
-        rutherford_scale = 1.22 # See Kleiner 2016, expression for f_n
         measured_delta_prime = dw_dt*mu0/eta/rutherford_scale
         measured_rs_delta_prime = mre_theory.r_s * measured_delta_prime
-        ax.plot(w_vals[:-1], measured_rs_delta_prime, label="JOREK")
+        ax.plot(w_vals[:-1], dw_dt, label="JOREK")
 
         #mre_measured = mre_contributions_single(
         #    w_vals, chease_cols,
@@ -165,8 +168,9 @@ if __name__=='__main__':
         #mre_measured.resistivity = args.resistivity
         #compare_dw_dt(mre_measured)    
 
-    ax.legend()
+    ax.legend(ncol=2)
     ax.grid()
     fig.tight_layout()
+    fig.savefig(f"mre_bt{args.scale_factor}.pdf")
     plt.show()
     

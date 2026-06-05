@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+from typing import Tuple
 
 from jorek_tools.delta_psi_extraction.plot_delta_psi_vs_time import get_psi_vs_time_for_mode
 from jorek_tools.jorek_dat_to_array import read_four2d_profile, read_q_profile, read_timestep_map
@@ -34,6 +35,24 @@ def read_island_width_calibrations(filename: str) -> IslandCalibrations:
         w_avg
     )
 
+def get_calibrated_island_widths_coefs(delta_psi_sol: TimeDependentSolution,
+                                       calibration_coefs: Tuple[float, float]) -> TimeDependentSolution:
+    func = np.poly1d(calibration_coefs)
+    log_psi_t = np.log(delta_psi_sol.psi_t)
+    log_calibrated_w_avg = func(log_psi_t)
+    calibrated_w_avg = np.exp(log_calibrated_w_avg)
+
+    return TimeDependentSolution(
+        delta_psi_sol.times,
+        delta_psi_sol.psi_t,
+        delta_psi_sol.dpsi_dt,
+        delta_psi_sol.d2psi_dt2,
+        calibrated_w_avg,
+        delta_psi_sol.delta_primes
+    )
+
+    
+
 def get_calibrated_island_width_series(delta_psi_sol: TimeDependentSolution,
                                        calibrations: IslandCalibrations,
                                        debug_plot: bool = False) -> TimeDependentSolution:
@@ -49,10 +68,11 @@ def get_calibrated_island_width_series(delta_psi_sol: TimeDependentSolution,
 
     coefs = np.polyfit(log_dpsi, log_widths, 1)
     print(coefs)
-    func = np.poly1d(coefs)
-    log_psi_t = np.log(delta_psi_sol.psi_t)
-    log_calibrated_w_avg = func(log_psi_t)
-    calibrated_w_avg = np.exp(log_calibrated_w_avg)
+
+    calib_sol = get_calibrated_island_widths_coefs(
+        delta_psi_sol,
+        coefs
+    )
 
     if debug_plot:
         from matplotlib import pyplot as plt
@@ -64,23 +84,14 @@ def get_calibrated_island_width_series(delta_psi_sol: TimeDependentSolution,
 
         ax.plot(dpsi_calibs, calibrations.w_avg, label="Calibrations")
 
-
-        ax.plot(delta_psi_sol.psi_t, calibrated_w_avg, label=f"Fit (A,B={coefs[0]:.4g}, {coefs[1]:.4g})")
+        ax.plot(delta_psi_sol.psi_t, calib_sol.w_t, label=f"Fit (A,B={coefs[0]:.4g}, {coefs[1]:.4g})")
         ax.legend()
         ax.grid()
         fig.tight_layout()
         plt.show()
-
-    return TimeDependentSolution(
-        delta_psi_sol.times,
-        delta_psi_sol.psi_t,
-        delta_psi_sol.dpsi_dt,
-        delta_psi_sol.d2psi_dt2,
-        calibrated_w_avg,
-        delta_psi_sol.delta_primes
-    )
-
     
+    return calib_sol
+
 
 def plot_calibration_main():
     from argparse import ArgumentParser
@@ -107,6 +118,10 @@ def plot_calibration_main():
     parser.add_argument(
         '-w', '--island-calibrations',
         help="Text file containing island width calibrations at various times"
+    )
+    parser.add_argument(
+        '-c', '--calibration-coefficients', nargs='+', type=float, default=[],
+        help="Use a set of pre-calculated coefficients, e.g. from another run."
     )
     parser.add_argument(
         '-m', '--poloidal-mode',
@@ -142,9 +157,14 @@ def plot_calibration_main():
         tstep_map
     )[0]
 
-    calibrations = read_island_width_calibrations(args.island_calibrations)
+    if not args.calibration_coefficients:
+        calibrations = read_island_width_calibrations(args.island_calibrations)
 
-    sol_calib = get_calibrated_island_width_series(sol, calibrations, args.debug_plot)
+        sol_calib = get_calibrated_island_width_series(sol, calibrations, args.debug_plot)
+    else:
+        sol_calib = get_calibrated_island_widths_coefs(
+            sol, args.calibration_coefficients
+        )
 
     if args.plot_calibration:
         from matplotlib import pyplot as plt

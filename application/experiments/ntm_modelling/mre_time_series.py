@@ -335,8 +335,8 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
 
 
 def plot_mre_contributions(mre: MREContributions):
-    fig, axs = plt.subplots(2, figsize=(5,5), sharex=True)
-    ax, ax2 = axs
+    fig, ax = plt.subplots(1, figsize=(4,2))
+    #ax, ax2 = axs
 
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_cl_finite_island, 
@@ -400,12 +400,12 @@ def plot_mre_contributions(mre: MREContributions):
         alpha=0.3,
         color='black'
     )
-    ax.legend(loc='upper center',bbox_to_anchor=(0.5, 1.1),ncol=4,prop={'size': 8})
+    ax.legend(loc='upper center',bbox_to_anchor=(0.5, 1.2),ncol=4,prop={'size': 8})
 
     #ax.set_xlabel("Time (s)")
     ax.set_ylabel("$r_s \Delta'$")
 
-    #fig2, ax2 = plt.subplots(1, figsize=(5,4))
+    fig2, ax2 = plt.subplots(1, figsize=(5,4))
     ax2.plot(mre.times, 100.0*mre.w_measured)
     ax2.fill_between(
         mre.times, 
@@ -423,11 +423,13 @@ def plot_mre_contributions(mre: MREContributions):
     ax2.set_ylabel("Measured island width (cm)")
     ax2.legend()
 
-    axs[-1].set_xlabel("Time (s)")
-    for ax_l in axs:
+    #axs[-1].set_xlabel("Time (s)")
+    for ax_l in (ax, ax2):
         ax_l.grid()
+        ax_l.set_xlabel("Time (s)")
 
     fig.tight_layout()
+    fig.savefig("mre_vs_time.pdf")
 
     figwd, axwd = plt.subplots(1)
     axwd.plot(mre.times, mre.w_d, label='Measured width')
