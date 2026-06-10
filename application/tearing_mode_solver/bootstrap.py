@@ -37,7 +37,7 @@ def ntm_bootstrap_term(w: float,
     # We choose a factor of 2.5 which appears to align better
     # with several tested shots in the saturated
     # regime (50553, 53377). See today's labbook entry.
-    geom_factor = 2.5
+    geom_factor = 1.5
     return geom_factor * (
         mu0 * r_major**3 * q_s / (f_val**2 * shear_rs) *
         j_bs_avg_rs * w / (w**2 + w_d**2)

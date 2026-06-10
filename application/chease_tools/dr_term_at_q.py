@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import numpy as np
 from numpy import interp, loadtxt, pi
 from dataclasses import dataclass
+from typing import List
 
 from rdcon_tools.delta_gw import time_from_g_filename
 
@@ -192,6 +193,26 @@ def extract_rmhd_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 
 	return delta_d_r
 
+def dr_avg_profile(files: List[str]):
+	cols_array = [read_columns(fname) for fname in files]
+	time_array = [time_from_g_filename(fname) for fname in files]
+
+	d_r_profs = [col.d_r for col in cols_array]
+	d_r_avg = np.mean(d_r_profs, axis=0)
+	d_r_std = np.std(d_r_profs, axis=0)/np.sqrt(len(d_r_profs))
+
+	s_prof = cols_array[0].s
+	psi_n_prof = s_prof**2
+
+	#from matplotlib import pyplot as plt
+	#fig, ax = plt.subplots(1)
+	#ax.plot(psi_n_prof, d_r_avg)
+	#ax.fill_between(psi_n_prof, d_r_avg-d_r_std, d_r_avg+d_r_std, alpha=0.5)
+	#plt.show()
+
+	print("% psi_N D_R_mean D_R_std")
+	for i, psi_n in enumerate(psi_n_prof):
+		print(psi_n, d_r_avg[i], d_r_std[i])
 
 if __name__=='__main__':
     parser = ArgumentParser(
@@ -211,12 +232,20 @@ if __name__=='__main__':
         '-t', '--print-times', action='store_true',
         help="Print g-file times alongside output (requires eqdsk formatted folder names)"
     )
+    parser.add_argument(
+        '-a', '--average-profile', action='store_true',
+        help="Print average D_R profile over all g_files"
+    )
 	#parser.add_argument(
 	#	'-a', '--approximate', action='store_true',
 	#	help='Return large aspect ratio D_R approximation instead of CHEASE calculated'
 	#)
 
     args = parser.parse_args()
+
+    if args.average_profile:
+        dr_avg_profile(args.filename)
+        exit()
 
     for fname in args.filename:
         cols = read_columns(fname)
