@@ -421,8 +421,31 @@ def diffusion_width(chi_perp: float,
 
     :return: Diffusion length scale normalised to plasma minor radius a.
     """
-    return (64*chi_perp/chi_parallel)**(1/4) * \
-        (aspect_ratio*r_s/(toroidal_mode_number*magnetic_shear))**(1/2)
+    return (64.0*chi_perp/chi_parallel)**(1/4) * \
+        (r_s*aspect_ratio/(toroidal_mode_number*magnetic_shear))**(1/2)
+
+def diffusion_width_kleiner(chi_perp: float,
+                            chi_parallel: float,
+                            r_s: float,
+                            aspect_ratio: float,
+                            toroidal_mode_number: int,
+                            magnetic_shear: float) -> float:
+    """
+    Calculate diffusion length scale as per Kleiner 2016, pp. 
+    We normalise the length scale to the plasma minor radius a.
+
+    :param chi_perp: Perpendicular diffusion coefficient (arb units,
+        must be identical to chi_parallel units)
+    :param chi_parallel: Parallel diffusion coefficent (arb units)
+    :param r_s: Normalised radius of rational surface (normalised to a)
+    :param aspect_ratio: Aspect ratio of the plasma
+    :param toroidal_mode_number: Toroidal mode number
+    :param magnetic_shear: Magnetic shear at r_s
+
+    :return: Diffusion length scale normalised to plasma minor radius a.
+    """
+    return r_s * 2**0.5*(chi_perp/chi_parallel)**(1/4) * \
+        (aspect_ratio/(toroidal_mode_number*magnetic_shear))**(1/2)
 
 def chi_perp_ratio(diff_width: float,
                    r_s: float,

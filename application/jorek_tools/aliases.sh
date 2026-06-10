@@ -156,3 +156,9 @@ source $(get_script_dir)/quasi_linear_model/model_params.sh
 source $(get_script_dir)/poincare/plot_multiple.sh
 
 source $(get_script_dir)/profile_evolution/get_all_profiles.sh
+
+source $(get_script_dir)/delta_psi_extraction/time_restart.sh
+
+source $(get_script_dir)/island_width/island_width_main.sh
+
+source $(get_script_dir)/../experiments/ntm_modelling/ntm_modelling_main.sh

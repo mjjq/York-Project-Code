@@ -4,14 +4,25 @@ extract_jorek_inputs(){
 	./jorek2_postproc < $JOREK_TOOLS/quasi_linear_model/get_flux.pp
 }
 
+
 extract_jorek_mac_vars(){
+	$JOREK_UTIL/extract_live_data.sh magnetic_energies > magnetic_energies.dat
+	$JOREK_UTIL/extract_live_data.sh magnetic_growth_rates > magnetic_growth_rates.dat
+}
+
+extract_jorek_mac_vars_si(){
 	$JOREK_UTIL/extract_live_data.sh -si magnetic_energies > magnetic_energies_si.dat
 	$JOREK_UTIL/extract_live_data.sh -si magnetic_growth_rates > magnetic_growth_rates_si.dat
 }
 
+extract_jorek_mac_vars_parallel(){
+    export -f extract_jorek_mac_vars;
+    printf "%s\n" "$@" | xargs -t -P 4 -I {} bash -c 'cd "{}" && extract_jorek_mac_vars'
+}
+
 extract_params(){
 	extract_jorek_inputs
-	extract_jorek_mac_vars
+	extract_jorek_mac_vars_si
 
 	#SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 	#source $SCRIPT_DIR/../delta_psi_extraction/delta_psi_main.sh

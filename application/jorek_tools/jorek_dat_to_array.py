@@ -286,7 +286,8 @@ def read_postproc_profiles(postproc_filename: str,
         # Data for each m/n mode is split by a 
         # double line-break separated by a space
         # i.e. "\n \n"
-        split_data = raw_data.split("\n \n")
+        #split_data = raw_data.split("\n \n")
+        split_data = re.split('\n \n|\n\n', raw_data)
 
     ret: List[PostprocProfile] = []
     for raw_profile in split_data:
@@ -305,9 +306,15 @@ def read_postproc_profiles(postproc_filename: str,
             # Sometimes the comment is denoted by a percent
             # symbol. Retry if this is the case
             profile_data = np.loadtxt(StringIO(raw_profile), comments="%")
-        x_data = profile_data[:,x_index]
-        y_data = profile_data[:,y_index]
 
+        try:
+            x_data = profile_data[:,x_index]
+            y_data = profile_data[:,y_index]
+        except IndexError as ie:
+            print(ie)
+            x_data = []
+            y_data = []
+    
         profile: PostprocProfile = PostprocProfile(
             x_vals = x_data,
             y_vals = y_data, 

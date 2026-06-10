@@ -4,71 +4,55 @@ import numpy as np
 from debug.log import logger
 
 from chease_tools.dr_term_at_q import read_columns, CheaseColumns
-from chease_tools.get_tm_parameters import get_parameters
-from jorek_tools.macroscopic_vars_analysis.plot_quantities import MacroscopicQuantity
+from chease_tools.get_tm_parameters import scale_profiles
+from experiments.ntm_modelling.mre_time_series import (
+    mre_contributions_single, read_measured_w_data, MeasuredIslandWidth
+)
+from experiments.ntm_modelling.compare_dw_dt import compare_dw_dt
 
-from tearing_mode_solver.bootstrap import ntm_bootstrap_term
-from tearing_mode_solver.ggj import ntm_ggj_term
-from tearing_mode_solver.loizu_delta_prime import delta_prime_loizu, calculate_coefficients
+def avg_island_width_to_outboard(chease_cols: CheaseColumns,
+                                 w_measured: MeasuredIslandWidth,
+                                 poloidal_mode_number: int,
+                                 toroidal_mode_number: int) -> MeasuredIslandWidth:
+    """
+    Convert poloidally averaged island
+    width to outboard island width
 
-def ggj_term(w: float,
-             poloidal_mode_number: float,
-             toroidal_mode_number: float,
-             chease_cols: CheaseColumns,
-             w_d: float) -> float:
-    q_s = poloidal_mode_number/toroidal_mode_number
+    :param chease_cols: CHEASE equilibrium data
+    :param w_measured: Measured island width normalised to minor radius
+    """
+    if not w_measured.normalised:
+        raise ValueError("Island width must be normalised!")
+    
+    q_s = float(poloidal_mode_number/toroidal_mode_number)
 
-    # Note: Chease outputs -d_r, so negate here
-    d_r = -np.interp(q_s, chease_cols.q, chease_cols.d_r)
-    beta_p = np.interp(q_s, chease_cols.q, chease_cols.beta_p)
-
-    print(d_r)
-
-    return ntm_ggj_term(w, d_r, w_d)
-
-def bootstrap_term(w: float,
-                   poloidal_mode_number: float,
-                   toroidal_mode_number: float,
-                   chease_cols: CheaseColumns,
-                   w_d: float) -> float:
-    q_s = poloidal_mode_number/toroidal_mode_number
-    r_maj = chease_cols.r_avg[0]
-    f_val = np.interp(
+    rho_rs = np.interp(
         q_s,
         chease_cols.q,
-        chease_cols.F
-    )
-    shear_rs = np.interp(
-        q_s,
-        chease_cols.q,
-        chease_cols.shear
+        chease_cols.s
     )
 
-    # j_bs_rs = np.interp(
-    #     psi_rs,
-    #     bootstrap_profile.x_values,
-    #     bootstrap_profile.y_values
-    # )
-    j_bs_rs = np.interp(
-        q_s,
-        chease_cols.q,
-        chease_cols.j_bs
+    rho_max = rho_rs + 0.5*w_measured.w_measured
+    rho_min = rho_rs - 0.5*w_measured.w_measured
+
+    a_min = 0.5*(chease_cols.r_outboard[-1]+chease_cols.r_inboard[-1])
+
+    R_min, R_max = np.interp(
+        [rho_min, rho_max],
+        chease_cols.s,
+        chease_cols.r_outboard
     )
 
-    # Above is in chease units, but the function below
-    # requires SI-units. Since the units of
-    # R/B^2 * <j.B> cancel, only need to remove a factor
-    # of mu0 from <j.B>
-    mu0 = 4e-7 * np.pi
-    j_bs_rs = j_bs_rs/mu0
+    w_out = (R_max - R_min)/a_min
 
-    logger.debug(
-        "r_maj, f_val, q_s, shear_rs, j_bs_rs", 
-        r_maj, f_val, q_s, shear_rs, j_bs_rs
+    return MeasuredIslandWidth(
+        w_measured.times,
+        w_out,
+        w_measured.w_measured_err,
+        True
     )
-    return ntm_bootstrap_term(
-        w, r_maj, f_val, q_s, shear_rs, j_bs_rs, w_d
-    )
+
+        
 
 if __name__=='__main__':
     logger.setLevel(1)
@@ -78,10 +62,6 @@ if __name__=='__main__':
         "chease_cols_file", 
         type=str, help="Path to chease_cols.out"
     )
-    # parser.add_argument(
-    #     "bootstrap_exprs_file", 
-    #     type=str, help="Path to JOREK postproc bootstrap current file"
-    # )
     parser.add_argument(
         "-m", "--poloidal-mode-number", type=int, default=2,
         help="Poloidal mode number"
@@ -91,81 +71,106 @@ if __name__=='__main__':
         help="Toroidal mode number"
     )
     parser.add_argument(
-        '-wd', "--wd", type=float, default=0.0,
-        help="Diffusion width (normalised to minor radius)"
+        "-xp", "--chi-perp", type=float, default=0.15499,
+        help="On-axis perpendicular thermal diffusion coefficient"
+    )
+    parser.add_argument(
+        "-xpa", "--chi-parallel", type=float, default=1.0934e7,
+        help="On-axis perpendicular thermal diffusion coefficient"
+    )
+    parser.add_argument(
+        "-e", "--resistivity", type=float, default=1.9413e-7,
+        help="Resistivity at the rational surface"
     )
     parser.add_argument(
         '-s', "--scale-factor", type=float, default=1.0,
         help="Scale factor for q-profile (to simulate B_phi ramp)"
     )
+    parser.add_argument(
+        '-g', "--ggj-scale-factor", type=float, default=1.0,
+        help="Scale factor for GGJ (to simulate rMHD)"
+    )
+    parser.add_argument(
+        "-w", "--island-width-data-filename",
+        type=str,
+        help="Path to measured island width time trace.",
+        default=""
+    )
 
     args = parser.parse_args()
 
     chease_cols = read_columns(args.chease_cols_file)
-    chease_cols.q = args.scale_factor*chease_cols.q
+    scale_profiles(chease_cols, args.scale_factor)
 
-    q_s = args.poloidal_mode_number/args.toroidal_mode_number
-    r_s = np.interp(
-        q_s,
-        chease_cols.q,
-        chease_cols.eps
-    )
+    w_vals = np.logspace(-3, np.log10(0.3), 100)
 
-    w_vals = np.logspace(-3, np.log10(0.5), 100)
-
-    ggj_vals = ggj_term(
-        w_vals, 
+    mre_theory = mre_contributions_single(
+        w_vals, chease_cols,
         args.poloidal_mode_number,
         args.toroidal_mode_number,
-        chease_cols,
-        args.wd
+        args.chi_perp,
+        args.chi_parallel
     )
+    r_s = mre_theory.r_s 
+    mu0 = 4e-7*np.pi
+    eta = args.resistivity
+    rutherford_scale = 1.22 # See Kleiner 2016, expression for f_n
+    scale_fac = rutherford_scale*eta/mu0
+    print(scale_fac)
 
-    bootstrap_vals = bootstrap_term(
-        w_vals,
-        args.poloidal_mode_number,
-        args.toroidal_mode_number,
-        chease_cols,
-        args.wd
-    )
-
-    params = get_parameters(
-        chease_cols,
-        args.poloidal_mode_number,
-        args.toroidal_mode_number
-    )
-    loizu_coefs = calculate_coefficients(params)
-    delta_p_classical = delta_prime_loizu(
-        w_vals,
-        loizu_coefs
-    )
-    
+    delta_p_classical = mre_theory.delta_p_cl_finite_island
+    ggj_vals = args.ggj_scale_factor * mre_theory.delta_p_ggj
+    bootstrap_vals = mre_theory.delta_p_bs
 
     from matplotlib import pyplot as plt
-    fig, ax = plt.subplots(1, figsize=(5,4))
-    ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
-    ax.plot(w_vals, r_s*delta_p_classical, label="$r_s \Delta'_{CL}$", linestyle='--')
-    ax.plot(w_vals, r_s*ggj_vals, label="$r_s \Delta'_{GGJ}$", linestyle='--')
-    ax.plot(w_vals, r_s*bootstrap_vals, label="$r_s \Delta'_{BS}$", linestyle='--')
+    fig, ax = plt.subplots(1, figsize=(4,3))
+    #ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
+    ax.plot(w_vals, scale_fac*delta_p_classical, label="Classical", linestyle='--')
+    ax.plot(w_vals, scale_fac*ggj_vals, label="GGJ", linestyle='--')
+    ax.plot(w_vals, scale_fac*bootstrap_vals, label="Bootstrap", linestyle='--')
     ax.plot(
         w_vals, 
-        r_s*(delta_p_classical+ggj_vals+bootstrap_vals), 
-        label="$r_s \Delta'_{all}$",
+        scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals), 
+        label="Total",
         color='black'
     )
     ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
     ax.set_xlabel("w/a")
-    ax.set_ylabel("$r_s \Delta'(w)$")
-    ax.legend()
+    ax.set_ylabel("$d(w/a)/dt$ (/s)")
+#    fig.tight_layout()
+    
+    
+    if args.island_width_data_filename:
+        measured_data = read_measured_w_data(args.island_width_data_filename)
+        measured_data = avg_island_width_to_outboard(
+           chease_cols,
+            measured_data,
+            args.poloidal_mode_number,
+            args.toroidal_mode_number
+        )
+        # Allow simulation to equilibriate after a millisecond
+        t_filter = measured_data.times > 1e-3
+        times = measured_data.times[t_filter]
+        w_vals = measured_data.w_measured[t_filter]
+        dw_dt = np.diff(w_vals)/np.diff(times)
+        measured_delta_prime = dw_dt*mu0/eta/rutherford_scale
+        measured_rs_delta_prime = mre_theory.r_s * measured_delta_prime
+        ax.plot(w_vals[:-1], dw_dt, label="JOREK")
+
+        #mre_measured = mre_contributions_single(
+        #    w_vals, chease_cols,
+        #    args.poloidal_mode_number,
+        #    args.toroidal_mode_number,
+        #    args.chi_perp,
+        #    args.chi_parallel
+        #)
+        #mre_measured.times = times
+        #mre_measured.resistivity = args.resistivity
+        #compare_dw_dt(mre_measured)    
+
+    ax.legend(ncol=2)
     ax.grid()
     fig.tight_layout()
+    fig.savefig(f"mre_bt{args.scale_factor}.pdf")
     plt.show()
-
-
-    # j_bs_profile = MacroscopicQuantity(args.bootstrap_exprs_file)
-    # j_bs_profile.load_x_values_by_index(0)
-    # j_bs_profile.load_y_values_by_index(1)
-
-    
-
     

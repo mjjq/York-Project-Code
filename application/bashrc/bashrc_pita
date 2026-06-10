@@ -25,10 +25,15 @@ export YP_CODE=$HPC_SOFTWARE/York-Project-Code/application/
 export JOREK_TOOLS=$YP_CODE/jorek_tools
 export CHEASE_TOOLS=$YP_CODE/chease_tools
 export XTOR_TOOLS=$YP_CODE/xtor_tools
+export RDCON_TOOLS=$YP_CODE/rdcon_tools
 
 alias sq="squeue --user=mquantri"
 alias tmux="$HPC_SOFTWARE/tmux-3.6a/tmux"
 PATH=$PATH:$WORK/JOREK_LIBRARIES/new_gnuplot/bin/
+
+function inode() {
+	srun -N 1 --ntasks-per-node=$1 --cpus-per-task=$2 -t 06:00:00 -p dcgp_fua_prod -A FUPA2_JOREKUK --pty /bin/bash
+}
 
 source $YP_CODE/bashrc/generic_aliases
 

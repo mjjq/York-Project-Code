@@ -6,6 +6,11 @@ run_chease() {
 	./chease < chease_namelist |& tee chease_output.out
 }
 
+run_chease_only() {
+	./chease < chease_namelist |& tee chease_output.out
+	./o.chease_to_cols chease_output.out chease_cols.out
+}
+
 chease_to_jorek() {
 	echo "Generating profiles..."
 

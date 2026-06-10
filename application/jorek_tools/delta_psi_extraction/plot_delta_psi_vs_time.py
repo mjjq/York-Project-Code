@@ -121,6 +121,14 @@ if __name__=='__main__':
         help='Toroidal mode number',
         default=1,
     )
+    parser.add_argument(
+        '-g', '--growth-rate', action='store_true',
+        help="Plot growth rate instead of delta\psi itself"
+    )
+    parser.add_argument(
+        '-o', '--output-filename', type=str,
+        help="Output filename for plot. Use .txt extension to output as text."
+    )
 
     args = parser.parse_args()
 
@@ -142,22 +150,29 @@ if __name__=='__main__':
         tstep_map
     )
 
-    fig, ax = plt.subplots(1, figsize=(5,4))
+    fig, ax = plt.subplots(1, figsize=(4,3))
 
     for i,mode in enumerate(args.poloidal_modes):
         psi_vs_time = sols[i].psi_t
+        dpsi_dt = sols[i].dpsi_dt
+        growth_rate = dpsi_dt/psi_vs_time[:-1]
         times = sols[i].times
-        ax.plot(times, psi_vs_time, label=f'm={mode}')
+        if args.growth_rate:
+            ax.plot(times[:-1], growth_rate, label=f'm={mode}')
+        else:
+            ax.plot(times, psi_vs_time, label=f'm={mode}')
 
     ax.legend()
     ax.grid()
-    ax.set_yscale('log')
+    #ax.set_yscale('log')
 
     ax.set_xlabel('Time step (arb)')
     if args.time_map_filename:
         ax.set_xlabel("Time (s)")
 
     ax.set_ylabel(r"$\delta\psi(r_s)$ (arb)")
+    if args.growth_rate:
+        ax.set_ylabel(r"$\gamma_{nl} (1/s)$")
 
     fig.tight_layout()
     plt.show()

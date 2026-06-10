@@ -5,6 +5,48 @@ import re
 
 from jorek_tools.jorek_dat_to_array import read_timestep_map
 
+# Source - https://stackoverflow.com/a/51778313
+# Posted by tmakaro, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-05-19, License - CC BY-SA 4.0
+
+from matplotlib.animation import FileMovieWriter
+from pathlib import Path
+
+class BunchOFiles(FileMovieWriter):
+    supported_formats = ['png', 'jpeg', 'bmp', 'svg', 'pdf']
+
+    def __init__(self, *args, extra_args=None, **kwargs):
+        # extra_args aren't used but we need to stop None from being passed
+        super().__init__(*args, extra_args=(), **kwargs)
+
+    def setup(self, fig, filename, dpi):
+        super().setup(fig, filename, dpi=300.0)
+        self.fname_format_str = '%s%%d.%s'
+        print(self.outfile)
+        self.temp_prefix, self.frame_format = self.outfile.split('.')
+
+    def grab_frame(self, **savefig_kwargs):
+        '''
+        Grab the image information from the figure and save as a movie frame.
+        All keyword arguments in savefig_kwargs are passed on to the 'savefig'
+        command that saves the figure.
+        '''
+        # docstring inherited
+        # Creates a filename for saving using basename and counter.
+        #_validate_grabframe_kwargs(savefig_kwargs)
+        path = Path(self._base_temp_name() % self._frame_counter)
+        self._temp_paths.append(path)  # Record the filename for later use.
+        self._frame_counter += 1  # Ensures each created name is unique.
+        #_log.debug('FileMovieWriter.grab_frame: Grabbing frame %d to path=%s',
+        #           self._frame_counter, path)
+        with open(path, 'wb') as sink:  # Save figure to the sink.
+            self.fig.savefig(sink, format=self.frame_format, dpi=self.dpi,
+                             **savefig_kwargs)
+
+    def finish(self):
+        #self._frame_sink().close()
+        return
+
 if __name__=='__main__':
     parser = ArgumentParser()
 
@@ -113,7 +155,7 @@ if __name__=='__main__':
 
             return (sp,)
 
-        ani = FuncAnimation(fig, animate, frames=len(frames)-1)
+        ani = FuncAnimation(fig, animate, frames=len(frames))
 
         if(is_rz_plot):
             file_prefix = "poinc_R-Z"
@@ -131,7 +173,7 @@ if __name__=='__main__':
         except:
             print("Couldn't save as .mp4. Missing ffmpeg. Trying .gif...")
             ani.save(f"{folder}/{file_prefix}.gif", writer="imagemagick",dpi=150)
-        ani.save(f"{folder}/{file_prefix}.png", writer="imagemagick",dpi=300)
+        ani.save(f"{folder}/{file_prefix}.png", writer=BunchOFiles(),dpi=300)
 
 
 

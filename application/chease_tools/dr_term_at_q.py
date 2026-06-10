@@ -3,6 +3,15 @@ import numpy as np
 from numpy import interp, loadtxt, pi
 from dataclasses import dataclass
 
+from rdcon_tools.delta_gw import time_from_g_filename
+
+def read_columns_raw(filename: str) -> np.array:
+    """
+    Read a chease_cols.out file and return the raw
+    data
+    """
+    return loadtxt(filename, comments="%")
+
 @dataclass
 class CheaseColumns():
 	"""
@@ -24,6 +33,8 @@ class CheaseColumns():
 	F: np.array # F=RB_phi (F=T in CHEASE)
 	beta_p: np.array # Poloidal beta (propto p/<Bp>**2)
 	r_avg: np.array # Poloidally averaged major radius
+	r_inboard: np.array
+	r_outboard: np.array
  	# Poloidally averaged bootstrap current 
 	# (choose the zerocoll version)
 	j_bs: np.array
@@ -36,7 +47,7 @@ def read_columns(filename: str) -> CheaseColumns:
 	Read raw chease columns from file and store into
 	convenient class
 	"""
-	raw_data = loadtxt(filename, comments="%")
+	raw_data = read_columns_raw(filename)
 
 	return CheaseColumns(
 		s=raw_data[:,0],
@@ -53,7 +64,9 @@ def read_columns(filename: str) -> CheaseColumns:
 		beta_p=raw_data[:,75],
 		r_avg=raw_data[:,25],
 		j_bs=raw_data[:,33],
-		j_phi=raw_data[:,10]
+		j_phi=raw_data[:,10],
+        r_inboard=raw_data[:,63],
+        r_outboard=raw_data[:,64]
 	)
 
 
@@ -76,6 +89,27 @@ def extract_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 
 	return d_r_at_q
 
+
+def extract_term_at_q(raw_cols: np.array, 
+                      term_index: int, 
+                      q: float) -> float:
+    """
+    Read a given chease column term at a specified
+    q-surface
+
+    :param raw_cols: Raw CHEASE columns
+    :param term_index: Index of the quantity to evaluate
+    :param q: Safety factor at which to evaluate the
+        quantity
+    """
+    # q_profile is index 7
+    q_profile = raw_cols[:,7]
+
+    quantity = raw_cols[:,term_index]
+
+    quantity_at_q = interp(q, q_profile, quantity)
+
+    return quantity_at_q
 
 def alpha_from_cols(cols: CheaseColumns, q: float) -> float:
 	"""
@@ -160,35 +194,43 @@ def extract_rmhd_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 
 
 if __name__=='__main__':
-	parser = ArgumentParser(
-		description='Get D_R term at a given safety factor from CHEASE column data'
-	)
+    parser = ArgumentParser(
+        description='Get D_R term at a given safety factor from CHEASE column data'
+    )
 
-	parser.add_argument('filename', type=str, nargs='+', help='Name of chease_cols file')
-	parser.add_argument(
-		'-q', '--safety-factor', type=float,
-		help='Safety factor at which to evaluate D_R'
-	)
-	parser.add_argument(
-		'-r', '--reduced-mhd', action='store_true',
-		help='Return reduced-MHD D_R if enabled'
-	)
+    parser.add_argument('filename', type=str, nargs='+', help='Name of chease_cols file')
+    parser.add_argument(
+        '-q', '--safety-factor', type=float,
+        help='Safety factor at which to evaluate D_R'
+    )
+    parser.add_argument(
+        '-r', '--reduced-mhd', action='store_true',
+        help='Return reduced-MHD D_R if enabled'
+    )
+    parser.add_argument(
+        '-t', '--print-times', action='store_true',
+        help="Print g-file times alongside output (requires eqdsk formatted folder names)"
+    )
 	#parser.add_argument(
 	#	'-a', '--approximate', action='store_true',
 	#	help='Return large aspect ratio D_R approximation instead of CHEASE calculated'
 	#)
 
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	for fname in args.filename:
-		cols = read_columns(fname)
+    for fname in args.filename:
+        cols = read_columns(fname)
 
-		d_r = extract_dr_from_cols(cols, args.safety_factor)
-		#if args.approximate:
-		#	d_r = d_i_approximation_from_cols(cols, args.safety_factor)
+        d_r = extract_dr_from_cols(cols, args.safety_factor)
+        #if args.approximate:
+        #	d_r = d_i_approximation_from_cols(cols, args.safety_factor)
 
-		if args.reduced_mhd:
-			delta_dr = extract_rmhd_dr_from_cols(cols, args.safety_factor)
-			d_r = d_r + delta_dr
+        if args.reduced_mhd:
+            delta_dr = extract_rmhd_dr_from_cols(cols, args.safety_factor)
+            d_r = d_r + delta_dr
 
-		print(f"{d_r:.10f}")
+        if args.print_times:
+            time = time_from_g_filename(fname)
+            print(f"{time} {d_r:.10f}")
+        else:
+            print(f"{d_r:.10f}")
