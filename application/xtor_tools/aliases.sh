@@ -28,7 +28,7 @@ xtorpythonenv() {
 }
 
 xtorgui() {
-	python3 $PROJ_HOME/xtor_python/gui.py
+	python3 $HPC_SOFTWARE/xtor_python/gui.py
 }
 
 xtorprint() {
