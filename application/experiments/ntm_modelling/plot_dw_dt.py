@@ -16,10 +16,14 @@ def plot_dw_dt(measured_data_array: List[MeasuredIslandWidth],
                poloidal_mode_number: int,
                toroidal_mode_number: int,
                labels = None):
-    fig, axs = plt.subplots(ncols=2, figsize=(9,2),sharey=True)
+    fig, axs = plt.subplots(ncols=2, figsize=(6,2),sharey=True)
     ax, ax2 = axs
+    fig2, ax_w = plt.subplots(figsize=(3,2))
+    ax_w.grid()
     for ax_i in axs:
         ax_i.grid()
+    ax_w.set_xlabel("Time (s)")
+    ax_w.set_ylabel("w/a")
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("d(w/a)/dt")
     ax2.set_xlabel("w/a")
@@ -44,10 +48,14 @@ def plot_dw_dt(measured_data_array: List[MeasuredIslandWidth],
         ax.plot(times[:-1], dw_dt, label=label)
         ax2.plot(w_vals[:-1], dw_dt, label=label)
 
+        ax_w.plot(times, w_vals)
+
     if labels:
-        ax.legend()
+        ax2.legend(prop={'size':8})
     fig.tight_layout()
+    fig2.tight_layout()
     fig.savefig("dw_dt_scan.pdf")
+    fig2.savefig("w_scan.pdf")
 
 if __name__=='__main__':
     parser = ArgumentParser()
@@ -79,6 +87,9 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     chease_cols = read_columns(args.chease_cols_file)
+
+    if not args.scale_factors:
+        args.scale_factors = [1.0]*len(args.island_width_data_filename)
 
     if len(args.scale_factors) != len(args.island_width_data_filename):
         raise ValueError("Number of scale factor must equal number of w_measured!")
