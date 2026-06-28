@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import re
 
-from jorek_tools.jorek_dat_to_array import read_timestep_map
+from jorek_tools.jorek_dat_to_array import read_timestep_map, read_postproc_profiles
 
 # Source - https://stackoverflow.com/a/51778313
 # Posted by tmakaro, modified by community. See post 'Timeline' for change history
@@ -62,7 +62,7 @@ if __name__=='__main__':
         default=(None, None)
     )
     parser.add_argument(
-        "-ms", "--marker-size", type=float, help="Size of scatter markers", default=0.125
+        "-ms", "--marker-size", type=float, help="Size of scatter markers", default=0.1
     )
     parser.add_argument(
         "-t", "--timestep-map", type=str, help="Path to timestep->time map", default="time_map.txt"
@@ -70,13 +70,19 @@ if __name__=='__main__':
     parser.add_argument(
         "-p", "--plot-interactive", action="store_true", help="Whether to plot interactively"
     )
+    parser.add_argument(
+        '-i', '--surface-highlight-indices', nargs='+', help="Mark separate colour for flux surface indices", default=[], type=int
+    )
+    parser.add_argument(
+        '-o', '--only-plot-highlighted', action='store_true', help='Only plot highlighted surfaces'
+    )
     args = parser.parse_args()
 
     r_min, r_max = args.r_range
     z_min, z_max = args.z_range
 
     frames = [
-        np.loadtxt(f) for f in args.files
+        read_postproc_profiles(f) for f in args.files
     ]
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
 
@@ -107,18 +113,34 @@ if __name__=='__main__':
         print(e)
         print("Unable to load timestep map. Plotting without...")
 
-    sp = ax.scatter(
-        frames[0][:,0], frames[0][:,1],
-        marker=".",
+    frame = frames[0]
+    sps = []
+    for i,surface in enumerate(frame):
+        color='blue'
+        alpha=0.1
         s=args.marker_size
-    )
+        if args.only_plot_highlighted:
+            alpha=0.0
+        if i in args.surface_highlight_indices:
+            color='red'
+            alpha=1.0
+            s=10.0*s
+        sps.append(ax.scatter(
+            surface.x_vals, surface.y_vals,
+            marker="o",
+            s=s,
+            color=color,
+            alpha=alpha
+        ))
 
 
     if args.plot_interactive:
         from matplotlib.widgets import Slider
         def bar(pos):
             pos = int(pos)
-            sp.set_offsets(frames[pos])
+            frame = frames[pos]
+            for i,sp in enumerate(sps):
+                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
 
             if tstep_map:
                 time = np.interp(
@@ -143,7 +165,9 @@ if __name__=='__main__':
         import os
         def animate(pos):
             pos = int(pos)
-            sp.set_offsets(frames[pos])
+            frame = frames[pos]
+            for i,sp in enumerate(sps):
+                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
 
             if tstep_map:
                 time = np.interp(
@@ -153,7 +177,7 @@ if __name__=='__main__':
                 )
                 ax.set_title(f"Time {time:.4g}s")
 
-            return (sp,)
+            return (sps,)
 
         ani = FuncAnimation(fig, animate, frames=len(frames))
 
