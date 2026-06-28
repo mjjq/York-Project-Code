@@ -107,6 +107,7 @@ class MacroscopicQuantity:
 
 
 def plot_macroscopic_quantities(quantities: List[PostprocProfile],
+				err_quantities: List[PostprocProfile],
 								labels: Optional[List[str]],
 								time_map: Optional[TimestepMap],
 								time_min: Optional[float],
@@ -153,6 +154,15 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 				markersize=marker_size
 				#color=color
 			)
+			if len(err_quantities) >0:
+				err_quantity = err_quantities[i]
+				print(err_quantity)
+				ax.fill_between(
+					mac_quantity.x_vals,
+					mac_quantity.y_vals-err_quantity.y_vals,
+					mac_quantity.y_vals+err_quantity.y_vals,
+					alpha=0.5
+				)
 		if len(quantities) > 1:
 			ax.legend()
 	else:
@@ -234,8 +244,8 @@ if __name__ == "__main__":
 	parser.add_argument('-xi', '--xcolumn-index', type=int, default=0)
 	#parser.add_argument('-c', '--columns', nargs='+')
 	parser.add_argument('-yi', '--ycolumn-index', type=int, nargs="+", default=[1])
-	parser.add_argument('-xerr', '--x-error-index', type=int, default=None)
-	parser.add_argument('-yerr', '--y-error-index', type=int, default=None)
+	parser.add_argument('-xerr', '--x-error-index', nargs="+", type=int, default=[])
+	parser.add_argument('-yerr', '--y-error-index', nargs="+", type=int, default=[])
 	parser.add_argument(
 		'-xl', '--x-label', help="Name of x-axis quantity")
 	parser.add_argument('-yl', '--y-label', help="Name of y-axis quantity")
@@ -277,6 +287,7 @@ if __name__ == "__main__":
 	parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
 	args = parser.parse_args()
 	quantities = []
+	err_quantities = []
 	# if args.columns:
 	# 	assert len(args.files)==len(args.columns), \
 	# 		"Number of columns must equal number of files!"
@@ -290,8 +301,12 @@ if __name__ == "__main__":
 			for yi in args.ycolumn_index:
 				mq = read_postproc_profiles(filename, args.xcolumn_index, yi)
 				quantities.append(mq)
+			for yerr in args.y_error_index:
+				mq_err = read_postproc_profiles(filename, args.xcolumn_index, yerr)
+				err_quantities.append(mq_err)
 
 	quantities = np.array(quantities).flatten()
+	err_quantities = np.array(err_quantities).flatten()
 
 	labels = None
 	if args.labels:
@@ -303,6 +318,7 @@ if __name__ == "__main__":
 
 	plot_macroscopic_quantities(
 		quantities,
+		err_quantities,
 		labels,
 		time_map,
 		args.time_min,

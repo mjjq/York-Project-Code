@@ -33,6 +33,7 @@ export YP_CODE=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/
 export JOREK_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/jorek_tools
 
 export CHEASE_TOOLS=$HPC_SOFTWARE/jorek_analysis/York-Project-Code/application/chease_tools
+export RDCON_TOOLS=$YP_CODE/rdcon_tools
 
 export XTOR=$HPC_SOFTWARE/xtor_k
 export XTOR_DATA=$HPC_DATA/xtor_data
