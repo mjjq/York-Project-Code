@@ -73,12 +73,17 @@ def get_rs_locations(q_prof: np.array,
 
 
 if __name__=='__main__':
-    r = np.linspace(0.0, 0.99, 99)
+    r = np.linspace(0.0, 0.999, 99)
     times = np.append([0.0], np.logspace(-3, 0, 10))
     B_init = 0.53
     B_applied = 0.9*B_init
-    R0=0.85
-    nu = 4.0
+    R0=1.0
+    nu = 4.5
+    # TODO: Determine scenario where q=2 surface can be moved
+    # significantly without getting too close to q0=1
+    # Look at effect of current peaking on efficiency of
+    # moving the surface, i.e. how much does the surface move
+    # and how quickly does it reach its new value
 
     from matplotlib import pyplot as plt
     import matplotlib as mpl
