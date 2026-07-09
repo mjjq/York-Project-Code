@@ -84,12 +84,14 @@ if __name__=='__main__':
     # Look at effect of current peaking on efficiency of
     # moving the surface, i.e. how much does the surface move
     # and how quickly does it reach its new value
+    # TODO: Significant modification to shear at edge, could this be
+    # used for peeling mode mitigation?
 
     from matplotlib import pyplot as plt
     import matplotlib as mpl
 
-    fig, ax = plt.subplots(2, sharex=True, figsize=(6,4))
-    ax_bphi, ax_q = ax
+    fig, ax = plt.subplots(3, sharex=True, figsize=(6,4))
+    ax_bphi, ax_q, ax_s = ax
     for ax_i in ax:
         ax_i.grid()
 
@@ -111,13 +113,17 @@ if __name__=='__main__':
         q_prof = q_profile_evolution(
             r, t, B_init, B_applied, nu, R_0=R0
         )
+        dq_dr = np.diff(q_prof)/np.diff(r)
+        shear = (r/q_prof)[:-1]*dq_dr
         r_s_vals.append(get_rs_locations(q_prof, r))
 
         ax_q.plot(r, q_prof, label=r"$t/\tau_r$="f"{t:.2g}", color=color)
+        ax_s.plot(r[:-1], shear,color=color)
 
     #ax_q.legend(ncol=2)
     ax_bphi.set_ylabel(r"$B_\phi(r)$")
     ax_q.set_ylabel(r"Safety factor")
+    ax_s.set_ylabel(r"Mag. shear")
 
     ax[-1].set_xlabel("$r/a$")
 
