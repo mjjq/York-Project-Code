@@ -27,7 +27,7 @@ def solve_diffusion(r: np.array,
 
     fourier_args = np.vecmat(c_n_vals, j0_vals)
 
-    return B_applied*(1.0-fourier_args)
+    return B_init + (B_applied-B_init)*(1.0-fourier_args)
 
 if __name__=='__main__':
     r = np.linspace(0.0, 1.0, 100)
@@ -37,7 +37,7 @@ if __name__=='__main__':
 
     for t in times:
         sol = solve_diffusion(
-            r, t, 0.0, 1.0
+            r, t, 0.0, 0.5
         )
 
         plt.plot(
