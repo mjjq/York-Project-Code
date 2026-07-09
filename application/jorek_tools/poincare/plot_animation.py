@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import re
 
 from jorek_tools.jorek_dat_to_array import read_timestep_map, read_postproc_profiles
+from jorek_tools.jorek_dat_to_array import read_timestep_map, read_postproc_profiles
 
 # Source - https://stackoverflow.com/a/51778313
 # Posted by tmakaro, modified by community. See post 'Timeline' for change history
@@ -62,7 +63,7 @@ if __name__=='__main__':
         default=(None, None)
     )
     parser.add_argument(
-        "-ms", "--marker-size", type=float, help="Size of scatter markers", default=0.125
+        "-ms", "--marker-size", type=float, help="Size of scatter markers", default=0.1
     )
     parser.add_argument(
         "-t", "--timestep-map", type=str, help="Path to timestep->time map", default="time_map.txt"
@@ -79,6 +80,7 @@ if __name__=='__main__':
     z_min, z_max = args.z_range
 
     frames = [
+        read_postproc_profiles(f) for f in args.files
         read_postproc_profiles(f) for f in args.files
     ]
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
@@ -131,6 +133,9 @@ if __name__=='__main__':
             frame = frames[pos]
             for i,sp in enumerate(sps):
                 sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
+            frame = frames[pos]
+            for i,sp in enumerate(sps):
+                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
 
             if tstep_map:
                 time = np.interp(
@@ -155,7 +160,9 @@ if __name__=='__main__':
         import os
         def animate(pos):
             pos = int(pos)
-            sp.set_offsets(frames[pos])
+            frame = frames[pos]
+            for i,sp in enumerate(sps):
+                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
 
             if tstep_map:
                 time = np.interp(
@@ -165,7 +172,7 @@ if __name__=='__main__':
                 )
                 ax.set_title(f"Time {time:.4g}s")
 
-            return (sp,)
+            return (sps,)
 
         ani = FuncAnimation(fig, animate, frames=len(frames))
 
