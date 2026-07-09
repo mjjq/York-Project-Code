@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import re
 
-from jorek_tools.jorek_dat_to_array import read_timestep_map
+from jorek_tools.jorek_dat_to_array import read_timestep_map, read_postproc_profiles
 
 # Source - https://stackoverflow.com/a/51778313
 # Posted by tmakaro, modified by community. See post 'Timeline' for change history
@@ -70,13 +70,16 @@ if __name__=='__main__':
     parser.add_argument(
         "-p", "--plot-interactive", action="store_true", help="Whether to plot interactively"
     )
+    parser.add_argument(
+        '-i', '--surface-highlight-indices', nargs='+', help="Mark separate colour for flux surface indices"
+    )
     args = parser.parse_args()
 
     r_min, r_max = args.r_range
     z_min, z_max = args.z_range
 
     frames = [
-        np.loadtxt(f) for f in args.files
+        read_postproc_profiles(f) for f in args.files
     ]
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
 
@@ -107,18 +110,27 @@ if __name__=='__main__':
         print(e)
         print("Unable to load timestep map. Plotting without...")
 
-    sp = ax.scatter(
-        frames[0][:,0], frames[0][:,1],
-        marker=".",
-        s=args.marker_size
-    )
+    frame = frames[0]
+    sps = []
+    for i,surface in enumerate(frame):
+        color='blue'
+        if i in args.surface_highlight_indices:
+            color='red'
+        sps.append(ax.scatter(
+            surface.x_vals, surface.y_vals,
+            marker=".",
+            s=args.marker_size,
+            color=color
+        ))
 
 
     if args.plot_interactive:
         from matplotlib.widgets import Slider
         def bar(pos):
             pos = int(pos)
-            sp.set_offsets(frames[pos])
+            frame = frames[pos]
+            for i,sp in enumerate(sps):
+                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
 
             if tstep_map:
                 time = np.interp(
