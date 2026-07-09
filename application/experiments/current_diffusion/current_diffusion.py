@@ -29,20 +29,108 @@ def solve_diffusion(r: np.array,
 
     return B_init + (B_applied-B_init)*(1.0-fourier_args)
 
+def q_profile_evolution(r: np.array,
+                        t: float,
+                        B_init: float,
+                        B_applied: float,
+                        nu: float = 1.0,
+                        R_0: float = 1.0):
+    """
+    Model q-profile evolution from resistive diffusion
+    of Bz-field onto axis.
+    
+    Assumes current profile of the form
+
+    J_phi = J_0 * (1-r^2)^nu,
+
+    where nu is a peaking factor.
+
+    q profile can be derived analytically from this in a cylinder.
+    See MSc diss, eq 2.5, 2.6.
+
+    Use the constant resistivity solution
+
+    :param r: Radial co-ordinate normalised to minor radius a
+    :param t: Time normalised to resistive timescale
+    :param B_init: Initial uniform plasma toroidal field
+    :param B_applied: Toroidal field applied to edge of plasma
+    :param n_harmonics: Number of Bessel harmonics used in solution
+    :param nu: Shaping factor for current profile
+    """
+    B_z_prof = solve_diffusion(
+        r, t, B_init, B_applied
+    )
+
+    q_prof = 2.0*B_z_prof/R_0 * (nu+1) * r**2 / (1-(1-r**2)**(nu+1))
+
+    return q_prof
+
+def get_rs_locations(q_prof: np.array,
+                     r_vals: np.array,
+                     q_res: float = 2.0) -> np.array:
+    r_s_val = np.interp(q_res, q_prof, r_vals)
+    return r_s_val
+
+
 if __name__=='__main__':
-    r = np.linspace(0.0, 1.0, 100)
-    times = [0.0, 0.01, 0.05, 0.1, 0.5, 1.0]
+    r = np.linspace(0.0, 0.99, 99)
+    times = np.append([0.0], np.logspace(-3, 0, 10))
+    B_init = 0.53
+    B_applied = 0.9*B_init
+    R0=0.85
+    nu = 4.0
 
     from matplotlib import pyplot as plt
+    import matplotlib as mpl
 
-    for t in times:
+    fig, ax = plt.subplots(2, sharex=True, figsize=(6,4))
+    ax_bphi, ax_q = ax
+    for ax_i in ax:
+        ax_i.grid()
+
+    cmap = plt.get_cmap("viridis")
+
+    r_s_vals = []
+    for i,t in enumerate(times):
+        color = cmap(i/len(times))
+
         sol = solve_diffusion(
-            r, t, 0.0, 0.5
+            r, t, B_init, B_applied
         )
 
-        plt.plot(
-            r, sol, label=f"t={t:.2g}"
+        ax_bphi.plot(
+            r, sol, label=r"$t/\tau_r$="f"{t:.2g}",
+            color=color
         )
 
-    plt.legend()
+        q_prof = q_profile_evolution(
+            r, t, B_init, B_applied, nu, R_0=R0
+        )
+        r_s_vals.append(get_rs_locations(q_prof, r))
+
+        ax_q.plot(r, q_prof, label=r"$t/\tau_r$="f"{t:.2g}", color=color)
+
+    #ax_q.legend(ncol=2)
+    ax_bphi.set_ylabel(r"$B_\phi(r)$")
+    ax_q.set_ylabel(r"Safety factor")
+
+    ax[-1].set_xlabel("$r/a$")
+
+    cmap = plt.get_cmap("viridis", len(times))
+    norm = mpl.colors.BoundaryNorm(times, cmap.N)
+    sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+
+    cbar = fig.colorbar(sm, ax=ax, ticks=times)
+    cbar.set_label(r"$t/\tau_R$")
+
+    #fig.tight_layout()
+
+    fig2, ax2 = plt.subplots(1,figsize=(5,3))
+    ax2.scatter(times, r_s_vals, color='black')
+    ax2.set_xlabel(r"$t/\tau_R$")
+    ax2.set_ylabel(r"$r(q=2)/a$")
+    ax2.grid()
+    fig2.tight_layout()
+
     plt.show()
