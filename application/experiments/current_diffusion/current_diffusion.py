@@ -29,6 +29,45 @@ def solve_diffusion(r: np.array,
 
     return B_init + (B_applied-B_init)*(1.0-fourier_args)
 
+def solve_diffusion_tdep(r: np.array,
+                    t: float,
+                    B_init: float,
+                    B_applied: float,
+                    tau_coil: float,
+                    n_harmonics: int = 10000) -> np.array:
+    """
+    Solve resistive diffusion of toroidal field in
+    a cylinder assuming constant resistivity and a linear
+    rampdown of the magnetic field.
+
+    I.e., B(t)=B_init + (B_applied-B_init)*t/tau_coil for 0<t<tau_coil
+          B(t) = B_applied for t >= tau_coil
+
+    Use r, theta, z co-ordinates.
+
+    :param r: Radial co-ordinate normalised to minor radius a
+    :param t: Time normalised to resistive timescale
+    :param B_init: Initial uniform plasma toroidal field
+    :param B_applied: Toroidal field applied to edge of plasma
+    :param tau_coil: Ramp down time of the toroidal coil in units
+        of resistive time
+    :param n_harmonics: Number of Bessel harmonics used in solution
+    """
+    zeros = jn_zeros(0, n_harmonics)
+    j0_vals = j0(np.outer(zeros,r))
+    j1_vals = j1(zeros)
+    t_arg = min(t, tau_coil)
+    exp_decay = np.exp(-zeros**2 * t)*(np.exp(-zeros**2 * t_arg)-1.0)/(zeros**2 * tau_coil)
+
+    c_n_vals = 2.0*exp_decay/(j1_vals*zeros)
+
+    fourier_args = np.vecmat(c_n_vals, j0_vals)
+
+    if t < tau_coil:
+        return B_init + (B_applied-B_init)*(t/tau_coil + fourier_args)
+    else:
+        return B_applied + (B_applied-B_init)*fourier_args
+
 def q_profile_evolution(r: np.array,
                         t: float,
                         B_init: float,
@@ -74,7 +113,8 @@ def get_rs_locations(q_prof: np.array,
 
 if __name__=='__main__':
     r = np.linspace(0.0, 0.999, 99)
-    times = np.append([0.0], np.logspace(-3, 0, 10))
+    times = np.append([0.0], np.logspace(-3, 1, 10))
+    tau_coil = 0.1
     B_init = 0.53
     B_applied = 0.9*B_init
     R0=1.0
@@ -101,8 +141,8 @@ if __name__=='__main__':
     for i,t in enumerate(times):
         color = cmap(i/len(times))
 
-        sol = solve_diffusion(
-            r, t, B_init, B_applied
+        sol = solve_diffusion_tdep(
+            r, t, B_init, B_applied, tau_coil
         )
 
         ax_bphi.plot(
