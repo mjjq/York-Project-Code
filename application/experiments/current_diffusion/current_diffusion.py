@@ -144,6 +144,7 @@ if __name__=='__main__':
         ax.set_xlabel("$r/a$")
             
 
+    r_s_vals_tb = []
     for i, tau_coil in enumerate(tau_coils):
         ax = axs[:,i]
         ax_bphi, ax_q, ax_s = ax
@@ -182,6 +183,8 @@ if __name__=='__main__':
             ax_q.plot(r, q_prof, label=r"$t/\tau_r$="f"{t:.3g}", color=color)
             ax_s.plot(r[:-1], shear,color=color)
 
+        r_s_vals_tb.append(r_s_vals)
+
     #ax_q.legend(ncol=2)
 
 
@@ -199,10 +202,13 @@ if __name__=='__main__':
         fig.tight_layout()
 
     fig2, ax2 = plt.subplots(1,figsize=(5,3))
-    ax2.scatter(times, r_s_vals, color='black')
+    plt.gca().set_prop_cycle(linestyle=['-','--',':'], color=['black', 'red', 'blue'], marker=['o','+','x'])
+    for t_coil,r_s_vals in zip(tau_coils,r_s_vals_tb):
+        ax2.plot(times, r_s_vals, label=r"$\tau_b/\tau_r=$"f"{t_coil:.2f}")
     ax2.set_xlabel(r"$t/\tau_R$")
     ax2.set_ylabel(r"$r(q=2)/a$")
     ax2.grid()
+    ax2.legend()
     fig2.tight_layout()
 
     plt.show()
