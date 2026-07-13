@@ -106,7 +106,7 @@ def get_rs_locations(q_prof: np.array,
 if __name__=='__main__':
     r = np.linspace(0.0, 0.999, 99)
     times = np.append([0.0], np.logspace(-3, 1, 10))
-    tau_coil = 0.001
+    tau_coils = [0.01, 1.0, 10.00]
     B_init = 0.53
     B_applied = 0.9*B_init
     R0=1.0
@@ -121,53 +121,82 @@ if __name__=='__main__':
 
     from matplotlib import pyplot as plt
     import matplotlib as mpl
+    import matplotlib.ticker as tkr
 
-    fig, ax = plt.subplots(3, sharex=True, figsize=(6,4))
-    ax_bphi, ax_q, ax_s = ax
-    for ax_i in ax:
-        ax_i.grid()
+    # All on same plot
+    # fig, axs = plt.subplots(3,3,figsize=(8,6))
+    # for i,row in enumerate(axs):
+    #     for j, subplot in enumerate(row):
+    #         subplot.sharey(row[0])
+    #         subplot.sharex(axs[0,j])
+    #         subplot.label_outer()
+    #figs = [fig]
+    # for ax_i in axs[-1]:
+    #     ax_i.set_xlabel("$r/a$")
 
-    cmap = plt.get_cmap("viridis")
+    fig1, ax1 = plt.subplots(1,3, sharex=True, figsize=(9,3))
+    fig2, ax2 = plt.subplots(1,3, sharex=True, figsize=(9,3))
+    fig3, ax3 = plt.subplots(1,3, sharex=True, figsize=(9,3))
+    axs=np.array([ax1, ax2, ax3])
+    figs = [fig1, fig2, fig3]
+    for ax in axs.flatten():
+        ax.label_outer()
+        ax.set_xlabel("$r/a$")
+            
 
-    r_s_vals = []
-    for i,t in enumerate(times):
-        color = cmap(i/len(times))
+    for i, tau_coil in enumerate(tau_coils):
+        ax = axs[:,i]
+        ax_bphi, ax_q, ax_s = ax
+        for ax_i in ax:
+            ax_i.grid()
+        if i==0:
+            ax_bphi.set_ylabel(r"$B_\phi(r)$")
+            ax_q.set_ylabel(r"Safety factor")
+            ax_s.set_ylabel(r"Mag. shear")
+        ax_bphi.set_title(r"$\tau_b/\tau_r=$"f"{tau_coil}")
+        ax_q.set_title(r"$\tau_b/\tau_r=$"f"{tau_coil}")
+        ax_s.set_title(r"$\tau_b/\tau_r=$"f"{tau_coil}")
 
-        sol = solve_diffusion_tdep(
-            r, t, B_init, B_applied, tau_coil
-        )
+        cmap = plt.get_cmap("viridis")
 
-        ax_bphi.plot(
-            r, sol, label=r"$t/\tau_r$="f"{t:.2g}",
-            color=color
-        )
+        r_s_vals = []
+        for i,t in enumerate(times):
+            color = cmap(i/len(times))
 
-        q_prof = q_profile(
-            r, sol, nu, R_0=R0
-        )
-        dq_dr = np.diff(q_prof)/np.diff(r)
-        shear = (r/q_prof)[:-1]*dq_dr
-        r_s_vals.append(get_rs_locations(q_prof, r))
+            sol = solve_diffusion_tdep(
+                r, t, B_init, B_applied, tau_coil
+            )
 
-        ax_q.plot(r, q_prof, label=r"$t/\tau_r$="f"{t:.2g}", color=color)
-        ax_s.plot(r[:-1], shear,color=color)
+            ax_bphi.plot(
+                r, sol, label=r"$t/\tau_r$="f"{t:.3g}",
+                color=color
+            )
+
+            q_prof = q_profile(
+                r, sol, nu, R_0=R0
+            )
+            dq_dr = np.diff(q_prof)/np.diff(r)
+            shear = (r/q_prof)[:-1]*dq_dr
+            r_s_vals.append(get_rs_locations(q_prof, r))
+
+            ax_q.plot(r, q_prof, label=r"$t/\tau_r$="f"{t:.3g}", color=color)
+            ax_s.plot(r[:-1], shear,color=color)
 
     #ax_q.legend(ncol=2)
-    ax_bphi.set_ylabel(r"$B_\phi(r)$")
-    ax_q.set_ylabel(r"Safety factor")
-    ax_s.set_ylabel(r"Mag. shear")
 
-    ax[-1].set_xlabel("$r/a$")
 
     cmap = plt.get_cmap("viridis", len(times))
     norm = mpl.colors.BoundaryNorm(times, cmap.N)
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
 
-    cbar = fig.colorbar(sm, ax=ax, ticks=times)
-    cbar.set_label(r"$t/\tau_R$")
+    for fig in figs:
+        ax_fig = fig.get_axes()
+        cbar = fig.colorbar(sm, ax=ax_fig[-1], ticks=times, format=tkr.FormatStrFormatter('%.3f'))
+        cbar.set_label('%.2g')
+        cbar.set_label(r"$t/\tau_R$")
 
-    #fig.tight_layout()
+        fig.tight_layout()
 
     fig2, ax2 = plt.subplots(1,figsize=(5,3))
     ax2.scatter(times, r_s_vals, color='black')
