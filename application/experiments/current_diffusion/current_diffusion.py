@@ -68,12 +68,10 @@ def solve_diffusion_tdep(r: np.array,
     else:
         return B_applied + (B_applied-B_init)*fourier_args
 
-def q_profile_evolution(r: np.array,
-                        t: float,
-                        B_init: float,
-                        B_applied: float,
-                        nu: float = 1.0,
-                        R_0: float = 1.0):
+def q_profile(r: np.array,
+                B_z: np.array,
+                nu: float = 1.0,
+                R_0: float = 1.0):
     """
     Model q-profile evolution from resistive diffusion
     of Bz-field onto axis.
@@ -91,16 +89,10 @@ def q_profile_evolution(r: np.array,
 
     :param r: Radial co-ordinate normalised to minor radius a
     :param t: Time normalised to resistive timescale
-    :param B_init: Initial uniform plasma toroidal field
-    :param B_applied: Toroidal field applied to edge of plasma
-    :param n_harmonics: Number of Bessel harmonics used in solution
+    :param B_z: 2D array of toroidal field values (in r,t space)
     :param nu: Shaping factor for current profile
     """
-    B_z_prof = solve_diffusion(
-        r, t, B_init, B_applied
-    )
-
-    q_prof = 2.0*B_z_prof/R_0 * (nu+1) * r**2 / (1-(1-r**2)**(nu+1))
+    q_prof = 2.0*B_z/R_0 * (nu+1) * r**2 / (1-(1-r**2)**(nu+1))
 
     return q_prof
 
@@ -114,7 +106,7 @@ def get_rs_locations(q_prof: np.array,
 if __name__=='__main__':
     r = np.linspace(0.0, 0.999, 99)
     times = np.append([0.0], np.logspace(-3, 1, 10))
-    tau_coil = 0.1
+    tau_coil = 0.001
     B_init = 0.53
     B_applied = 0.9*B_init
     R0=1.0
@@ -150,8 +142,8 @@ if __name__=='__main__':
             color=color
         )
 
-        q_prof = q_profile_evolution(
-            r, t, B_init, B_applied, nu, R_0=R0
+        q_prof = q_profile(
+            r, sol, nu, R_0=R0
         )
         dq_dr = np.diff(q_prof)/np.diff(r)
         shear = (r/q_prof)[:-1]*dq_dr
