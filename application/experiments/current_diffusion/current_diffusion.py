@@ -105,7 +105,7 @@ def get_rs_locations(q_prof: np.array,
 
 if __name__=='__main__':
     r = np.linspace(0.0, 0.999, 99)
-    times = np.append([0.0], np.logspace(-3, 1, 10))
+    times = np.append([0.0], np.logspace(-3, 1, 100))
     tau_coils = [0.01, 1.0, 10.00]
     B_init = 0.53
     B_applied = 0.9*B_init
@@ -134,9 +134,9 @@ if __name__=='__main__':
     # for ax_i in axs[-1]:
     #     ax_i.set_xlabel("$r/a$")
 
-    fig1, ax1 = plt.subplots(1,3, sharex=True, figsize=(9,3))
-    fig2, ax2 = plt.subplots(1,3, sharex=True, figsize=(9,3))
-    fig3, ax3 = plt.subplots(1,3, sharex=True, figsize=(9,3))
+    fig1, ax1 = plt.subplots(1,3, sharex=True, sharey=True, figsize=(9,3))
+    fig2, ax2 = plt.subplots(1,3, sharex=True, sharey=True, figsize=(9,3))
+    fig3, ax3 = plt.subplots(1,3, sharex=True, sharey=True, figsize=(9,3))
     axs=np.array([ax1, ax2, ax3])
     figs = [fig1, fig2, fig3]
     for ax in axs.flatten():
@@ -145,13 +145,15 @@ if __name__=='__main__':
             
 
     r_s_vals_tb = []
+    r_s_q1_vals_tb = []
+    shear_vals_tb = []
     for i, tau_coil in enumerate(tau_coils):
         ax = axs[:,i]
         ax_bphi, ax_q, ax_s = ax
         for ax_i in ax:
             ax_i.grid()
         if i==0:
-            ax_bphi.set_ylabel(r"$B_\phi(r)$")
+            ax_bphi.set_ylabel(r"$B_\phi(r)$ [T]")
             ax_q.set_ylabel(r"Safety factor")
             ax_s.set_ylabel(r"Mag. shear")
         ax_bphi.set_title(r"$\tau_b/\tau_r=$"f"{tau_coil}")
@@ -161,6 +163,8 @@ if __name__=='__main__':
         cmap = plt.get_cmap("viridis")
 
         r_s_vals = []
+        r_s_q1_vals = []
+        shear_vals = []
         for i,t in enumerate(times):
             color = cmap(i/len(times))
 
@@ -178,12 +182,15 @@ if __name__=='__main__':
             )
             dq_dr = np.diff(q_prof)/np.diff(r)
             shear = (r/q_prof)[:-1]*dq_dr
-            r_s_vals.append(get_rs_locations(q_prof, r))
+            r_s = get_rs_locations(q_prof, r)
+            r_s_vals.append(r_s)
+            shear_vals.append(np.interp(r_s, r[:-1], shear))
 
             ax_q.plot(r, q_prof, label=r"$t/\tau_r$="f"{t:.3g}", color=color)
             ax_s.plot(r[:-1], shear,color=color)
 
         r_s_vals_tb.append(r_s_vals)
+        shear_vals_tb.append(shear_vals)
 
     #ax_q.legend(ncol=2)
 
@@ -193,22 +200,41 @@ if __name__=='__main__':
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
 
-    for fig in figs:
+    for i,fig in enumerate(figs):
         ax_fig = fig.get_axes()
         cbar = fig.colorbar(sm, ax=ax_fig[-1], ticks=times, format=tkr.FormatStrFormatter('%.3f'))
         cbar.set_label('%.2g')
-        cbar.set_label(r"$t/\tau_R$")
+        cbar.set_label(r"$t/\tau_r$")
 
         fig.tight_layout()
+        fig.savefig(f"current_diffusion_{i}.pdf")
 
     fig2, ax2 = plt.subplots(1,figsize=(5,3))
-    plt.gca().set_prop_cycle(linestyle=['-','--',':'], color=['black', 'red', 'blue'], marker=['o','+','x'])
+    ax2.set_prop_cycle(linestyle=['-','--',':'], color=['black', 'red', 'blue'])
     for t_coil,r_s_vals in zip(tau_coils,r_s_vals_tb):
         ax2.plot(times, r_s_vals, label=r"$\tau_b/\tau_r=$"f"{t_coil:.2f}")
-    ax2.set_xlabel(r"$t/\tau_R$")
+    ax2.set_xlabel(r"$t/\tau_r$")
     ax2.set_ylabel(r"$r(q=2)/a$")
     ax2.grid()
     ax2.legend()
     fig2.tight_layout()
+    fig2.savefig("current_diffusion_rs.pdf")
+    ax2.set_xscale('log')
+    fig2.tight_layout()
+    fig2.savefig("current_diffusion_rs_log.pdf")
+
+    fig3, ax3 = plt.subplots(1, figsize=(5,3))
+    ax3.set_prop_cycle(linestyle=['-','--',':'], color=['black', 'red', 'blue'])
+    for t_coil, shear_vals in zip(tau_coils, shear_vals_tb):
+        ax3.plot(times, shear_vals, label=r"$\tau_b/\tau_r=$"f"{t_coil:.2f}")
+    ax3.set_xlabel(r"$t/\tau_r$")
+    ax3.set_ylabel(r"Mag. shear $(q=2)$")
+    ax3.grid()
+    ax3.legend()
+    fig3.tight_layout()
+    fig3.savefig("current_diffusion_shear.pdf")
+    ax3.set_xscale('log')
+    fig3.tight_layout()
+    fig3.savefig("current_diffusion_shear_log.pdf")
 
     plt.show()
