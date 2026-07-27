@@ -214,6 +214,23 @@ def dr_avg_profile(files: List[str]):
 	for i, psi_n in enumerate(psi_n_prof):
 		print(psi_n, d_r_avg[i], d_r_std[i])
 
+def avg_q2_radius(files: List[str], tmin: float, tmax: float):
+    cols_array = np.array([read_columns(fname) for fname in files])
+    time_array = np.array([time_from_g_filename(fname) for fname in files])
+
+    q2_locs = np.array([np.interp(2.0, col.q, col.s) for col in cols_array])
+    
+    time_filt = (time_array > tmin) & (time_array < tmax)
+    q2_locs_filt = q2_locs[time_filt]
+
+    q2_psin = q2_locs_filt**2
+
+    q2_avg = np.mean(q2_psin)
+    q2_std = np.std(q2_psin)/np.sqrt(len(q2_psin))
+
+    print(q2_avg, q2_std)
+
+
 if __name__=='__main__':
     parser = ArgumentParser(
         description='Get D_R term at a given safety factor from CHEASE column data'
@@ -236,6 +253,10 @@ if __name__=='__main__':
         '-a', '--average-profile', action='store_true',
         help="Print average D_R profile over all g_files"
     )
+    parser.add_argument(
+        '-aq', '--average-q2-radius', type=float, nargs=2, default=(None, None),
+        help="Print average q=2 radius over"
+    )
 	#parser.add_argument(
 	#	'-a', '--approximate', action='store_true',
 	#	help='Return large aspect ratio D_R approximation instead of CHEASE calculated'
@@ -245,6 +266,11 @@ if __name__=='__main__':
 
     if args.average_profile:
         dr_avg_profile(args.filename)
+        exit()
+
+    if np.all(args.average_q2_radius):
+        tmin, tmax = args.average_q2_radius
+        avg_q2_radius(args.filename, tmin, tmax)
         exit()
 
     for fname in args.filename:
