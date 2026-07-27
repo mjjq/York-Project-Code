@@ -96,6 +96,11 @@ if __name__=='__main__':
         help="Path to measured island width time trace.",
         default=""
     )
+    parser.add_argument(
+        "-i", "--inset-axes", 
+        action='store_true',
+        help="Display inset axis in plot"
+    )
 
     args = parser.parse_args()
 
@@ -124,22 +129,29 @@ if __name__=='__main__':
 
     from matplotlib import pyplot as plt
     fig, ax = plt.subplots(1, figsize=(4,3))
+    linewidth=2.0
     #ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
-    ax.plot(w_vals, scale_fac*delta_p_classical, label="Classical", linestyle='--')
-    ax.plot(w_vals, scale_fac*ggj_vals, label="GGJ", linestyle='--')
-    ax.plot(w_vals, scale_fac*bootstrap_vals, label="Bootstrap", linestyle='--')
+    ax.plot(w_vals, scale_fac*delta_p_classical, label="Classical", linestyle='--', linewidth=linewidth)
+    ax.plot(w_vals, scale_fac*ggj_vals, label="GGJ", linestyle='--', linewidth=linewidth)
+    ax.plot(w_vals, scale_fac*bootstrap_vals, label="Bootstrap", linestyle='--', linewidth=linewidth)
     ax.plot(
         w_vals, 
         scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals), 
         label="Total",
-        color='black'
+        color='black',
+        linewidth=linewidth
     )
-    ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
+    #ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
     ax.set_xlabel("w/a")
     ax.set_ylabel("$d(w/a)/dt$ (/s)")
 #    fig.tight_layout()
-    
-    
+    #if args.inset_axes:
+        #axins = ax.inset_axes(
+        #    [0.5, 0.5, 0.47, 0.47],
+        #    xlim=(0.015,0.25), ylim=(-1.5, 1.5), xticklabels=[], yticklabels=[]
+        #)
+        #axins.plot(w_vals, scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals))
+
     if args.island_width_data_filename:
         measured_data = read_measured_w_data(args.island_width_data_filename)
         measured_data = avg_island_width_to_outboard(
@@ -155,8 +167,11 @@ if __name__=='__main__':
         dw_dt = np.diff(w_vals)/np.diff(times)
         measured_delta_prime = dw_dt*mu0/eta/rutherford_scale
         measured_rs_delta_prime = mre_theory.r_s * measured_delta_prime
-        ax.plot(w_vals[:-1], dw_dt, label="JOREK")
-
+        ax.plot(w_vals[:-1], dw_dt, label="JOREK", linewidth=linewidth)
+        
+        #if args.inset_axes:
+        #    axins.plot(w_vals[:-1], dw_dt)
+    
         #mre_measured = mre_contributions_single(
         #    w_vals, chease_cols,
         #    args.poloidal_mode_number,
