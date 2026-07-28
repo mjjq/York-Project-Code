@@ -107,7 +107,7 @@ if __name__=='__main__':
     chease_cols = read_columns(args.chease_cols_file)
     scale_profiles(chease_cols, args.scale_factor)
 
-    w_vals = np.logspace(-3, np.log10(0.3), 100)
+    w_vals = np.logspace(-3, np.log10(0.2), 100)
 
     mre_theory = mre_contributions_single(
         w_vals, chease_cols,
@@ -128,17 +128,18 @@ if __name__=='__main__':
     bootstrap_vals = mre_theory.delta_p_bs
 
     from matplotlib import pyplot as plt
-    fig, ax = plt.subplots(1, figsize=(4,3))
+    fig, ax = plt.subplots(1, figsize=(3.5,2.5))
     linewidth=2.0
     #ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
-    ax.plot(w_vals, scale_fac*delta_p_classical, label="Classical", linestyle='--', linewidth=linewidth)
-    ax.plot(w_vals, scale_fac*ggj_vals, label="GGJ", linestyle='--', linewidth=linewidth)
-    ax.plot(w_vals, scale_fac*bootstrap_vals, label="Bootstrap", linestyle='--', linewidth=linewidth)
+    ax.plot(w_vals, scale_fac*delta_p_classical, label="$\Delta'_C$", linestyle=':', linewidth=linewidth)
+    ax.plot(w_vals, scale_fac*ggj_vals, label="$\Delta'_{GGJ}$", linestyle=':', linewidth=linewidth)
+    ax.plot(w_vals, scale_fac*bootstrap_vals, label="$\Delta'_{BS}$", linestyle=':', linewidth=linewidth)
     ax.plot(
         w_vals, 
         scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals), 
-        label="Total",
+        label="MRE Total",
         color='black',
+        linestyle=':',
         linewidth=linewidth
     )
     #ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
@@ -167,7 +168,7 @@ if __name__=='__main__':
         dw_dt = np.diff(w_vals)/np.diff(times)
         measured_delta_prime = dw_dt*mu0/eta/rutherford_scale
         measured_rs_delta_prime = mre_theory.r_s * measured_delta_prime
-        ax.plot(w_vals[:-1], dw_dt, label="JOREK", linewidth=linewidth)
+        ax.plot(w_vals[:-1], dw_dt, label="JOREK", linewidth=1.25*linewidth)
         
         #if args.inset_axes:
         #    axins.plot(w_vals[:-1], dw_dt)
@@ -183,7 +184,7 @@ if __name__=='__main__':
         #mre_measured.resistivity = args.resistivity
         #compare_dw_dt(mre_measured)    
 
-    ax.legend(ncol=2)
+    ax.legend(ncol=2, prop={'size':8})
     ax.grid()
     fig.tight_layout()
     fig.savefig(f"mre_bt{args.scale_factor}.pdf")
