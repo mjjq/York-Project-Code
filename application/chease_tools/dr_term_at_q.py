@@ -193,11 +193,15 @@ def extract_rmhd_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 
 	return delta_d_r
 
-def dr_avg_profile(files: List[str]):
-	cols_array = [read_columns(fname) for fname in files]
-	time_array = [time_from_g_filename(fname) for fname in files]
+def dr_avg_profile(files: List[str], tmin: float, tmax: float):
+	cols_array = np.array([read_columns(fname) for fname in files])
+	time_array = np.array([time_from_g_filename(fname) for fname in files])
 
-	d_r_profs = [col.d_r for col in cols_array]
+	time_filt = (time_array > tmin) & (time_array < tmax)
+
+	d_r_profs = np.array([col.d_r for col in cols_array])
+	d_r_profs = d_r_profs[time_filt]
+
 	d_r_avg = np.mean(d_r_profs, axis=0)
 	d_r_std = np.std(d_r_profs, axis=0)/np.sqrt(len(d_r_profs))
 
@@ -225,7 +229,7 @@ def avg_q2_radius(files: List[str], tmin: float, tmax: float):
 
     q2_psin = q2_locs_filt**2
 
-    q2_avg = np.mean(q2_psin)
+    q2_avg = np.median(q2_psin)
     q2_std = np.std(q2_psin)/np.sqrt(len(q2_psin))
 
     print(q2_avg, q2_std)
@@ -250,7 +254,7 @@ if __name__=='__main__':
         help="Print g-file times alongside output (requires eqdsk formatted folder names)"
     )
     parser.add_argument(
-        '-a', '--average-profile', action='store_true',
+        '-a', '--average-profile', type=float, nargs=2, default=(None, None),
         help="Print average D_R profile over all g_files"
     )
     parser.add_argument(
@@ -264,8 +268,9 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    if args.average_profile:
-        dr_avg_profile(args.filename)
+    if np.all(args.average_profile):
+        tmin, tmax = args.average_profile
+        dr_avg_profile(args.filename, tmin, tmax)
         exit()
 
     if np.all(args.average_q2_radius):
