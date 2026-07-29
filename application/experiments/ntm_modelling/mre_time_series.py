@@ -340,7 +340,7 @@ def plot_mre_contributions(mre: MREContributions):
 
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_cl_finite_island, 
-        label=r"Classical",
+        label=r"$\Delta'_C$",
         linestyle='--'
     )
     ax.fill_between(
@@ -352,7 +352,7 @@ def plot_mre_contributions(mre: MREContributions):
     )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_ggj,
-        label=r"GGJ",
+        label=r"$\Delta'_{GGJ}$",
         linestyle='--',
         color='tab:orange'
     )
@@ -365,7 +365,7 @@ def plot_mre_contributions(mre: MREContributions):
     )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_bs,
-        label=r"Bootstrap",
+        label=r"\Delta'_{BS}",
         linestyle='--',
         color='tab:green'
     )
@@ -390,7 +390,7 @@ def plot_mre_contributions(mre: MREContributions):
 
     ax.plot(
         mre.times, sum_of_contribs,
-        label="Total",
+        label="MRE total",
         color='black'
     )
     ax.fill_between(
