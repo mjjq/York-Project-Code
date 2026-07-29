@@ -335,7 +335,7 @@ def mre_contributions_from_chease(chease_cols_list: List[CheaseColumns],
 
 
 def plot_mre_contributions(mre: MREContributions):
-    fig, ax = plt.subplots(1, figsize=(4,2))
+    fig, ax = plt.subplots(1, figsize=(4,3), constrained_layout=True)
     #ax, ax2 = axs
 
     ax.plot(
@@ -365,7 +365,7 @@ def plot_mre_contributions(mre: MREContributions):
     )
     ax.plot(
         mre.times, mre.r_s*mre.delta_p_bs,
-        label=r"\Delta'_{BS}",
+        label=r"$\Delta'_{BS}$",
         linestyle='--',
         color='tab:green'
     )
@@ -400,7 +400,7 @@ def plot_mre_contributions(mre: MREContributions):
         alpha=0.3,
         color='black'
     )
-    ax.legend(loc='upper center',bbox_to_anchor=(0.5, 1.2),ncol=4,prop={'size': 8})
+    ax.legend(loc='upper center',bbox_to_anchor=(0.5, 1.15),ncol=4,prop={'size': 8})
 
     #ax.set_xlabel("Time (s)")
     ax.set_ylabel("$r_s \Delta'$")
@@ -428,7 +428,9 @@ def plot_mre_contributions(mre: MREContributions):
         ax_l.grid()
         ax_l.set_xlabel("Time (s)")
 
-    fig.tight_layout()
+    ax.set_xlim(left=0.6,right=0.95)
+    ax.set_ylim(-3.1,3.4)
+    #fig.tight_layout()
     fig.savefig("mre_vs_time.pdf")
 
     figwd, axwd = plt.subplots(1)
