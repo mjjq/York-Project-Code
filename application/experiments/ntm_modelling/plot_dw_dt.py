@@ -83,6 +83,12 @@ if __name__=='__main__':
         help="Path to measured island width time trace.",
         default=""
     )
+    parser.add_argument(
+        "-b", "--bphi-ref",
+        type=float,
+        help="Reference Bphi value (T)",
+        default=0.53
+    )
 
     args = parser.parse_args()
 
@@ -98,7 +104,8 @@ if __name__=='__main__':
     labels = []
     for c,scale in zip(chease_cols_list, args.scale_factors):
         scale_profiles(c, scale)
-        labels.append(r"$B_t/B_{t,ref}=$"f"{scale:.2g}")
+        bphi = args.bphi_ref * scale
+        labels.append(r"$B_{\phi,0}=$"f"{bphi:.2g}T")
 
     w_measured_array = [read_measured_w_data(f) for f in args.island_width_data_filename]
 
