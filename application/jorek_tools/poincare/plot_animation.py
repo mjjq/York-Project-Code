@@ -81,7 +81,6 @@ if __name__=='__main__':
 
     frames = [
         read_postproc_profiles(f) for f in args.files
-        read_postproc_profiles(f) for f in args.files
     ]
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
 
@@ -116,8 +115,9 @@ if __name__=='__main__':
     sps = []
     for i,surface in enumerate(frame):
         color='blue'
-        if i in args.surface_highlight_indices:
-            color='red'
+        if args.surface_highlight_indices:
+            if i in args.surface_highlight_indices:
+                color='red'
         sps.append(ax.scatter(
             surface.x_vals, surface.y_vals,
             marker=".",
@@ -132,10 +132,7 @@ if __name__=='__main__':
             pos = int(pos)
             frame = frames[pos]
             for i,sp in enumerate(sps):
-                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
-            frame = frames[pos]
-            for i,sp in enumerate(sps):
-                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
+                sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
 
             if tstep_map:
                 time = np.interp(
