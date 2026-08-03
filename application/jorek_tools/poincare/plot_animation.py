@@ -159,7 +159,7 @@ if __name__=='__main__':
             pos = int(pos)
             frame = frames[pos]
             for i,sp in enumerate(sps):
-                sp.set_offsets(frame[i].x_vals, frame[i].y_vals)
+                sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
 
             if tstep_map:
                 time = np.interp(

@@ -52,5 +52,9 @@ function gen_poincare_multiple() {
 function gen_poincare_parallel() {
 	export -f gen_poincare
 	export -f restart_number
-	ls jorek[0-9]*.h5 | xargs -t -P $1 -I {} bash -c 'gen_poincare "{}"'
+	every_nth_file=$2
+	if [[ ! "$every_nth_file" ]]; then
+		every_nth_file=1
+	fi
+	printf '%s\n' jorek[0-9]*.h5 | awk -v n="$every_nth_file" 'NR % n == 1' | xargs -t -P $1 -I {} bash -c 'gen_poincare "{}"'
 }
