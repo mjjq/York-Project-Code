@@ -419,7 +419,13 @@ def write_xtor_profiles(profiles: XTORProfiles):
     with open("FFprime", 'w') as f:
         f.write("".join([f"{y:.10f}\n" for x,y in zip(profiles.r_mesh, profiles.ffprime_mesh)]))
 
+def temperature_jorek_to_xtor(B0: float, aspct: float):
+    """
+    Conversion factor for converting JOREK temperature to XTOR.
 
+    T_X = T_J / (B_0 * aspct)**2
+    """
+    return 1.0/((B0*aspct)**2)
 
 def jorek_to_xtor_interface():
     parser = ArgumentParser()
@@ -450,9 +456,10 @@ def jorek_to_xtor_interface():
         args.slimit
     )
 
-    generate_all_profiles_file(profiles)
-    generate_expeq_file(profiles)   
-    #write_xtor_profiles(profiles)
+    #generate_all_profiles_file(profiles)
+    #generate_expeq_file(profiles)   
+    write_xtor_profiles(profiles)
+    print("T_x/T_j = ",temperature_jorek_to_xtor(args.B0, args.aspct))
 
 def chease_to_xtor_interface():
     parser = ArgumentParser()
