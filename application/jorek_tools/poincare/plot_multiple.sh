@@ -56,5 +56,11 @@ function gen_poincare_parallel() {
 	if [[ ! "$every_nth_file" ]]; then
 		every_nth_file=1
 	fi
-	printf '%s\n' jorek[0-9]*.h5 | awk -v n="$every_nth_file" 'NR % n == 1' | xargs -t -P $1 -I {} bash -c 'gen_poincare "{}"'
+
+	modulo=1
+	if [[ "$every_nth_file" == 1 ]]; then
+		modulo=0
+	fi
+
+	printf '%s\n' jorek[0-9]*.h5 | awk -v n="$every_nth_file" -v m="$modulo" 'NR % n == m' | xargs -t -P $1 -I {} bash -c 'gen_poincare "{}"'
 }
