@@ -31,6 +31,8 @@ alias sq="squeue --user=mquantri"
 alias tmux="$HPC_SOFTWARE/tmux-3.6a/tmux"
 PATH=$PATH:$WORK/JOREK_LIBRARIES/new_gnuplot/bin/
 
+alias analysis-venv="conda activate venv_conda"
+
 function inode() {
 	srun -N 1 --ntasks-per-node=$1 --cpus-per-task=$2 -t 06:00:00 -p dcgp_fua_prod -A FUPA2_JOREKUK --pty /bin/bash
 }

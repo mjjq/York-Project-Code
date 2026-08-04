@@ -48,6 +48,7 @@ alias sqsp="squeue -p ukaea-spr | grep Priority"
 alias jsintr="sintr -A ukaea-ap002-cpu -p ukaea-icl"
 alias sq="squeue --user=ir-quan1"
 alias nvim="vim"
+alias analysis-venv="source $HPC_SOFTWARE/venv/bin/activate"
 
 source $YP_CODE/bashrc/generic_aliases
 
