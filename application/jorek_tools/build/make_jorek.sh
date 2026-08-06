@@ -9,9 +9,10 @@ make clean && make -j 32
 make -j 32 jorek2_postproc
 make -j 32 jorek2vtk
 make -j 32 jorek2_poincare
+make -j 32 jorek2_connection_fmhd
 
 mv jorek_model* ./build/jorek_model
-mv jorek2_postproc jorek2vtk jorek2_poincare ./build
+mv jorek2_postproc jorek2vtk jorek2_poincare jorek2_connection_fmhd ./build
 
 make clean && make -j 32 DEBUG=1
 mv jorek_model* ./build/jorek_model_debug
