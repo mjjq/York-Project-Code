@@ -152,17 +152,8 @@ if __name__=='__main__':
         def bar(pos):
             pos = int(pos)
             frame = frames[pos]
-            for i,sp in enumerate(sps):
-                last_good_index = 0
-                try:
-                    sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
-                    last_good_index = i
-                except IndexError:
-                    sp.set_offsets(np.column_stack((
-                        frame[last_good_index].x_vals, frame[last_good_index].y_vals)
-                    ))
-
-
+            update_offsets(sps, frame)
+            
             if tstep_map:
                 time = np.interp(
                     timesteps[pos],
@@ -187,8 +178,8 @@ if __name__=='__main__':
         def animate(pos):
             pos = int(pos)
             frame = frames[pos]
-            for i,sp in enumerate(sps):
-                sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
+
+            update_offsets(sps, frame)
 
             if tstep_map:
                 time = np.interp(
