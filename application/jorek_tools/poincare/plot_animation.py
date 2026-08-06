@@ -2,9 +2,12 @@ from argparse import ArgumentParser
 import numpy as np
 from matplotlib import pyplot as plt
 import re
+from typing import List
 
-from jorek_tools.jorek_dat_to_array import read_timestep_map, read_postproc_profiles
-from jorek_tools.jorek_dat_to_array import read_timestep_map, read_postproc_profiles
+from jorek_tools.jorek_dat_to_array import (
+        read_timestep_map, read_postproc_profiles, PostprocProfile
+)
+from jorek_tools.poincare.read_poincare_vtk import read_poincare_vtk
 
 # Source - https://stackoverflow.com/a/51778313
 # Posted by tmakaro, modified by community. See post 'Timeline' for change history
@@ -48,6 +51,18 @@ class BunchOFiles(FileMovieWriter):
         #self._frame_sink().close()
         return
 
+def update_offsets(sps, frame: List[PostprocProfile]):
+    for i,sp in enumerate(sps):
+        last_good_index = 0
+        try:
+            sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
+            last_good_index = i
+        except IndexError:
+            sp.set_offsets(np.column_stack((
+                frame[last_good_index].x_vals, frame[last_good_index].y_vals)
+            ))
+
+
 if __name__=='__main__':
     parser = ArgumentParser()
 
@@ -79,9 +94,15 @@ if __name__=='__main__':
     r_min, r_max = args.r_range
     z_min, z_max = args.z_range
 
-    frames = [
-        read_postproc_profiles(f) for f in args.files
-    ]
+    if np.all([".vtk" in f for f in args.files]):
+        frames = [
+            read_poincare_vtk(f) for f in args.files
+        ]
+    else:
+        frames = [
+            read_postproc_profiles(f) for f in args.files
+        ]
+
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
 
 
@@ -132,7 +153,15 @@ if __name__=='__main__':
             pos = int(pos)
             frame = frames[pos]
             for i,sp in enumerate(sps):
-                sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
+                last_good_index = 0
+                try:
+                    sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
+                    last_good_index = i
+                except IndexError:
+                    sp.set_offsets(np.column_stack((
+                        frame[last_good_index].x_vals, frame[last_good_index].y_vals)
+                    ))
+
 
             if tstep_map:
                 time = np.interp(
