@@ -66,11 +66,13 @@ function plot_poincare() {
 	python3 -m jorek_tools.poincare.plot_animation "$@"
 }
 
-function gen_poincare_multiple() {
-	for var in "$@"
-	do
-		gen_poincare $var
-	done
+function gen_poincare_parallel_fmhd() {
+	export -f gen_poincare
+
+	ntasks_per_file=$1
+	n_parallel_files=$2
+
+	printf "%s\n" "${@:3}" | xargs -t -P $n_parallel_files -I {} bash -c 'gen_poincare "{}" -f "$n_tasks_per_file"'
 }
 
 
@@ -90,20 +92,29 @@ function gen_poincare_parallel() {
 	printf '%s\n' jorek[0-9]*.h5 | awk -v n="$every_nth_file" -v m="$modulo" 'NR % n == m' | xargs -t -P $1 -I {} bash -c 'gen_poincare "{}"'
 }
 
-function gen_poincare_parallel_fmhd() {
-	export -f gen_poincare
-	export -f restart_number
-	every_nth_file=$2
+function get_restart_files(){
+	# Gather restart files in cwd and filter by first and last timesteps
+	first_tstep=$1
+	if [[ ! "$first_tstep" ]]; then
+		first_tstep=0
+	fi
+
+	every_nth_file=$3
 	if [[ ! "$every_nth_file" ]]; then
 		every_nth_file=1
 	fi
 
-	modulo=1
-	if [[ "$every_nth_file" == 1 ]]; then
-		modulo=0
+	last_tstep=$2
+	if [[ ! "$last_tstep" ]]; then
+		last_tstep=999999
 	fi
 
-	for f in $(printf '%s\n' jorek[0-9]*.h5 | awk -v n="$every_nth_file" -v m="$modulo" 'NR % n == m'); do
-		gen_poincare $f -f $1
+	for f in jorek[0-9]*.h5; do
+    	    n=${f#jorek}
+	    n=${n%.h5}
+	    if (( "$first_tstep" <= 10#$n && 10#$n <= "$last_tstep" && $((10#$n % $every_nth_file == 0)) )); then
+		echo "$f"
+	    fi
 	done
 }
+
