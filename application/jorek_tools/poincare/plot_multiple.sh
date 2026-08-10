@@ -68,11 +68,14 @@ function plot_poincare() {
 
 function gen_poincare_parallel_fmhd() {
 	export -f gen_poincare
+	export -f restart_number
 
-	ntasks_per_file=$1
+	n_tasks_per_file=$1
 	n_parallel_files=$2
 
-	printf "%s\n" "${@:3}" | xargs -t -P $n_parallel_files -I {} bash -c 'gen_poincare "{}" -f "$n_tasks_per_file"'
+	export ext="$n_tasks_per_file"
+
+	printf "%s\n" "${@:3}" | xargs -t -P $n_parallel_files -I {} bash -xc 'internal="$ext"; gen_poincare "{}" -f "$internal"'
 }
 
 
