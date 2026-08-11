@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from vtk.util.numpy_support import vtk_to_numpy
 import matplotlib.tri as mtri
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 def read_vtk_scalar(filename: str, scalar_name: str) -> vtk.vtkUnstructuredGrid:
     # Read VTK file
@@ -13,6 +13,16 @@ def read_vtk_scalar(filename: str, scalar_name: str) -> vtk.vtkUnstructuredGrid:
     reader.Update()
 
     return reader.GetOutput()
+
+def get_min_max(grid: vtk.vtkUnstructuredGrid) -> Tuple[float, float]:
+    # Get scalar values
+    point_data = grid.GetPointData()
+
+    scalars = point_data.GetScalars()
+
+    vals = vtk_to_numpy(scalars)
+
+    return min(vals), max(vals)
 
 def plot_vtk_heatmap(grid: vtk.vtkUnstructuredGrid,
                      plot_name: str=None,
@@ -93,6 +103,8 @@ def plot_vtk_heatmap(grid: vtk.vtkUnstructuredGrid,
     # plt.tight_layout()
     # plt.show()
 
+    return pcm
+
 def get_array_names(vtk_filename: str):    
     # Read VTK file
     reader = vtk.vtkUnstructuredGridReader()
@@ -113,15 +125,39 @@ def get_array_names(vtk_filename: str):
         print(i, array.GetName(), array.GetNumberOfComponents())
 
 def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid], 
-                       nrows: int = 1):
+                       nrows: int = 1,
+                       norm_to: Optional[int] = None):
     ncols = int(np.ceil(len(grids)/nrows))
 
     fig, axs = plt.subplots(nrows, ncols, sharex=True, sharey=True)
     if len(grids)==1:
         axs = [axs]
 
+    # Normalising data
+    min_val, max_val = None, None
+    if norm_to is None:
+        for i,grid in enumerate(grids):
+            min_v, max_v = get_min_max(grid)
+
+            if not min_val:
+                min_val = min_v
+            else:
+                if min_v < min_val:
+                    min_val = min_v
+        
+            if not max_val:
+                max_val = max_v
+            else:
+                if max_v > max_val:
+                    max_val = max_v
+    else:
+        grid = grids[norm_to]
+        min_val, max_val = get_min_max(grid)
+
     for i,grid in enumerate(grids):
-        plot_vtk_heatmap(grid, ax=axs[i])
+        pcm = plot_vtk_heatmap(grid, min_max = (min_val, max_val), ax=axs[i])
+
+    fig.colorbar(pcm, ax=axs[-1])
 
     
     fig.subplots_adjust(wspace=0, hspace=0)
@@ -135,6 +171,6 @@ if __name__=='__main__':
         read_vtk_scalar(fname, val) for fname in fnames
     ]
 
-    plot_array_of_vtks(grids)
+    plot_array_of_vtks(grids, norm_to=0)
 
     plt.show()
