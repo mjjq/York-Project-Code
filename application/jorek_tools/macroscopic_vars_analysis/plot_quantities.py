@@ -122,6 +122,7 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 								marker_style: str,
 								marker_size: float,
 								aspect_ratio: str,
+								select_times: Optional[List[int]],
 								output_filename: Optional[str]):
 	if figure_size is not None:
 		fig, ax = plt.subplots(1, figsize=figure_size)
@@ -139,6 +140,13 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
 	ax.set_yscale(y_scale)
 	ax.set_xscale(x_scale)
 
+	if select_times:
+		labels = select_times
+		quantities = list(np.array(quantities)[select_times])
+
+		if time_map:
+			times = list(np.array(time_map.times)[select_times])
+			labels = [f"t={t:.3g}s" for t in times]
 
 	if labels is not None:
 		cmap = plt.cm.tab10
@@ -256,6 +264,11 @@ if __name__ == "__main__":
 		'-tm', '--time-map', type=str, help="Path to timestep-> time file", default=None
 	)
 	parser.add_argument(
+		'-ts', '--select-times', type=int, 
+		help="List of time indices to select for plotting", 
+		nargs='+', default=None
+	)
+	parser.add_argument(
 		'-t0', '--time-min', type=float, help="Min time filter", default=None
 	)
 	parser.add_argument(
@@ -333,6 +346,7 @@ if __name__ == "__main__":
 		args.marker_type,
 		args.marker_size,
 		args.aspect_ratio,
+		args.select_times,
 		args.output_filename
 	)
 
