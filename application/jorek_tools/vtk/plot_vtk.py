@@ -85,7 +85,7 @@ def plot_vtk_heatmap(grid: vtk.vtkUnstructuredGrid,
     pcm = ax.tripcolor(
         triang,
         z,
-        shading="flat",
+        shading="gouraud",
         cmap="jet",
         vmin=vmin,
         vmax=vmax
@@ -179,6 +179,7 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
 
     cbar = fig.colorbar(pcm, ax=axs[-1],fraction=0.1, pad=0.04)
     cbar.set_label(colorbar_title)
+    cbar.ax.ticklabel_format(style='sci', scilimits=(-3,3))
 
     # Need to draw canvas before getting aspect ratio to get
     # accurate value
