@@ -28,7 +28,8 @@ def get_min_max(grid: vtk.vtkUnstructuredGrid) -> Tuple[float, float]:
 def plot_vtk_heatmap(grid: vtk.vtkUnstructuredGrid,
                      plot_name: str=None,
                      min_max: Tuple[float, float] = None,
-                     ax=None):
+                     ax=None,
+                     cmap='jet'):
     # Point coordinates
     points = vtk_to_numpy(grid.GetPoints().GetData())
     x = points[:, 0]
@@ -87,7 +88,7 @@ def plot_vtk_heatmap(grid: vtk.vtkUnstructuredGrid,
         triang,
         z,
         shading="gouraud",
-        cmap="jet",
+        cmap=cmap,
         vmin=vmin,
         vmax=vmax
     )
@@ -130,7 +131,8 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
                        norm_to: Optional[int] = None,
                        colorbar_title: Optional[str] = None,
                        nrows: Optional[int] = None,
-                       fig_width_in: float = 6.0):
+                       fig_width_in: float = 6.0,
+                       cmap: str = 'jet'):
     if not nrows:
         nrows = len(grids)//6 + 1
     ncols = int(np.ceil(len(grids)/nrows))
@@ -171,7 +173,9 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
         min_val, max_val = get_min_max(grid)
 
     for i,grid in enumerate(grids):
-        pcm = plot_vtk_heatmap(grid, min_max = (min_val, max_val), ax=axs[i])
+        pcm = plot_vtk_heatmap(
+            grid, min_max = (min_val, max_val), ax=axs[i], cmap=cmap
+        )
 
     cbar = fig.colorbar(pcm, ax=axs.ravel(),fraction=0.1, pad=0.04)
     cbar.set_label(colorbar_title)
@@ -222,7 +226,13 @@ if __name__=='__main__':
         help="Normalise colorbar to vtk index. "
             "If None given, normalisation is performed over all vtks.",
         type=int,
-        default=None
+        default=0
+    )
+    parser.add_argument(
+        "-c", "--colormap",
+        help="Plotting colormap",
+        type=str,
+        default='jet'
     )
     parser.add_argument(
         "-o", "--output-filename",
@@ -252,7 +262,8 @@ if __name__=='__main__':
             colorbar_title=title, 
             fig_width_in=args.figure_width,
             nrows=args.n_rows,
-            norm_to=args.norm_to
+            norm_to=args.norm_to,
+            cmap=args.colormap
         )
 
         if args.output_filename:
