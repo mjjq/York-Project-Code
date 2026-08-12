@@ -124,14 +124,34 @@ def get_array_names(vtk_filename: str):
         array = point_data.GetArray(i)
         print(i, array.GetName(), array.GetNumberOfComponents())
 
+def get_ax_aspect_ratio(fig: plt.Figure, ax: plt.Axes) -> float:
+    bbox = ax.get_tightbbox()#ax.get_window_extent()
+
+    width, height = bbox.width, bbox.height
+
+    return width/height
+
 def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid], 
                        nrows: int = 1,
-                       norm_to: Optional[int] = None):
+                       norm_to: Optional[int] = None,
+                       colorbar_title: Optional[str] = None,
+                       fig_height_in: float = 4.0):
     ncols = int(np.ceil(len(grids)/nrows))
 
-    fig, axs = plt.subplots(nrows, ncols, sharex=True, sharey=True)
+    print(ncols, nrows)
+    fig, axs = plt.subplots(
+        nrows, ncols, 
+        sharex=True, sharey=True, 
+        layout='compressed'
+    )
     if len(grids)==1:
         axs = [axs]
+
+    # for ax in axs:
+    #     ax.get_xaxis().set_visible(False)
+    #     ax.get_yaxis().set_visible(False)
+    for ax in axs:
+        ax.axis('off')
 
     # Normalising data
     min_val, max_val = None, None
@@ -157,20 +177,79 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
     for i,grid in enumerate(grids):
         pcm = plot_vtk_heatmap(grid, min_max = (min_val, max_val), ax=axs[i])
 
-    fig.colorbar(pcm, ax=axs[-1])
+    cbar = fig.colorbar(pcm, ax=axs[-1],fraction=0.1, pad=0.04)
+    cbar.set_label(colorbar_title)
 
+    # Need to draw canvas before getting aspect ratio to get
+    # accurate value
+    fig.canvas.draw()
+    ax_aspcts = [get_ax_aspect_ratio(fig, ax) for ax in axs]
+    print(ax_aspcts)
+
+    fig_width = np.sum([fig_height_in*aspct for aspct in ax_aspcts])
+
+    print(fig_width, fig_height_in)
+
+    fig.set_size_inches(fig_width, fig_height_in, forward=True)
     
-    fig.subplots_adjust(wspace=0, hspace=0)
+    
+    #fig.subplots_adjust(wspace=0, hspace=0)
 
 if __name__=='__main__':
-    import sys
-    val = sys.argv[1]
-    fnames = sys.argv[2:]
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument(
+        "files", 
+        help="List of .vtk files to plot", 
+        nargs='+', 
+        type=str
+    )
+    parser.add_argument(
+        "-v", "--value-to-plot",
+        help="Name of array value to be plotted",
+        type=str
+    )
+    parser.add_argument(
+        "-t", "--title",
+        help="Title for colorbar",
+        default=None
+    )
+    parser.add_argument(
+        "-fh", "--figure-height",
+        help="Figure height in inches",
+        default=4.0,
+        type=float
+    )
+    parser.add_argument(
+        "-o", "--output-filename",
+        help="Output filename",
+        default=None
+    )
+    parser.add_argument(
+        "-l", "--list-arrays",
+        help="List array names",
+        action='store_true'
+    )
+    args = parser.parse_args()
+
+    val = args.value_to_plot
+    fnames = args.files
+    title = args.title
     
-    grids = [
-        read_vtk_scalar(fname, val) for fname in fnames
-    ]
+    if args.list_arrays:
+        get_array_names(args.files[0])
+    else:
+        grids = [
+            read_vtk_scalar(fname, val) for fname in fnames
+        ]
 
-    plot_array_of_vtks(grids, norm_to=0)
+        plot_array_of_vtks(
+            grids, norm_to=0, 
+            colorbar_title=title, 
+            fig_height_in=args.figure_height
+        )
 
-    plt.show()
+        if args.output_filename:
+            plt.savefig(args.output_filename, dpi=300)
+        else:
+            plt.show()
