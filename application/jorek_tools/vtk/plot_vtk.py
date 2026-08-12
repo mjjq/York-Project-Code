@@ -125,33 +125,6 @@ def get_array_names(vtk_filename: str):
         array = point_data.GetArray(i)
         print(i, array.GetName(), array.GetNumberOfComponents())
 
-def get_ax_aspect_ratio(fig: plt.Figure, ax: plt.Axes) -> float:
-    bbox = ax.get_tightbbox()#ax.get_window_extent()
-
-    width, height = bbox.width, bbox.height
-
-    return width/height
-
-def get_artist_aspect_ratio(fig: plt.Figure) -> float:
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
-
-
-    bboxes = []
-    for artist in fig.findobj():
-        if not hasattr(artist, "get_window_extent"):
-            continue
-
-        try:
-            bb = artist.get_window_extent(renderer)
-            if bb.width > 0 or bb.height > 0:
-                bboxes.append(bb)
-        except (AttributeError, RuntimeError):
-            pass
-
-    bbox = Bbox.union(bboxes)
-    
-    return bbox.width/bbox.height
 
 def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
                        norm_to: Optional[int] = None,
@@ -207,27 +180,14 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
     cbar.set_label(colorbar_title)
     cbar.ax.ticklabel_format(style='sci', scilimits=(-3,3))
 
-    # Need to draw canvas before getting aspect ratio to get
-    # accurate value
-    # fig.canvas.draw()
-    # ax_aspcts = [get_ax_aspect_ratio(fig, ax) for ax in axs_orig[0,:]]
-    # print(ax_aspcts)
-
-    # fig_width = np.sum([fig_height_in*aspct for aspct in ax_aspcts])
-
-    # print(fig_width, fig_height_in)
-
     fig.canvas.draw()
     bbox = fig.get_tightbbox(fig.canvas.get_renderer())
     bbox = bbox.transformed(fig.dpi_scale_trans.inverted())
     fig_aspct = bbox.width/bbox.height
-    print(fig_aspct)
     fig_height = fig_width_in / fig_aspct
 
     fig.set_size_inches(fig_width_in, fig_height, forward=True)
-    
-    
-    #fig.subplots_adjust(wspace=0, hspace=0)
+
 
 if __name__=='__main__':
     from argparse import ArgumentParser
