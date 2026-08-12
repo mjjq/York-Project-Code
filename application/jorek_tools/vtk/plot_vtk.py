@@ -132,7 +132,7 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
                        nrows: Optional[int] = None,
                        fig_width_in: float = 6.0):
     if not nrows:
-        nrows = len(grids)//8 + 1
+        nrows = len(grids)//6 + 1
     ncols = int(np.ceil(len(grids)/nrows))
 
     #print(ncols, nrows)
@@ -141,10 +141,7 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
         sharex=True, sharey=True,
         layout='compressed'
     )
-    if len(grids)==1:
-        axs = np.array([axs_orig])
-
-    axs=axs_orig.flatten()
+    axs = np.array([axs_orig]).flatten()
 
     # for ax in axs:
     #     ax.get_xaxis().set_visible(False)
