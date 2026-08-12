@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from vtk.util.numpy_support import vtk_to_numpy
 import matplotlib.tri as mtri
 from typing import Tuple, List, Optional
+from matplotlib.transforms import Bbox
 
 def read_vtk_scalar(filename: str, scalar_name: str) -> vtk.vtkUnstructuredGrid:
     # Read VTK file
@@ -98,7 +99,7 @@ def plot_vtk_heatmap(grid: vtk.vtkUnstructuredGrid,
 
     field_data = grid.GetFieldData()
     time = 1000.0*vtk_to_numpy(field_data.GetArray("TIME"))[0]
-    ax.set_title(f"Time: {time:.3f}ms")
+    ax.set_title(f"{time:.3f}ms")
 
     # plt.tight_layout()
     # plt.show()
@@ -131,21 +132,46 @@ def get_ax_aspect_ratio(fig: plt.Figure, ax: plt.Axes) -> float:
 
     return width/height
 
-def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid], 
-                       nrows: int = 1,
+def get_artist_aspect_ratio(fig: plt.Figure) -> float:
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+
+    bboxes = []
+    for artist in fig.findobj():
+        if not hasattr(artist, "get_window_extent"):
+            continue
+
+        try:
+            bb = artist.get_window_extent(renderer)
+            if bb.width > 0 or bb.height > 0:
+                bboxes.append(bb)
+        except (AttributeError, RuntimeError):
+            pass
+
+    bbox = Bbox.union(bboxes)
+    
+    return bbox.width/bbox.height
+
+def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
                        norm_to: Optional[int] = None,
                        colorbar_title: Optional[str] = None,
-                       fig_height_in: float = 4.0):
+                       nrows: Optional[int] = None,
+                       fig_width_in: float = 6.0):
+    if not nrows:
+        nrows = len(grids)//8 + 1
     ncols = int(np.ceil(len(grids)/nrows))
 
-    print(ncols, nrows)
-    fig, axs = plt.subplots(
+    #print(ncols, nrows)
+    fig, axs_orig = plt.subplots(
         nrows, ncols, 
-        sharex=True, sharey=True, 
+        sharex=True, sharey=True,
         layout='compressed'
     )
     if len(grids)==1:
-        axs = [axs]
+        axs = np.array([axs_orig])
+
+    axs=axs_orig.flatten()
 
     # for ax in axs:
     #     ax.get_xaxis().set_visible(False)
@@ -177,21 +203,28 @@ def plot_array_of_vtks(grids: List[vtk.vtkUnstructuredGrid],
     for i,grid in enumerate(grids):
         pcm = plot_vtk_heatmap(grid, min_max = (min_val, max_val), ax=axs[i])
 
-    cbar = fig.colorbar(pcm, ax=axs[-1],fraction=0.1, pad=0.04)
+    cbar = fig.colorbar(pcm, ax=axs.ravel(),fraction=0.1, pad=0.04)
     cbar.set_label(colorbar_title)
     cbar.ax.ticklabel_format(style='sci', scilimits=(-3,3))
 
     # Need to draw canvas before getting aspect ratio to get
     # accurate value
+    # fig.canvas.draw()
+    # ax_aspcts = [get_ax_aspect_ratio(fig, ax) for ax in axs_orig[0,:]]
+    # print(ax_aspcts)
+
+    # fig_width = np.sum([fig_height_in*aspct for aspct in ax_aspcts])
+
+    # print(fig_width, fig_height_in)
+
     fig.canvas.draw()
-    ax_aspcts = [get_ax_aspect_ratio(fig, ax) for ax in axs]
-    print(ax_aspcts)
+    bbox = fig.get_tightbbox(fig.canvas.get_renderer())
+    bbox = bbox.transformed(fig.dpi_scale_trans.inverted())
+    fig_aspct = bbox.width/bbox.height
+    print(fig_aspct)
+    fig_height = fig_width_in / fig_aspct
 
-    fig_width = np.sum([fig_height_in*aspct for aspct in ax_aspcts])
-
-    print(fig_width, fig_height_in)
-
-    fig.set_size_inches(fig_width, fig_height_in, forward=True)
+    fig.set_size_inches(fig_width_in, fig_height, forward=True)
     
     
     #fig.subplots_adjust(wspace=0, hspace=0)
@@ -216,10 +249,16 @@ if __name__=='__main__':
         default=None
     )
     parser.add_argument(
-        "-fh", "--figure-height",
+        "-fw", "--figure-width",
         help="Figure height in inches",
-        default=4.0,
+        default=6.0,
         type=float
+    )
+    parser.add_argument(
+        "-r", "--n-rows",
+        help="Number of .vtk rows",
+        default=None,
+        type=int
     )
     parser.add_argument(
         "-o", "--output-filename",
@@ -247,7 +286,8 @@ if __name__=='__main__':
         plot_array_of_vtks(
             grids, norm_to=0, 
             colorbar_title=title, 
-            fig_height_in=args.figure_height
+            fig_width_in=args.figure_width,
+            nrows=args.n_rows
         )
 
         if args.output_filename:
