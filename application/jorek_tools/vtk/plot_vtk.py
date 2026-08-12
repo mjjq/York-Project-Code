@@ -253,6 +253,9 @@ if __name__=='__main__':
     if args.list_arrays:
         get_array_names(args.files[0])
     else:
+        if not val:
+            raise ValueError("Must specify a value to plot. Use -l to list possible values.")
+            
         grids = [
             read_vtk_scalar(fname, val) for fname in fnames
         ]
