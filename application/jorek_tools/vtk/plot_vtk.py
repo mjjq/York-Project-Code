@@ -218,6 +218,13 @@ if __name__=='__main__':
         type=int
     )
     parser.add_argument(
+        "-n", "--norm-to",
+        help="Normalise colorbar to vtk index. "
+            "If None given, normalisation is performed over all vtks.",
+        type=int,
+        default=None
+    )
+    parser.add_argument(
         "-o", "--output-filename",
         help="Output filename",
         default=None
@@ -241,10 +248,11 @@ if __name__=='__main__':
         ]
 
         plot_array_of_vtks(
-            grids, norm_to=0, 
+            grids,
             colorbar_title=title, 
             fig_width_in=args.figure_width,
-            nrows=args.n_rows
+            nrows=args.n_rows,
+            norm_to=args.norm_to
         )
 
         if args.output_filename:
