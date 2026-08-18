@@ -314,14 +314,15 @@ def read_postproc_profiles(postproc_filename: str,
             print(ie)
             x_data = []
             y_data = []
-    
-        profile: PostprocProfile = PostprocProfile(
-            x_vals = x_data,
-            y_vals = y_data, 
-            timestep=timestep
-        )
 
-        ret.append(profile)
+        if (len(x_data)>0) and (len(y_data)>0):
+            profile: PostprocProfile = PostprocProfile(
+                x_vals = x_data,
+                y_vals = y_data, 
+                timestep=timestep
+            )
+
+            ret.append(profile)
 
     return ret
 
