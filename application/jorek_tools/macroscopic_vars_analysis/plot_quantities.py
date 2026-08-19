@@ -312,16 +312,13 @@ if __name__ == "__main__":
     if args.ycolumn_index:
         for filename in args.files:
             for yi in args.ycolumn_index:
-                print("New quantity", filename, yi)
                 mq = read_postproc_profiles(filename, args.xcolumn_index, yi)
                 quantities.append(mq)
             for yerr in args.y_error_index:
                 mq_err = read_postproc_profiles(filename, args.xcolumn_index, yerr)
                 err_quantities.append(mq_err)
-    print(quantities[0])
     quantities = np.array(quantities).flatten()
     err_quantities = np.array(err_quantities).flatten()
-    print("Qs", len(quantities))
     labels = None
     if args.labels:
         labels = args.labels
