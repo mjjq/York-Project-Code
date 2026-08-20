@@ -127,7 +127,7 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
     if figure_size is not None:
         fig, ax = plt.subplots(1, figsize=figure_size)
     else:
-        fig, ax = plt.subplots(1)
+        fig, ax = plt.subplots(1, figsize=(4,3))
 
     ax.set_aspect(aspect_ratio)
     xlabel = x_axis_label
@@ -137,7 +137,10 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
     ax.set_ylabel(ylabel)
 
     ax.grid(which='both')
-    ax.set_yscale(y_scale)
+    if y_scale=='symlog':
+        ax.set_yscale(y_scale, linthresh=0.01)
+    else:
+        ax.set_yscale(y_scale)
     ax.set_xscale(x_scale)
 
     if select_times:
@@ -277,11 +280,11 @@ if __name__ == "__main__":
     parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
     parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
     parser.add_argument(
-        '-xs', '--x-scale', choices=['linear','log'], help="X-axis scale",
+        '-xs', '--x-scale', choices=['linear','log','symlog'], help="X-axis scale",
         default='linear'
     )
     parser.add_argument(
-        '-ys', '--y-scale', choices=['linear','log'], help="Y-axis scale",
+        '-ys', '--y-scale', choices=['linear','log','symlog'], help="Y-axis scale",
         default='linear'
     )
     parser.add_argument(
@@ -313,12 +316,15 @@ if __name__ == "__main__":
         for filename in args.files:
             for yi in args.ycolumn_index:
                 mq = read_postproc_profiles(filename, args.xcolumn_index, yi)
-                quantities.append(mq)
+                if mq:
+                    quantities.append(mq)
             for yerr in args.y_error_index:
                 mq_err = read_postproc_profiles(filename, args.xcolumn_index, yerr)
-                err_quantities.append(mq_err)
+                if mq_err:
+                    err_quantities.append(mq_err)
     quantities = np.array(quantities).flatten()
     err_quantities = np.array(err_quantities).flatten()
+
     labels = None
     if args.labels:
         labels = args.labels
