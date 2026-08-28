@@ -14,6 +14,17 @@ __plq() {
 	$(python3 $_poincare_SCRIPT_DIR/../macroscopic_vars_analysis/plot_quantities.py "$@")
 }
 
+function poincare_fmhd_plot_type() {
+	nml=poincare.nml
+	if [[ -n "$(grep Rtheta $nml | grep .true.)" ]]; then
+		echo rho-theta
+	elif [[ -n "$(grep psitheta $nml | grep .true.)" ]]; then
+		echo psi-theta
+	else
+		echo R-Z
+	fi
+}
+
 function gen_poincare() {
 	restart_file=$1
 	restart_no=$(restart_number $restart_file)
@@ -24,42 +35,41 @@ function gen_poincare() {
 	nprocs_flag=$3
 	nprocs=1
 
-	extension="txt"
 
 	if [[ $use_fmhd_flag = "-f" ]]; then
 		use_fmhd=true
-		extension="vtk"
 	fi
 
 	if [[ $nprocs_flag ]]; then
 		nprocs=$nprocs_flag
 	fi
 
-	poincare_rz_filename=$(echo poinc_R-Z_$restart_no.$extension)
-	poincare_rt_filename=$(echo poinc_rho-theta_$restart_no.$extension)
 
-	if [ ! -f $poincare_rz_filename ]; then
-		tmp_folder=tmp_$restart_no
-		mkdir $tmp_folder
-		cd $tmp_folder
-		ln -s ../* .
-		rm jorek_restart.h5
+	tmp_folder=tmp_$restart_no
+	mkdir $tmp_folder
+	cd $tmp_folder
+	ln -s ../* .
+	rm jorek_restart.h5
 
-		cp ../$restart_file jorek_restart.h5
-		
-		if [[ $use_fmhd = false ]]; then
-			./jorek2_poincare < inmastu
-			mv poinc_R-Z.dat ../$poincare_rz_filename
-			mv poinc_rho-theta.dat ../$poincare_rt_filename
-		else
-			rm connection.vtk
-			mpirun -np $nprocs ./jorek2_connection_fmhd < inmastu
-			mv connection.vtk ../$poincare_rz_filename
-		fi
+	cp ../$restart_file jorek_restart.h5
+	
+	if [[ $use_fmhd = false ]]; then
+		poincare_rz_filename=$(echo poinc_R-Z_$restart_no.txt)
+		poincare_rt_filename=$(echo poinc_rho-theta_$restart_no.txt)	
+		./jorek2_poincare < inmastu
+		mv poinc_R-Z.dat ../$poincare_rz_filename
+		mv poinc_rho-theta.dat ../$poincare_rt_filename
 
-		cd ../
-		rm -r $tmp_folder
+	else
+		rm connection.vtk
+		mpirun -np $nprocs ./jorek2_connection_fmhd < inmastu
+		poinc_type=$(poincare_fmhd_plot_type)
+		filename_out=$(echo poinc_${poinc_type}_$restart_no.vtk)
+		mv connection.vtk ../$filename_out
 	fi
+
+	cd ../
+	rm -r $tmp_folder
 }
 
 function plot_poincare() {
