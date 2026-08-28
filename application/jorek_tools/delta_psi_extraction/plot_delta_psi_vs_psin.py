@@ -59,12 +59,12 @@ if __name__=='__main__':
         ax.plot(prof.psi_norm, prof.psi, label=f'm={poloidal_mode_number}')
 
 
-    title=f"Time step: {modes[0].timestep}"
+    title=f"n={modes[0].toroidal_mode_number}, time step: {modes[0].timestep}"
     if tstep_map:
         time = np.interp(
             modes[0].timestep, tstep_map.time_steps, tstep_map.times
         )
-        title = f"Time: {time:.4g} s"
+        title = f"n={modes[0].toroidal_mode_number}, time: {1000.0*time:.4g} ms"
 
     ax.set_title(title)
     ax.legend()
