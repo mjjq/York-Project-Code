@@ -105,7 +105,9 @@ if __name__=='__main__':
 
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
 
-
+    use_psi_coord = np.all(['psi' in f for f in args.files])
+    use_rho_coord = np.all(['rho' in f for f in args.files])
+    use_theta_coord = np.all(['theta' in f for f in args.files])
     is_rz_plot = np.all(['R-Z' in f for f in args.files])
 
     if is_rz_plot:
@@ -115,7 +117,10 @@ if __name__=='__main__':
         ax.set_ylabel("Z (m)")
     else:
         fig, ax = plt.subplots(1, figsize=(5,4))
-        ax.set_xlabel(r"$\rho/a$")
+        if use_rho_coord:
+            ax.set_xlabel(r"$\rho/a$")
+        elif use_psi_coord:
+            ax.set_xlabel(r"$\psi_N$")
         ax.set_ylabel(r"$\theta$")
 
     if(np.all(args.r_range)):
@@ -196,7 +201,10 @@ if __name__=='__main__':
         if(is_rz_plot):
             file_prefix = "poinc_R-Z"
         else:
-            file_prefix = "poinc_rho-theta"
+            if use_rho_coord:
+                file_prefix = "poinc_rho-theta"
+            else:
+                file_prefix = "poinc_psi-theta"
 
         folder = "poincare_output"
         try:
