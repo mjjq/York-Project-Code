@@ -79,6 +79,7 @@ function plot_poincare() {
 function gen_poincare_parallel_fmhd() {
 	export -f gen_poincare
 	export -f restart_number
+	export -f poincare_fmhd_plot_type
 
 	n_tasks_per_file=$1
 	n_parallel_files=$2
