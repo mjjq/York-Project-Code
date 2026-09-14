@@ -22,8 +22,8 @@ def read_poincare_vtk(filename: str) -> List[PostprocProfile]:
     grid = reader.GetOutput()
 
     points = vtk_to_numpy(grid.GetPoints().GetData())[:,:2]
-    psi_start = vtk_to_numpy(grid.GetPointData().GetArray("psi_start"))
-    
+    psi_start = vtk_to_numpy(grid.GetPointData().GetArray("T_start"))
+
     unique_psi_vals = list(set(psi_start))
 
     ret = []
