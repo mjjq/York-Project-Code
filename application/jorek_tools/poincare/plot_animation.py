@@ -137,6 +137,13 @@ if __name__=='__main__':
         print(e)
         print("Unable to load timestep map. Plotting without...")
 
+    if use_psi_coord:
+        for frame in frames:
+            for surface in frame:
+                # Convert psi_N -> s=sqrt(psi_N) co-ords
+                surface.x_vals = np.sqrt(surface.x_vals)
+
+
     frame = frames[0]
     sps = []
     for i,surface in enumerate(frame):
