@@ -24,7 +24,10 @@ class IslandCalibrations:
 
 def read_island_width_calibrations(filename: str) -> IslandCalibrations:
     data = np.loadtxt(filename)
-    times, rhomin, rhomax = data[:,0], data[:,1], data[:,2]
+    if len(data) > 3:
+        times, rhomin, rhomax = data[:,0], data[:,1], data[:,2]
+    else:
+        times, rhomin, rhomax = data
 
     w_avg = rhomax-rhomin
 
@@ -64,32 +67,21 @@ def get_calibrated_island_width_series(delta_psi_sol: TimeDependentSolution,
         calibrations.times, delta_psi_sol.times, delta_psi_sol.psi_t
     )
 
-    log_dpsi, log_widths = np.log(dpsi_calibs), np.log(calibrations.w_avg)
+    #log_dpsi, log_widths = np.log(dpsi_calibs), np.log(calibrations.w_avg)
 
-    coefs = np.polyfit(log_dpsi, log_widths, 1)
-    print(coefs)
+    #coefs = np.polyfit(log_dpsi, log_widths, 1)
+    #print(coefs)
 
-    calib_sol = get_calibrated_island_widths_coefs(
-        delta_psi_sol,
-        coefs
-    )
+    #calib_sol = get_calibrated_island_widths_coefs(
+    #    delta_psi_sol,
+    #    coefs
+    #)
 
-    if debug_plot:
-        from matplotlib import pyplot as plt
-        fig, ax = plt.subplots(1, figsize=(5,4))
-        ax.set_xlabel("$\delta\psi(r_s)$ (arb)")
-        ax.set_ylabel("$w_{avg}/a$")
-        ax.set_xscale('log')
-        ax.set_yscale('log')
+    proportionality_constant = np.mean(calibrations.w_avg / np.sqrt(dpsi_calibs))
 
-        ax.plot(dpsi_calibs, calibrations.w_avg, label="Calibrations")
+    calib_sol = delta_psi_sol
+    calib_sol.w_t = proportionality_constant * np.sqrt(calib_sol.psi_t)
 
-        ax.plot(delta_psi_sol.psi_t, calib_sol.w_t, label=f"Fit (A,B={coefs[0]:.4g}, {coefs[1]:.4g})")
-        ax.legend()
-        ax.grid()
-        fig.tight_layout()
-        plt.show()
-    
     return calib_sol
 
 
@@ -159,6 +151,7 @@ def plot_calibration_main():
 
     if not args.calibration_coefficients:
         calibrations = read_island_width_calibrations(args.island_calibrations)
+        print(calibrations)
 
         sol_calib = get_calibrated_island_width_series(sol, calibrations, args.debug_plot)
     else:
@@ -182,6 +175,7 @@ def plot_calibration_main():
         np.zeros(len(sol_calib.times)),
         normalised=True
     )
+    print(measured_width)
     measured_width.write("w_measured.txt")
 
 
