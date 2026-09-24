@@ -56,6 +56,8 @@ sbatchdep() {
 	sbatch --dependency=afterany:$2 --export=ALL,PREV_JOB_ID=$2 $1
 }
 
+export MPLCONFIGDIR="$YP_CODE"
+
 source $JOREK_TOOLS/aliases.sh
 source $CHEASE_TOOLS/aliases.sh
 source $XTOR_TOOLS/aliases.sh
