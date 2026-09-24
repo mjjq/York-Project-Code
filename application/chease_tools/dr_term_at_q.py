@@ -112,7 +112,7 @@ def extract_term_at_q(raw_cols: np.array,
 
     return quantity_at_q
 
-def alpha_from_cols(cols: CheaseColumns, q: float) -> float:
+def alpha_from_cols(cols: CheaseColumns) -> float:
 	"""
 	Extract normalised ballooning parameter (normalised
 	pressure gradient) at a given q-surface.
@@ -137,15 +137,18 @@ def alpha_from_cols(cols: CheaseColumns, q: float) -> float:
 	:return: Normalised pressure gradient at q
 	"""
 	eps = cols.eps
-	q_column = cols.q
+	q = cols.q
 	dp_dpsi_column = cols.dp_dpsi
 
-	dp_dpsi = interp(q, q_column, dp_dpsi_column)
-	eps = interp(q, q_column, eps)
-	F=interp(q, q_column, cols.F)
+	dp_dpsi = dp_dpsi_column
+	eps = eps
+	F=cols.F
 
 	alpha = -(2.0*q) * eps * F * dp_dpsi
 	return alpha
+
+def alpha_at_q(cols: CheaseColumns, q: float) -> float:
+	return interp(q, cols.q, alpha_from_cols(cols))
 
 def d_i_approximation_from_cols(cols: CheaseColumns, q: float) -> float:
 	"""
@@ -157,7 +160,7 @@ def d_i_approximation_from_cols(cols: CheaseColumns, q: float) -> float:
 
 	:return: Large aspect D_R approximation
 	"""
-	alpha = alpha_from_cols(cols, q)
+	alpha = alpha_at_q(cols, q)
 	shear = interp(q, cols.q, cols.shear)
 	eps = cols.eps[-1]
 
@@ -186,7 +189,7 @@ def extract_rmhd_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 	"""
 	shear = interp(q, cols.q, cols.shear)
 
-	alpha = alpha_from_cols(cols, q)
+	alpha = alpha_at_q(cols, q)
 	eps = interp(q, cols.q, cols.eps)
 
 	delta_d_r = - alpha**2 / (4.0*shear**2 * q**2) - eps*alpha/(shear**2 * q**2)
@@ -202,8 +205,16 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
 	d_r_profs = np.array([col.d_r for col in cols_array])
 	d_r_profs = d_r_profs[time_filt]
 
-	d_r_avg = np.mean(d_r_profs, axis=0)
-	d_r_std = np.std(d_r_profs, axis=0)/np.sqrt(len(d_r_profs))
+	alpha_profs = np.array([alpha_from_cols(col) for col in cols_array])
+	alpha_profs = alpha_profs[time_filt]
+
+	shear_profs = np.array([col.shear for col in cols_array])
+	shear_profs = shear_profs[time_filt]
+
+	d_r_norm = shear_profs**2 * d_r_profs / alpha_profs
+
+	d_r_avg = np.mean(d_r_norm, axis=0)
+	d_r_std = np.std(d_r_norm, axis=0)/np.sqrt(len(d_r_norm))
 
 	s_prof = cols_array[0].s
 	psi_n_prof = s_prof**2
