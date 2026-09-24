@@ -12,3 +12,9 @@ tp() {
 cols_row(){
 	((head -n 1 $1 | sed 's/#//') && awk -v var="$2" '{if(NR==var) print $0}' $1) | tp
 }
+
+plot_time_avg_dr_profs() {
+	plq ${@} -yi 1 -yerr 2 -xl "\$\psi_N\$" -yl "\$-s^2 D_R / \alpha\$" &
+	plq ${@} -yi 3 -yerr 4 -xl "\$\psi_N\$" -yl "\$\alpha\$" &
+	plq ${@} -yi 5 -yerr 6 -xl "\$\psi_N\$" -yl "\$s\$" &
+}

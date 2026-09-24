@@ -61,6 +61,9 @@ def time_from_g_filename(filename: str) -> float:
     Extract time from geqdsk filename
     """
     return float(re.findall(r'[+-]?\d+\.\d+(?:[Ee][+-]?\d+)?', filename)[0])
+
+def shot_num_from_g_filename(filename: str) -> int:
+    return int(re.search(r'p(\d+)', filename).group(1))
     
 
 if __name__=='__main__':
