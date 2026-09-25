@@ -3,6 +3,7 @@ import numpy as np
 from numpy import interp, loadtxt, pi
 from dataclasses import dataclass
 from typing import List
+from itertools import cycle
 from matplotlib import pyplot as plt
 
 from rdcon_tools.delta_gw import time_from_g_filename, shot_num_from_g_filename
@@ -199,109 +200,154 @@ def extract_rmhd_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 
 @dataclass
 class AvgCheaseProfs:
-	psi_n: np.array
-	d_r_avg: np.array 
-	d_r_std: np.array 
-	alpha_avg: np.array 
-	alpha_std: np.array 
-	shear_avg: np.array 
-	shear_std: np.array
-	q_avg: np.array
-	q_std: np.array
-	shot: int
+    psi_n: np.array
+    d_r_avg: np.array 
+    d_r_std: np.array 
+    alpha_avg: np.array 
+    alpha_std: np.array 
+    shear_avg: np.array 
+    shear_std: np.array
+    q_avg: np.array
+    q_std: np.array
+    j_b_norm_avg: np.array
+    j_b_norm_std: np.array
+    shot: int
 
 def dr_avg_profile(files: List[str], tmin: float, tmax: float):
-	cols_array = np.array([read_columns(fname) for fname in files])
-	time_array = np.array([time_from_g_filename(fname) for fname in files])
+    cols_array = np.array([read_columns(fname) for fname in files])
+    time_array = np.array([time_from_g_filename(fname) for fname in files])
 
-	time_filt = (time_array > tmin) & (time_array < tmax)
+    time_filt = (time_array > tmin) & (time_array < tmax)
 
-	d_r_profs = np.array([col.d_r for col in cols_array])
-	d_r_profs = d_r_profs[time_filt]
+    d_r_profs = np.array([col.d_r for col in cols_array])
+    d_r_profs = d_r_profs[time_filt]
 
-	alpha_profs = np.array([alpha_from_cols(col) for col in cols_array])
-	alpha_profs = alpha_profs[time_filt]
+    alpha_profs = np.array([alpha_from_cols(col) for col in cols_array])
+    alpha_profs = alpha_profs[time_filt]
 
-	shear_profs = np.array([col.shear for col in cols_array])
-	shear_profs = shear_profs[time_filt]
+    shear_profs = np.array([col.shear for col in cols_array])
+    shear_profs = shear_profs[time_filt]
 
-	d_r_norm = shear_profs**2 * d_r_profs / alpha_profs
+    d_r_norm = shear_profs**2 * d_r_profs / alpha_profs
 
-	d_r_avg = np.mean(d_r_norm, axis=0)
-	d_r_std = np.std(d_r_norm, axis=0)/np.sqrt(len(d_r_norm))
+    d_r_avg = np.mean(d_r_norm, axis=0)
+    d_r_std = np.std(d_r_norm, axis=0)/np.sqrt(len(d_r_norm))
 
-	alpha_avg = np.mean(alpha_profs, axis=0)
-	alpha_std = np.std(alpha_profs, axis=0)/np.sqrt(len(alpha_profs))
+    alpha_avg = np.mean(alpha_profs, axis=0)
+    alpha_std = np.std(alpha_profs, axis=0)/np.sqrt(len(alpha_profs))
 
-	shear_avg = np.mean(shear_profs, axis=0)
-	shear_std = np.std(shear_profs, axis=0)/np.sqrt(len(shear_profs))
+    shear_avg = np.mean(shear_profs, axis=0)
+    shear_std = np.std(shear_profs, axis=0)/np.sqrt(len(shear_profs))
 
-	q_profs = np.array([col.q for col in cols_array])
-	q_profs = q_profs[time_filt]
-	q_avg = np.mean(q_profs, axis=0)
-	q_std = np.std(q_profs, axis=0)/np.sqrt(len(q_profs))
+    q_profs = np.array([col.q for col in cols_array])
+    q_profs = q_profs[time_filt]
+    q_avg = np.mean(q_profs, axis=0)
+    q_std = np.std(q_profs, axis=0)/np.sqrt(len(q_profs))
 
-	s_prof = cols_array[0].s
-	psi_n_prof = s_prof**2
+    j_b_profs = np.array([col.j_bs for col in cols_array])
+    j_b_profs = j_b_profs[time_filt]
+    j_b_norm = j_b_profs/ alpha_profs
 
-	shot = shot_num_from_g_filename(files[0])
-	#from matplotlib import pyplot as plt
-	#fig, ax = plt.subplots(1)
-	#ax.plot(psi_n_prof, d_r_avg)
-	#ax.fill_between(psi_n_prof, d_r_avg-d_r_std, d_r_avg+d_r_std, alpha=0.5)
-	#plt.show()
+    j_b_norm_avg = np.mean(j_b_norm, axis=0)
+    j_b_norm_std = np.std(j_b_norm, axis=0)/np.sqrt(len(j_b_norm))
 
-	return AvgCheaseProfs(
-		psi_n_prof, d_r_avg, d_r_std, alpha_avg, alpha_std, shear_avg, shear_std, q_avg, q_std, shot
-	)
+    s_prof = cols_array[0].s
+    psi_n_prof = s_prof**2
 
-	print("% psi_N D_R_norm_mean D_R_norm_std alpha_mean alpha_std shear_mean shear_std")
-	for i, psi_n in enumerate(psi_n_prof):
-		print(
-			psi_n, 
-			d_r_avg[i], d_r_std[i], 
-			alpha_avg[i], alpha_std[i], 
-			shear_avg[i], shear_std[i],
-			q_avg[i], q_std[i]
-		)
+    shot = shot_num_from_g_filename(files[0])
+    #from matplotlib import pyplot as plt
+    #fig, ax = plt.subplots(1)
+    #ax.plot(psi_n_prof, d_r_avg)
+    #ax.fill_between(psi_n_prof, d_r_avg-d_r_std, d_r_avg+d_r_std, alpha=0.5)
+    #plt.show()
 
-def plot_avg_with_std(ax, psi_n: np.array, prof_avg: np.array, prof_std: np.array, **kwargs):
-	ax.plot(psi_n, prof_avg, **kwargs)
-	ax.fill_between(ax, psi_n, prof_avg-prof_std, prof_avg+prof_std, alpha=0.5, **kwargs)
+    return AvgCheaseProfs(
+        psi_n_prof, 
+        d_r_avg, d_r_std, 
+        alpha_avg, alpha_std, 
+        shear_avg, shear_std, 
+        q_avg, q_std, 
+        j_b_norm_avg, j_b_norm_std,
+        shot
+    )
 
-def plot_avg_profs(avg_profs: List[AvgCheaseProfs], q_s: float = 2.0):
-	fig, ax = plt.subplots(3, sharex=True)
-	ax_dr, ax_alpha, ax_s = ax
+def plot_avg_with_std(ax, psi_n: np.array, prof_avg: np.array, prof_std: np.array, label: str):
+    # prof_avg[np.isnan(prof_avg)] = 0.0
+    # prof_std[np.isnan(prof_std)] = 0.0
+    try:
+	    ax.plot(psi_n, prof_avg, label=label)
+	    ax.fill_between(psi_n, prof_avg-prof_std, prof_avg+prof_std, alpha=0.5)
+    except TypeError:
+        raise ValueError(f"Bad profiles: {prof_avg}\n{prof_std}")
 
-	for avg_prof in avg_profs:
-		q_s_avg = interp(q_s, avg_prof.q_avg, avg_prof.psi_n)
-		q_s_max = interp(q_s, avg_prof.q_avg+avg_prof.q_std, avg_prof.psi_n)
-		q_s_min = interp(q_s, avg_prof.q_avg-avg_prof.q_std, avg_prof.psi_n)
+def plot_avg_profs(avg_profs: List[AvgCheaseProfs], 
+                   q_s: float = 2.0, 
+                   psi_min: float = 0.55, 
+                   psi_max: float = 0.60):
+    fig, ax = plt.subplots(4, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.1})
+    ax_dr, ax_jb, ax_alpha, ax_s = ax
+    ax[-1].set_xlabel("$\psi_N$")
 
-		plot_avg_with_std(
-			ax_dr,
-			avg_prof.psi_n,
-			avg_prof.d_r_avg,
-			avg_prof.d_r_std,
-			label=str(avg_prof.shot)
-		)
-		plot_avg_with_std(
-			ax_alpha,
-			avg_prof.psi_n,
-			avg_prof.alpha_avg,
-			avg_prof.alpha_std,
-			label=str(avg_prof.shot)
-		)
-		plot_avg_with_std(
-			ax_s,
-			avg_prof.psi_n,
-			avg_prof.shear_avg,
-			avg_prof.shear_std,
-			label=str(avg_prof.shot)
-		)
+    ax_dr.set_ylabel(r"$-s^2 D_R / \alpha$")
+    ax_jb.set_ylabel(r"$j_b/\alpha$")
+    ax_alpha.set_ylabel(r"$\alpha$")
+    ax_s.set_ylabel(r"$s$")
 
-		for ax_in in ax:
-			ax_in.vlines(q_s_avg, linestyle='--', label=f"q=2 ({avg_prof.shot})")
+    for ax_in in ax:
+        ax_in.grid()
+        ax_in.set_xlim(psi_min, psi_max)
+
+    colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+
+    for avg_prof in avg_profs:
+        q_s_avg = interp(q_s, avg_prof.q_avg, avg_prof.psi_n)
+        q_s_max = interp(q_s, avg_prof.q_avg+avg_prof.q_std, avg_prof.psi_n)
+        q_s_min = interp(q_s, avg_prof.q_avg-avg_prof.q_std, avg_prof.psi_n)
+
+        psi_filt = (
+            (avg_prof.psi_n >= 0.98*psi_min) & 
+            (avg_prof.psi_n <= 1.02*psi_max)
+        )
+
+        plot_avg_with_std(
+            ax_dr,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.d_r_avg[psi_filt],
+            avg_prof.d_r_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_jb,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.j_b_norm_avg[psi_filt],
+            avg_prof.j_b_norm_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_alpha,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.alpha_avg[psi_filt],
+            avg_prof.alpha_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_s,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.shear_avg[psi_filt],
+            avg_prof.shear_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+
+        color = next(colors)
+        for ax_in in ax:
+            ax_in.axvline(
+                q_s_avg, 
+                linestyle='--', 
+                label=f"q=2 ({avg_prof.shot})",
+                color=color
+            )
+    
+    ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.4), ncol=4)
 
 
 
@@ -358,12 +404,13 @@ if __name__=='__main__':
 
     if np.all(args.average_profile):
         tmin, tmax = args.average_profile
-        shots = list(set([shot_num_from_g_filename(f) for f in args.filename]))
+        shots = list(sorted(set([shot_num_from_g_filename(f) for f in args.filename])))
         avg_profs = []
         for shot in shots:
             files = [f for f in args.filename if str(shot) in f]
             avg_profs.append(dr_avg_profile(files, tmin, tmax))
         plot_avg_profs(avg_profs)
+        plt.show()
         exit()
 
     if np.all(args.average_q2_radius):
