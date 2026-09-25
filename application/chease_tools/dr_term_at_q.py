@@ -211,6 +211,8 @@ class AvgCheaseProfs:
     q_std: np.array
     j_b_norm_avg: np.array
     j_b_norm_std: np.array
+    delta_prime_ratio_avg: np.array
+    delta_prime_ratio_std: np.array
     shot: int
 
 def dr_avg_profile(files: List[str], tmin: float, tmax: float):
@@ -228,7 +230,7 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
     shear_profs = np.array([col.shear for col in cols_array])
     shear_profs = shear_profs[time_filt]
 
-    d_r_norm = shear_profs**2 * d_r_profs / alpha_profs
+    d_r_norm = d_r_profs
 
     d_r_avg = np.mean(d_r_norm, axis=0)
     d_r_std = np.std(d_r_norm, axis=0)/np.sqrt(len(d_r_norm))
@@ -244,12 +246,23 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
     q_avg = np.mean(q_profs, axis=0)
     q_std = np.std(q_profs, axis=0)/np.sqrt(len(q_profs))
 
+    eps_profs = np.array([col.eps for col in cols_array])
+    eps_profs = eps_profs[time_filt]
+
+    f_profs = np.array([col.F for col in cols_array])
+    f_profs = f_profs[time_filt]
+
     j_b_profs = np.array([col.j_bs for col in cols_array])
+
     j_b_profs = j_b_profs[time_filt]
-    j_b_norm = j_b_profs/ alpha_profs
+    j_b_norm = 0.5*(j_b_profs / shear_profs) / eps_profs / f_profs**2
 
     j_b_norm_avg = np.mean(j_b_norm, axis=0)
     j_b_norm_std = np.std(j_b_norm, axis=0)/np.sqrt(len(j_b_norm))
+
+    delta_prime_ratio_profs = d_r_profs / j_b_norm
+    delta_prime_ratio_avg = np.mean(delta_prime_ratio_profs, axis=0)
+    delta_prime_ratio_std = np.std(delta_prime_ratio_profs, axis=0)/np.sqrt(len(delta_prime_ratio_profs))
 
     s_prof = cols_array[0].s
     psi_n_prof = s_prof**2
@@ -268,6 +281,7 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
         shear_avg, shear_std, 
         q_avg, q_std, 
         j_b_norm_avg, j_b_norm_std,
+        delta_prime_ratio_avg, delta_prime_ratio_std,
         shot
     )
 
@@ -276,25 +290,26 @@ def plot_avg_with_std(ax, psi_n: np.array, prof_avg: np.array, prof_std: np.arra
     # prof_std[np.isnan(prof_std)] = 0.0
     try:
 	    ax.plot(psi_n, prof_avg, label=label)
-	    ax.fill_between(psi_n, prof_avg-prof_std, prof_avg+prof_std, alpha=0.5)
+	    ax.fill_between(psi_n, prof_avg-prof_std, prof_avg+prof_std, alpha=0.2)
     except TypeError:
         raise ValueError(f"Bad profiles: {prof_avg}\n{prof_std}")
 
 def plot_avg_profs(avg_profs: List[AvgCheaseProfs], 
                    q_s: float = 2.0, 
-                   psi_min: float = 0.55, 
-                   psi_max: float = 0.60):
-    fig, ax = plt.subplots(4, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.1})
-    ax_dr, ax_jb, ax_alpha, ax_s = ax
+                   psi_min: float = 0.3, 
+                   psi_max: float = 0.95):
+    fig, ax = plt.subplots(5, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.2})
+    ax_dr, ax_jb, ax_ratio, ax_alpha, ax_s = ax
     ax[-1].set_xlabel("$\psi_N$")
 
-    ax_dr.set_ylabel(r"$-s^2 D_R / \alpha$")
-    ax_jb.set_ylabel(r"$j_b/\alpha$")
+    ax_dr.set_ylabel(r"$-\hat{\Delta}_{GGJ}$")
+    ax_jb.set_ylabel(r"$\hat{\Delta}_{BS}$")
+    ax_ratio.set_ylabel(r"$-\hat{\Delta}_{GGJ}/\hat{\Delta}_{BS}$")
     ax_alpha.set_ylabel(r"$\alpha$")
     ax_s.set_ylabel(r"$s$")
 
     for ax_in in ax:
-        ax_in.grid()
+        #ax_in.grid()
         ax_in.set_xlim(psi_min, psi_max)
 
     colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
@@ -324,6 +339,20 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
             label=str(avg_prof.shot)
         )
         plot_avg_with_std(
+            ax_ratio,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.delta_prime_ratio_avg[psi_filt],
+            avg_prof.delta_prime_ratio_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        # plot_avg_with_std(
+        #     ax_ratio_norm,
+        #     avg_prof.psi_n[psi_filt],
+        #     avg_prof.q_avg[psi_filt],
+        #     avg_prof.q_std[psi_filt],
+        #     label=str(avg_prof.shot)
+        # )
+        plot_avg_with_std(
             ax_alpha,
             avg_prof.psi_n[psi_filt],
             avg_prof.alpha_avg[psi_filt],
@@ -347,8 +376,8 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
                 color=color
             )
     
-    ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.4), ncol=4)
-
+    ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.5), ncol=4)
+    fig.tight_layout()
 
 
 
