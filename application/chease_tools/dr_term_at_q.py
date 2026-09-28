@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import numpy as np
 from numpy import interp, loadtxt, pi
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 from itertools import cycle
 from matplotlib import pyplot as plt
 
@@ -44,7 +44,6 @@ class CheaseColumns():
 	# Poloidally averaged j_phi (not including j_bs)
 	j_phi: np.array
 		
-
 def read_columns(filename: str) -> CheaseColumns:
 	"""
 	Read raw chease columns from file and store into
@@ -72,6 +71,29 @@ def read_columns(filename: str) -> CheaseColumns:
         r_outboard=raw_data[:,64]
 	)
 
+def time_averaged_raw_cols(files: List[str]) -> Tuple[np.array, np.array]:
+    """
+    Generate a time-average of the raw chease columns.
+    The first return value is the raw array of mean values.
+    The second is the raw array of standard error values.
+    """
+    raw_col_array = np.array([
+        read_columns_raw(f) for f in files
+    ])
+
+    mean_vals = np.mean(raw_col_array, axis=0)
+    std_vals = np.std(raw_col_array, axis=0)/np.sqrt(raw_col_array.shape[0])
+
+    return mean_vals, std_vals
+
+def avg_cols_to_file(files: List[str], out_prefix: str = ""):
+    mean_array, std_array = time_averaged_raw_cols(files)
+
+    with open(files[0]) as f:
+        header = f.readline().strip('\n')
+
+        np.savetxt(f"{out_prefix}chease_cols_mean.out", mean_array, header=header, comments="%")
+        np.savetxt(f"{out_prefix}chease_cols_std.out",  std_array,  header=header, comments="%")
 
 def extract_dr_from_cols(cols: CheaseColumns, q: float) -> float:
 	"""
@@ -297,9 +319,9 @@ def plot_avg_with_std(ax, psi_n: np.array, prof_avg: np.array, prof_std: np.arra
 def plot_avg_profs(avg_profs: List[AvgCheaseProfs], 
                    q_s: float = 2.0, 
                    psi_min: float = 0.3, 
-                   psi_max: float = 0.95):
+                   psi_max: float = 0.9):
     fig, ax = plt.subplots(5, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.2})
-    ax_dr, ax_jb, ax_ratio, ax_alpha, ax_s = ax
+    ax_s, ax_alpha, ax_dr, ax_jb, ax_ratio = ax
     ax[-1].set_xlabel("$\psi_N$")
 
     ax_dr.set_ylabel(r"$-\hat{\Delta}_{GGJ}$")
@@ -424,6 +446,10 @@ if __name__=='__main__':
         '-aq', '--average-q2-radius', type=float, nargs=2, default=(None, None),
         help="Print average q=2 radius over"
     )
+    parser.add_argument(
+            '-ao', '--output-average', action='store_true', 
+            help="Save averaged profiles to disk"
+    )
 	#parser.add_argument(
 	#	'-a', '--approximate', action='store_true',
 	#	help='Return large aspect ratio D_R approximation instead of CHEASE calculated'
@@ -438,6 +464,8 @@ if __name__=='__main__':
         for shot in shots:
             files = [f for f in args.filename if str(shot) in f]
             avg_profs.append(dr_avg_profile(files, tmin, tmax))
+            if args.output_average:
+                avg_cols_to_file(files, out_prefix=f"{shot}_")
         plot_avg_profs(avg_profs)
         plt.show()
         exit()

@@ -135,7 +135,7 @@ if __name__=='__main__':
         plot_total=True
 
     from matplotlib import pyplot as plt
-    fig, ax = plt.subplots(1, figsize=(3.5,2.5))
+    fig, ax = plt.subplots(1, figsize=(5,3.5))
     linestyles = iter([':','-','--'])
     for i,cols_filename in enumerate(args.chease_cols_file):
         if args.labels:
