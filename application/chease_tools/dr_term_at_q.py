@@ -17,32 +17,34 @@ def read_columns_raw(filename: str) -> np.array:
 
 @dataclass
 class CheaseColumns():
-	"""
-	Partial conversion of CHEASE raw numpy data
-	to columns.
+    """
+    Partial conversion of CHEASE raw numpy data
+    to columns.
 
-	TODO: Implement remaining columns
-	"""
-	s: np.array # s co-ordinate
-	q: np.array # Safety factor
-	p: np.array # Pressure
-	dp_dpsi: np.array # dP/dPsi
-	shear: np.array # Magnetic shear
-	b_avg: np.array # <B>
-	eps: np.array # inverse aspect ratio
-	d_r: np.array # resistive interchange
-	d_i: np.array # Ideal mercier interchange
-	shift_prime: np.array # Shafranov shift radial derivative
-	F: np.array # F=RB_phi (F=T in CHEASE)
-	beta_p: np.array # Poloidal beta (propto p/<Bp>**2)
-	r_avg: np.array # Poloidally averaged major radius
-	r_inboard: np.array
-	r_outboard: np.array
- 	# Poloidally averaged bootstrap current 
-	# (choose the zerocoll version)
-	j_bs: np.array
-	# Poloidally averaged j_phi (not including j_bs)
-	j_phi: np.array
+    TODO: Implement remaining columns
+    """
+    s: np.array # s co-ordinate
+    q: np.array # Safety factor
+    p: np.array # Pressure
+    dp_dpsi: np.array # dP/dPsi
+    shear: np.array # Magnetic shear
+    b_avg: np.array # <B>
+    eps: np.array # inverse aspect ratio
+    d_r: np.array # resistive interchange
+    d_i: np.array # Ideal mercier interchange
+    shift_prime: np.array # Shafranov shift radial derivative
+    F: np.array # F=RB_phi (F=T in CHEASE)
+    beta_p: np.array # Poloidal beta (propto p/<Bp>**2)
+    r_avg: np.array # Poloidally averaged major radius
+    r_inboard: np.array
+    r_outboard: np.array
+    # Poloidally averaged bootstrap current 
+    # (choose the zerocoll version)
+    j_bs: np.array
+    # Poloidally averaged j_phi (not including j_bs)
+    j_phi: np.array
+    # Lower triangularity
+    delta_bottom: np.array
 		
 def read_columns(filename: str) -> CheaseColumns:
 	"""
@@ -68,7 +70,8 @@ def read_columns(filename: str) -> CheaseColumns:
 		j_bs=raw_data[:,33],
 		j_phi=raw_data[:,10],
         r_inboard=raw_data[:,63],
-        r_outboard=raw_data[:,64]
+        r_outboard=raw_data[:,64],
+        delta_bottom=raw_data[:,66]
 	)
 
 def time_averaged_raw_cols(files: List[str]) -> Tuple[np.array, np.array]:
@@ -225,6 +228,10 @@ class AvgCheaseProfs:
     psi_n: np.array
     d_r_avg: np.array 
     d_r_std: np.array 
+    d_i_avg: np.array 
+    d_i_std: np.array 
+    shift_prime_avg: np.array 
+    shift_prime_std: np.array 
     alpha_avg: np.array 
     alpha_std: np.array 
     shear_avg: np.array 
@@ -246,6 +253,9 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
     d_r_profs = np.array([col.d_r for col in cols_array])
     d_r_profs = d_r_profs[time_filt]
 
+    d_i_profs = np.array([col.d_i for col in cols_array])
+    d_i_profs = d_i_profs[time_filt]
+
     alpha_profs = np.array([alpha_from_cols(col) for col in cols_array])
     alpha_profs = alpha_profs[time_filt]
 
@@ -263,6 +273,15 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
     shear_avg = np.mean(shear_profs, axis=0)
     shear_std = np.std(shear_profs, axis=0)/np.sqrt(len(shear_profs))
 
+    # Note: Hinrich's thesis has a slightly different definition
+    # for D_I than CosteSarguet2025. There is an offset of +1/4
+    # in Hinrich's definition, so we subtract that here.
+    # Additionally, the profiles from CHEASE are in terms of -D_I
+    # which is why we have d_i_profs-0.25 and not -d_i_profs - 0.25
+    d_i_norm = shear_profs**2 * (d_i_profs-0.25) / alpha_profs
+    d_i_avg = np.mean(d_i_norm, axis=0)
+    d_i_std = np.std(d_i_norm, axis=0)/np.sqrt(len(d_i_norm))
+
     q_profs = np.array([col.q for col in cols_array])
     q_profs = q_profs[time_filt]
     q_avg = np.mean(q_profs, axis=0)
@@ -270,6 +289,25 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
 
     eps_profs = np.array([col.eps for col in cols_array])
     eps_profs = eps_profs[time_filt]
+
+
+    shift_prime_prof = np.array([col.shift_prime for col in cols_array])[time_filt]
+    tria_prof = np.array([col.delta_bottom for col in cols_array])[time_filt]
+    tria_prime_prof = (
+        np.diff(tria_prof,append=0,axis=1)/
+        np.diff(eps_profs,append=1,axis=1)
+    )
+    # The D'(r) measured by chease uses the experimental definition, see
+    # https://gitlab.epfl.ch/spc/chease/-/blob/master/src-f90/output.f90#L390
+    # Their definition is D_exp(r) = R_geo(r) - R_geo(a)
+    # We convert to the analytic definition as per Jon's lecture notes
+    # (Lecture 2, slide 42):
+    # D_exp(r) = D(a)-D(r) + 0.25*(r*delta(r)-r*delta(a)), where 
+    # delta(r) is the triangularity profile.
+    shift_prime_analytic = -shift_prime_prof + 0.25*(eps_profs*tria_prof + tria_prime_prof)
+    
+    shift_prime_avg = np.mean(shift_prime_analytic, axis=0)
+    shift_prime_std = np.std(shift_prime_analytic, axis=0)/np.sqrt(len(shift_prime_analytic))
 
     f_profs = np.array([col.F for col in cols_array])
     f_profs = f_profs[time_filt]
@@ -299,6 +337,8 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
     return AvgCheaseProfs(
         psi_n_prof, 
         d_r_avg, d_r_std, 
+        d_i_avg, d_i_std,
+        shift_prime_avg, shift_prime_std,
         alpha_avg, alpha_std, 
         shear_avg, shear_std, 
         q_avg, q_std, 
@@ -318,8 +358,8 @@ def plot_avg_with_std(ax, psi_n: np.array, prof_avg: np.array, prof_std: np.arra
 
 def plot_avg_profs(avg_profs: List[AvgCheaseProfs], 
                    q_s: float = 2.0, 
-                   psi_min: float = 0.3, 
-                   psi_max: float = 0.9):
+                   psi_min: float = 0.54, 
+                   psi_max: float = 0.6):
     fig, ax = plt.subplots(5, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.2})
     ax_s, ax_alpha, ax_dr, ax_jb, ax_ratio = ax
     ax[-1].set_xlabel("$\psi_N$")
@@ -402,6 +442,64 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
     fig.tight_layout()
 
 
+def plot_di_ss(avg_profs: List[AvgCheaseProfs], 
+                q_s: float = 2.0, 
+                psi_min: float = 0.55, 
+                psi_max: float = 0.6):
+    """
+    Plot normalised ideal interchange (s^2 (-D_I-0.25) / alpha) and the
+    derivative of the shafranov shift w.r.t psi_n
+    """
+    fig, ax = plt.subplots(2, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.2})
+    ax_di, ax_ss = ax
+    ax[-1].set_xlabel("$\psi_N$")
+
+    ax_di.set_ylabel(r"$-s^2 D_I/ \alpha$")
+    ax_ss.set_ylabel(r"$\Delta'_{ss}$")
+
+    for ax_in in ax:
+        #ax_in.grid()
+        ax_in.set_xlim(psi_min, psi_max)
+
+    colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+
+    for avg_prof in avg_profs:
+        q_s_avg = interp(q_s, avg_prof.q_avg, avg_prof.psi_n)
+        q_s_max = interp(q_s, avg_prof.q_avg+avg_prof.q_std, avg_prof.psi_n)
+        q_s_min = interp(q_s, avg_prof.q_avg-avg_prof.q_std, avg_prof.psi_n)
+
+        psi_filt = (
+            (avg_prof.psi_n >= 0.98*psi_min) & 
+            (avg_prof.psi_n <= 1.02*psi_max)
+        )
+
+        plot_avg_with_std(
+            ax_di,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.d_i_avg[psi_filt],
+            avg_prof.d_i_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_ss,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.shift_prime_avg[psi_filt],
+            avg_prof.shift_prime_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+
+        color = next(colors)
+        for ax_in in ax:
+            ax_in.axvline(
+                q_s_avg, 
+                linestyle='--', 
+                label=f"q=2 ({avg_prof.shot})",
+                color=color
+            )
+    
+    ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.2), ncol=4)
+    fig.tight_layout()
+
 
 def avg_q2_radius(files: List[str], tmin: float, tmax: float):
     cols_array = np.array([read_columns(fname) for fname in files])
@@ -467,6 +565,7 @@ if __name__=='__main__':
             if args.output_average:
                 avg_cols_to_file(files, out_prefix=f"{shot}_")
         plot_avg_profs(avg_profs)
+        plot_di_ss(avg_profs)
         plt.show()
         exit()
 
