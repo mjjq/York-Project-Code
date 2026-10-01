@@ -304,6 +304,7 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
     # (Lecture 2, slide 42):
     # D_exp(r) = D(a)-D(r) + 0.25*(r*delta(r)-r*delta(a)), where 
     # delta(r) is the triangularity profile.
+    # Then take the derivative of above and rearrange for D(r).
     shift_prime_analytic = -shift_prime_prof + 0.25*(eps_profs*tria_prof + tria_prime_prof)
     
     shift_prime_avg = np.mean(shift_prime_analytic, axis=0)
@@ -322,7 +323,10 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
 
     delta_prime_ratio_profs = d_r_profs / j_b_norm
     delta_prime_ratio_avg = np.mean(delta_prime_ratio_profs, axis=0)
-    delta_prime_ratio_std = np.std(delta_prime_ratio_profs, axis=0)/np.sqrt(len(delta_prime_ratio_profs))
+    delta_prime_ratio_std = (
+        np.std(delta_prime_ratio_profs, axis=0)/
+        np.sqrt(len(delta_prime_ratio_profs))
+    )
 
     s_prof = cols_array[0].s
     psi_n_prof = s_prof**2
@@ -358,21 +362,34 @@ def plot_avg_with_std(ax, psi_n: np.array, prof_avg: np.array, prof_std: np.arra
 
 def plot_avg_profs(avg_profs: List[AvgCheaseProfs], 
                    q_s: float = 2.0, 
-                   psi_min: float = 0.54, 
-                   psi_max: float = 0.6):
-    fig, ax = plt.subplots(5, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.2})
-    ax_s, ax_alpha, ax_dr, ax_jb, ax_ratio = ax
-    ax[-1].set_xlabel("$\psi_N$")
+                   psi_min: float = 0.3, 
+                   psi_max: float = 0.9,
+                   psi_min_zoom: float = 0.55,
+                   psi_max_zoom: float = 0.6):
+    fig, axs = plt.subplots(
+            5, 2, sharex='col',
+            gridspec_kw={"hspace": 0.2, 'width_ratios':[2,1]},
+            figsize=(7.5,7)
+    )
+    ax = axs[:,0]
+    ax_zoom = axs[:,1]
+    for ax_floor in axs[-1]:
+        ax_floor.set_xlabel("$\psi_N$")
 
-    ax_dr.set_ylabel(r"$-\hat{\Delta}_{GGJ}$")
-    ax_jb.set_ylabel(r"$\hat{\Delta}_{BS}$")
-    ax_ratio.set_ylabel(r"$-\hat{\Delta}_{GGJ}/\hat{\Delta}_{BS}$")
+    ax_s, ax_alpha, ax_dr, ax_jb, ax_ratio = ax
+    ax_s_z, ax_alpha_z, ax_dr_z, ax_jb_z, ax_ratio_z = ax_zoom
+
+    ax_dr.set_ylabel(r"$-\hat{\Delta}'_{GGJ}$")
+    ax_jb.set_ylabel(r"$\hat{\Delta}'_{BS}$")
+    ax_ratio.set_ylabel(r"$-\hat{\Delta}'_{GGJ}/\hat{\Delta}'_{BS}$")
     ax_alpha.set_ylabel(r"$\alpha$")
     ax_s.set_ylabel(r"$s$")
 
     for ax_in in ax:
         #ax_in.grid()
         ax_in.set_xlim(psi_min, psi_max)
+    for ax_in in ax_zoom:
+        ax_in.set_xlim(psi_min_zoom, psi_max_zoom)
 
     colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -382,8 +399,12 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
         q_s_min = interp(q_s, avg_prof.q_avg-avg_prof.q_std, avg_prof.psi_n)
 
         psi_filt = (
-            (avg_prof.psi_n >= 0.98*psi_min) & 
-            (avg_prof.psi_n <= 1.02*psi_max)
+            (avg_prof.psi_n >= psi_min) & 
+            (avg_prof.psi_n <= psi_max)
+        )
+        psi_filt_zoom = (
+            (avg_prof.psi_n >= 0.98*psi_min_zoom) & 
+            (avg_prof.psi_n <= 1.02*psi_max_zoom)
         )
 
         plot_avg_with_std(
@@ -394,6 +415,14 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
             label=str(avg_prof.shot)
         )
         plot_avg_with_std(
+            ax_dr_z,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.d_r_avg[psi_filt_zoom],
+            avg_prof.d_r_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+
+        plot_avg_with_std(
             ax_jb,
             avg_prof.psi_n[psi_filt],
             avg_prof.j_b_norm_avg[psi_filt],
@@ -401,10 +430,25 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
             label=str(avg_prof.shot)
         )
         plot_avg_with_std(
+            ax_jb_z,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.j_b_norm_avg[psi_filt_zoom],
+            avg_prof.j_b_norm_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+
+        plot_avg_with_std(
             ax_ratio,
             avg_prof.psi_n[psi_filt],
             avg_prof.delta_prime_ratio_avg[psi_filt],
             avg_prof.delta_prime_ratio_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_ratio_z,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.delta_prime_ratio_avg[psi_filt_zoom],
+            avg_prof.delta_prime_ratio_std[psi_filt_zoom],
             label=str(avg_prof.shot)
         )
         # plot_avg_with_std(
@@ -422,15 +466,30 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
             label=str(avg_prof.shot)
         )
         plot_avg_with_std(
+            ax_alpha_z,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.alpha_avg[psi_filt_zoom],
+            avg_prof.alpha_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+
+        plot_avg_with_std(
             ax_s,
             avg_prof.psi_n[psi_filt],
             avg_prof.shear_avg[psi_filt],
             avg_prof.shear_std[psi_filt],
             label=str(avg_prof.shot)
         )
+        plot_avg_with_std(
+            ax_s_z,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.shear_avg[psi_filt_zoom],
+            avg_prof.shear_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
 
         color = next(colors)
-        for ax_in in ax:
+        for ax_in in axs.flatten():
             ax_in.axvline(
                 q_s_avg, 
                 linestyle='--', 
@@ -439,20 +498,29 @@ def plot_avg_profs(avg_profs: List[AvgCheaseProfs],
             )
     
     ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.5), ncol=4)
-    fig.tight_layout()
+    #fig.tight_layout()
 
 
 def plot_di_ss(avg_profs: List[AvgCheaseProfs], 
-                q_s: float = 2.0, 
-                psi_min: float = 0.55, 
-                psi_max: float = 0.6):
+               q_s: float = 2.0, 
+               psi_min: float = 0.1, 
+               psi_max: float = 0.9,
+               psi_min_zoom: float = 0.55,
+               psi_max_zoom: float = 0.6):
     """
     Plot normalised ideal interchange (s^2 (-D_I-0.25) / alpha) and the
     derivative of the shafranov shift w.r.t psi_n
     """
-    fig, ax = plt.subplots(2, sharex=True,gridspec_kw={"wspace": 0, "hspace": 0.2})
+    fig, axs = plt.subplots(
+            2, 2, sharex='col',
+            gridspec_kw={"hspace": 0.2, 'width_ratios':[2,1]}
+    )
+    ax = axs[:,0]
     ax_di, ax_ss = ax
-    ax[-1].set_xlabel("$\psi_N$")
+    ax_zoom = axs[:,1]
+    ax_di_zoom, ax_ss_zoom=ax_zoom
+    for ax_floor in axs[-1]:
+        ax_floor.set_xlabel("$\psi_N$")
 
     ax_di.set_ylabel(r"$-s^2 D_I/ \alpha$")
     ax_ss.set_ylabel(r"$\Delta'_{ss}$")
@@ -460,6 +528,8 @@ def plot_di_ss(avg_profs: List[AvgCheaseProfs],
     for ax_in in ax:
         #ax_in.grid()
         ax_in.set_xlim(psi_min, psi_max)
+    for ax_in in ax_zoom:
+        ax_in.set_xlim(psi_min_zoom, psi_max_zoom)
 
     colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -469,8 +539,13 @@ def plot_di_ss(avg_profs: List[AvgCheaseProfs],
         q_s_min = interp(q_s, avg_prof.q_avg-avg_prof.q_std, avg_prof.psi_n)
 
         psi_filt = (
-            (avg_prof.psi_n >= 0.98*psi_min) & 
-            (avg_prof.psi_n <= 1.02*psi_max)
+            (avg_prof.psi_n >= psi_min) &
+            (avg_prof.psi_n <= psi_max)
+        )
+
+        psi_filt_zoom = (
+            (avg_prof.psi_n >= 0.98*psi_min_zoom) & 
+            (avg_prof.psi_n <= 1.02*psi_max_zoom)
         )
 
         plot_avg_with_std(
@@ -481,15 +556,28 @@ def plot_di_ss(avg_profs: List[AvgCheaseProfs],
             label=str(avg_prof.shot)
         )
         plot_avg_with_std(
+            ax_di_zoom,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.d_i_avg[psi_filt_zoom],
+            avg_prof.d_i_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
             ax_ss,
             avg_prof.psi_n[psi_filt],
             avg_prof.shift_prime_avg[psi_filt],
             avg_prof.shift_prime_std[psi_filt],
             label=str(avg_prof.shot)
         )
-
+        plot_avg_with_std(
+            ax_ss_zoom,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.shift_prime_avg[psi_filt_zoom],
+            avg_prof.shift_prime_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
         color = next(colors)
-        for ax_in in ax:
+        for ax_in in axs.flatten():
             ax_in.axvline(
                 q_s_avg, 
                 linestyle='--', 
