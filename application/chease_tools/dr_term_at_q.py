@@ -45,6 +45,8 @@ class CheaseColumns():
     j_phi: np.array
     # Lower triangularity
     delta_bottom: np.array
+    # Ellipticity (kappa+1)
+    ellipticity: np.array
 		
 def read_columns(filename: str) -> CheaseColumns:
 	"""
@@ -71,7 +73,8 @@ def read_columns(filename: str) -> CheaseColumns:
 		j_phi=raw_data[:,10],
         r_inboard=raw_data[:,63],
         r_outboard=raw_data[:,64],
-        delta_bottom=raw_data[:,66]
+        delta_bottom=raw_data[:,66],
+        ellipticity=raw_data[:,39]
 	)
 
 def time_averaged_raw_cols(files: List[str]) -> Tuple[np.array, np.array]:
@@ -242,6 +245,12 @@ class AvgCheaseProfs:
     j_b_norm_std: np.array
     delta_prime_ratio_avg: np.array
     delta_prime_ratio_std: np.array
+    eps_avg: np.array
+    eps_std: np.array
+    kappa_avg: np.array
+    kappa_std: np.array
+    tria_avg: np.array
+    tria_std: np.array
     shot: int
 
 def dr_avg_profile(files: List[str], tmin: float, tmax: float):
@@ -289,7 +298,8 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
 
     eps_profs = np.array([col.eps for col in cols_array])
     eps_profs = eps_profs[time_filt]
-
+    eps_avg = np.mean(eps_profs, axis=0)
+    eps_std = np.std(eps_profs, axis=0)/np.sqrt(len(eps_profs))
 
     shift_prime_prof = np.array([col.shift_prime for col in cols_array])[time_filt]
     tria_prof = np.array([col.delta_bottom for col in cols_array])[time_filt]
@@ -297,6 +307,9 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
         np.diff(tria_prof,append=0,axis=1)/
         np.diff(eps_profs,append=1,axis=1)
     )
+    tria_norm = tria_prof/eps_profs
+    tria_avg = np.mean(tria_norm, axis=0)
+    tria_std = np.std(tria_norm, axis=0)/np.sqrt(len(tria_norm))
     # The D'(r) measured by chease uses the experimental definition, see
     # https://gitlab.epfl.ch/spc/chease/-/blob/master/src-f90/output.f90#L390
     # Their definition is D_exp(r) = R_geo(r) - R_geo(a)
@@ -328,6 +341,11 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
         np.sqrt(len(delta_prime_ratio_profs))
     )
 
+    ellipticity_profs = np.array([col.ellipticity for col in cols_array])[time_filt]
+    kappa_profs = 2.0*ellipticity_profs+1
+    kappa_avg = np.mean(kappa_profs, axis=0)
+    kappa_std = np.std(kappa_profs, axis=0)/np.sqrt(len(kappa_profs))
+
     s_prof = cols_array[0].s
     psi_n_prof = s_prof**2
 
@@ -348,6 +366,9 @@ def dr_avg_profile(files: List[str], tmin: float, tmax: float):
         q_avg, q_std, 
         j_b_norm_avg, j_b_norm_std,
         delta_prime_ratio_avg, delta_prime_ratio_std,
+        eps_avg, eps_std,
+        kappa_avg, kappa_std,
+        tria_avg, tria_std,
         shot
     )
 
@@ -588,6 +609,109 @@ def plot_di_ss(avg_profs: List[AvgCheaseProfs],
     ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.2), ncol=4)
     fig.tight_layout()
 
+def plot_shaping(avg_profs: List[AvgCheaseProfs], 
+               q_s: float = 2.0, 
+               psi_min: float = 0.05, 
+               psi_max: float = 1.0,
+               psi_min_zoom: float = 0.55,
+               psi_max_zoom: float = 0.6):
+    """
+    Plot normalised ideal interchange (s^2 (-D_I-0.25) / alpha) and the
+    derivative of the shafranov shift w.r.t psi_n
+    """
+    fig, axs = plt.subplots(
+            3, 2, sharex='col',
+            gridspec_kw={"hspace": 0.2, 'width_ratios':[2,1]}
+    )
+    ax = axs[:,0]
+    ax_eps, ax_kappa, ax_delta = ax
+    ax_zoom = axs[:,1]
+    ax_eps_zoom, ax_kappa_zoom, ax_delta_zoom=ax_zoom
+    for ax_floor in axs[-1]:
+        ax_floor.set_xlabel("$\psi_N$")
+
+    ax_eps.set_ylabel(r"$\epsilon$")
+    ax_kappa.set_ylabel(r"$\kappa$")
+    ax_delta.set_ylabel(r"$\delta/\epsilon$")
+
+    for ax_in in ax:
+        #ax_in.grid()
+        ax_in.set_xlim(psi_min, psi_max)
+    for ax_in in ax_zoom:
+        ax_in.set_xlim(psi_min_zoom, psi_max_zoom)
+
+    colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+
+    for avg_prof in avg_profs:
+        q_s_avg = interp(q_s, avg_prof.q_avg, avg_prof.psi_n)
+        q_s_max = interp(q_s, avg_prof.q_avg+avg_prof.q_std, avg_prof.psi_n)
+        q_s_min = interp(q_s, avg_prof.q_avg-avg_prof.q_std, avg_prof.psi_n)
+
+        psi_filt = (
+            (avg_prof.psi_n >= psi_min) &
+            (avg_prof.psi_n <= psi_max)
+        )
+
+        psi_filt_zoom = (
+            (avg_prof.psi_n >= 0.98*psi_min_zoom) & 
+            (avg_prof.psi_n <= 1.02*psi_max_zoom)
+        )
+
+        plot_avg_with_std(
+            ax_eps,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.eps_avg[psi_filt],
+            avg_prof.eps_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_eps_zoom,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.eps_avg[psi_filt_zoom],
+            avg_prof.eps_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_kappa,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.kappa_avg[psi_filt],
+            avg_prof.kappa_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_kappa_zoom,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.kappa_avg[psi_filt_zoom],
+            avg_prof.kappa_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_delta,
+            avg_prof.psi_n[psi_filt],
+            avg_prof.tria_avg[psi_filt],
+            avg_prof.tria_std[psi_filt],
+            label=str(avg_prof.shot)
+        )
+        plot_avg_with_std(
+            ax_delta_zoom,
+            avg_prof.psi_n[psi_filt_zoom],
+            avg_prof.tria_avg[psi_filt_zoom],
+            avg_prof.tria_std[psi_filt_zoom],
+            label=str(avg_prof.shot)
+        )
+        color = next(colors)
+        for ax_in in axs.flatten():
+            ax_in.axvline(
+                q_s_avg, 
+                linestyle='--', 
+                label=f"q=2 ({avg_prof.shot})",
+                color=color
+            )
+    
+    ax[0].legend(loc="upper left", bbox_to_anchor=(0,1.3), ncol=4)
+    fig.tight_layout()
+
+
 
 def avg_q2_radius(files: List[str], tmin: float, tmax: float):
     cols_array = np.array([read_columns(fname) for fname in files])
@@ -654,6 +778,7 @@ if __name__=='__main__':
                 avg_cols_to_file(files, out_prefix=f"{shot}_")
         plot_avg_profs(avg_profs)
         plot_di_ss(avg_profs)
+        plot_shaping(avg_profs)
         plt.show()
         exit()
 
