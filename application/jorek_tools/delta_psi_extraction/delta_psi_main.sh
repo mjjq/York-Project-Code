@@ -18,14 +18,16 @@ function extract_delta_psi_all()
 {
     mkdir postproc
 
+    every_nth_file=$1
+
     source $_delta_psi_SCRIPT_DIR/time_restart.sh
     get_time_map > postproc/times.txt
 
     first_timestamp=$(ls jorek[0-9]*.h5 | sed 's/jorek//; s/\.h5//' | head -n 1)
     echo $first_timestamp
 
-    postproc_time $_delta_psi_SCRIPT_DIR/qprofile.pp $first_timestamp
-    ./jorek2_postproc < $_delta_psi_SCRIPT_DIR/fourier_r_minor.pp
+    postproc_time $_delta_psi_SCRIPT_DIR/qprofile.pp $first_timestamp 99999 $every_nth_file
+    postproc_time $_delta_psi_SCRIPT_DIR/fourier_r_minor.pp $first_timestamp 99999 $every_nth_file
 }
 
 function plot_delta_psi_time()
