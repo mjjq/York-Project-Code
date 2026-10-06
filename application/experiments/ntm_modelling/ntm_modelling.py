@@ -9,49 +9,7 @@ from experiments.ntm_modelling.mre_time_series import (
     mre_contributions_single, read_measured_w_data, MeasuredIslandWidth
 )
 from experiments.ntm_modelling.compare_dw_dt import compare_dw_dt
-
-def avg_island_width_to_outboard(chease_cols: CheaseColumns,
-                                 w_measured: MeasuredIslandWidth,
-                                 poloidal_mode_number: int,
-                                 toroidal_mode_number: int) -> MeasuredIslandWidth:
-    """
-    Convert poloidally averaged island
-    width to outboard island width
-
-    :param chease_cols: CHEASE equilibrium data
-    :param w_measured: Measured island width normalised to minor radius
-    """
-    if not w_measured.normalised:
-        raise ValueError("Island width must be normalised!")
-    
-    q_s = float(poloidal_mode_number/toroidal_mode_number)
-
-    rho_rs = np.interp(
-        q_s,
-        chease_cols.q,
-        chease_cols.s
-    )
-
-    rho_max = rho_rs + 0.5*w_measured.w_measured
-    rho_min = rho_rs - 0.5*w_measured.w_measured
-
-    a_min = 0.5*(chease_cols.r_outboard[-1]+chease_cols.r_inboard[-1])
-
-    R_min, R_max = np.interp(
-        [rho_min, rho_max],
-        chease_cols.s,
-        chease_cols.r_outboard
-    )
-
-    w_out = (R_max - R_min)/a_min
-
-    return MeasuredIslandWidth(
-        w_measured.times,
-        w_out,
-        w_measured.w_measured_err,
-        True
-    )
-
+from jorek_tools.island_width.calibrated_island_width import avg_island_width_to_outboard
         
 
 if __name__=='__main__':

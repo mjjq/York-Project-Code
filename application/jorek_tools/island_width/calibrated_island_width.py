@@ -5,6 +5,7 @@ from typing import Tuple
 from jorek_tools.delta_psi_extraction.plot_delta_psi_vs_time import get_psi_vs_time_for_mode
 from jorek_tools.jorek_dat_to_array import read_four2d_profile, read_q_profile, read_timestep_map
 from tearing_mode_solver.helpers import TimeDependentSolution
+from chease_tools.dr_term_at_q import read_columns, CheaseColumns
 
 from experiments.ntm_modelling.mre_time_series import MeasuredIslandWidth
 
@@ -85,6 +86,49 @@ def get_calibrated_island_width_series(delta_psi_sol: TimeDependentSolution,
     return calib_sol
 
 
+def avg_island_width_to_outboard(chease_cols: CheaseColumns,
+                                 w_measured: MeasuredIslandWidth,
+                                 poloidal_mode_number: int,
+                                 toroidal_mode_number: int) -> MeasuredIslandWidth:
+    """
+    Convert poloidally averaged island
+    width to outboard island width
+
+    :param chease_cols: CHEASE equilibrium data
+    :param w_measured: Measured island width normalised to minor radius
+    """
+    if not w_measured.normalised:
+        raise ValueError("Island width must be normalised!")
+    
+    q_s = float(poloidal_mode_number/toroidal_mode_number)
+
+    rho_rs = np.interp(
+        q_s,
+        chease_cols.q,
+        chease_cols.s
+    )
+
+    rho_max = rho_rs + 0.5*w_measured.w_measured
+    rho_min = rho_rs - 0.5*w_measured.w_measured
+
+    a_min = 0.5*(chease_cols.r_outboard[-1]+chease_cols.r_inboard[-1])
+
+    R_min, R_max = np.interp(
+        [rho_min, rho_max],
+        chease_cols.s,
+        chease_cols.r_outboard
+    )
+
+    w_out = (R_max - R_min)/a_min
+
+    return MeasuredIslandWidth(
+        w_measured.times,
+        w_out,
+        w_measured.w_measured_err,
+        True
+    )
+
+
 def plot_calibration_main():
     from argparse import ArgumentParser
 
@@ -114,6 +158,11 @@ def plot_calibration_main():
     parser.add_argument(
         '-c', '--calibration-coefficients', nargs='+', type=float, default=[],
         help="Use a set of pre-calculated coefficients, e.g. from another run."
+    )
+    parser.add_argument(
+        '-e', '--equilibrium-file', type=str, default=None,
+        help="Calculate outer midplane island width with chease_cols.out as"
+        "input. If not specified, output is poloidally averaged island width."
     )
     parser.add_argument(
         '-m', '--poloidal-mode',
@@ -175,8 +224,20 @@ def plot_calibration_main():
         np.zeros(len(sol_calib.times)),
         normalised=True
     )
-    print(measured_width)
+
     measured_width.write("w_measured.txt")
+
+    if args.equilibrium_file:
+        print("Converting to midplane width")
+        cols = read_columns(args.equilibrium_file)
+        measured_width = avg_island_width_to_outboard(
+            cols,
+            measured_width,
+            args.poloidal_mode,
+            args.toroidal_mode
+        )
+        measured_width.write("w_outer_midplane.txt")
+
 
 
 if __name__=='__main__':
