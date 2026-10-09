@@ -17,7 +17,18 @@ extract_jorek_mac_vars_si(){
 
 extract_jorek_mac_vars_parallel(){
     export -f extract_jorek_mac_vars;
-    printf "%s\n" "$@" | xargs -t -P 4 -I {} bash -c 'cd "{}" && extract_jorek_mac_vars'
+    export -f extract_jorek_mac_vars_si;
+
+    use_si=""
+    begin=1
+    if [[ $1 == "-si" ]]; then
+	use_si="_si"
+	begin=2
+    fi
+
+    bash_cmd='cd "{}" && extract_jorek_mac_vars'$use_si
+    #echo $bash_cmd
+    printf "%s\n" "${@:${begin}}" | xargs -t -P 4 -I {} bash -c "$bash_cmd"
 }
 
 extract_params(){
