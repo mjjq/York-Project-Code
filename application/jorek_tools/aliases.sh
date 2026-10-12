@@ -117,10 +117,14 @@ get_tstep() {
 	plot=$2
 	grep -a "time step" $logfile | awk '{print $8}' > t_step.tmp
 	grep -a t_now $logfile | awk '{print $NF}' | sed 's/)://' > t_now.tmp
-	paste t_now.tmp t_step.tmp | head -n -1 > tnow_tstep.txt
+	grep -a -B2 "Convergence achieved" log | grep -av "Convergence achieved\|--\|^$" | awk '{print $1}' > n_iter.tmp
+	grep -a "ITERATION" log | awk '{print $NF}' > t_iter.tmp
+	paste t_now.tmp t_step.tmp n_iter.tmp t_iter.tmp | head -n -1 > tnow_tstep.txt
 	if [[ "$plot" == "-p" ]]
 	then
-		plq -f tnow_tstep.txt -ys log -xl "Simulation time [JU]" -yl "Timestep [JU]"
+		plq -f tnow_tstep.txt -ys log -xl "Simulation time [JU]" -yl "Timestep [JU]" &
+		plq -f tnow_tstep.txt -xl "Simulation time [JU]" -yl "# iterations" -yi 2 &
+		plq -f tnow_tstep.txt -xl "Simulation time [JU]" -yl "Iteration time (s)" -yi 3 &
 	fi
 }
 
