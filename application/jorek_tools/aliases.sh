@@ -116,15 +116,18 @@ get_tstep() {
 	logfile=$1
 	plot=$2
 	grep -a "time step" $logfile | awk '{print $8}' > t_step.tmp
-	grep -a t_now $logfile | awk '{print $NF}' | sed 's/)://' > t_now.tmp
+	#grep -a t_now $logfile | awk '{print $NF}' | sed 's/)://' > t_now.tmp
+	# Higher precision t_now can be obtained below
+	grep -a "sum " log | grep -v "time" | awk '{print $2}' > t_now.tmp
 	grep -a -B2 "Convergence achieved" log | grep -av "Convergence achieved\|--\|^$" | awk '{print $1}' > n_iter.tmp
-	grep -a "ITERATION" log | awk '{print $NF}' > t_iter.tmp
-	paste t_now.tmp t_step.tmp n_iter.tmp t_iter.tmp | head -n -1 > tnow_tstep.txt
+	grep -a "ITERATION" log | awk '{print $NF}' | sed 's/RECOVERED/0.0/g' > t_iter.tmp
+	paste t_now.tmp t_step.tmp n_iter.tmp t_iter.tmp | head -n -1 | awk '{printf "%s\t%.7f\n", $0, $4/$2}' | awk 'NF>=5' > tnow_tstep.txt
 	if [[ "$plot" == "-p" ]]
 	then
 		plq -f tnow_tstep.txt -ys log -xl "Simulation time [JU]" -yl "Timestep [JU]" &
 		plq -f tnow_tstep.txt -xl "Simulation time [JU]" -yl "# iterations" -yi 2 &
-		plq -f tnow_tstep.txt -xl "Simulation time [JU]" -yl "Iteration time (s)" -yi 3 &
+		plq -f tnow_tstep.txt -xl "Simulation time [JU]" -yl "Iteration time per timestep (s)" -yi 3 &
+		plq -f tnow_tstep.txt -xl "Simulation time [JU]" -yl "Iteration time per JU (s)" -yi 4 &
 	fi
 }
 
