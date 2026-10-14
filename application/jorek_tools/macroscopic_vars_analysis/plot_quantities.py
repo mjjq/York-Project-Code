@@ -119,6 +119,10 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
                                 figure_size: Tuple[float, float],
                                 xmin: Optional[float],
                                 xmax: Optional[float],
+                                ymin: Optional[float],
+                                ymax: Optional[float],
+                                inset_axes: Optional[Tuple[float, float, float, float]],
+                                inset_axes_loc: Optional[Tuple[float, float, float, float]],
                                 marker_style: str,
                                 marker_size: float,
                                 aspect_ratio: str,
@@ -143,90 +147,123 @@ def plot_macroscopic_quantities(quantities: List[PostprocProfile],
         ax.set_yscale(y_scale)
     ax.set_xscale(x_scale)
 
-    if select_times:
-        labels = select_times
-        quantities = list(np.array(quantities)[select_times])
-
-        if time_map:
-            times = list(np.array(time_map.times)[select_times])
-            labels = [f"t={t:.3g}s" for t in times]
-
-    if labels is not None:
-        cmap = plt.cm.tab10
-        for i,pair in enumerate(zip(labels, quantities)):
-            label, mac_quantity = pair
-            color = cmap(i/len(quantities))
-            ax.errorbar(
-                mac_quantity.x_vals,
-                mac_quantity.y_vals,
-                fmt=marker_style,
-                label=label,
-                capsize=2.0,
-                markersize=marker_size
-                #color=color
-            )
-            if len(err_quantities) >0:
-                err_quantity = err_quantities[i]
-                print(err_quantity)
-                ax.fill_between(
-                    mac_quantity.x_vals,
-                    mac_quantity.y_vals-err_quantity.y_vals,
-                    mac_quantity.y_vals+err_quantity.y_vals,
-                    alpha=0.5
-                )
-        if len(quantities) > 1:
-            ax.legend()
-    else:
-        cmap = plt.cm.jet
-        color_vals = np.arange(0,len(quantities))
-        cbar_label = "Normalised timestep"
-        if time_map:
-            q_timesteps = [q.timestep for q in quantities]
-            q_times = np.interp(
-                q_timesteps,
-                time_map.time_steps,
-                time_map.times
-            )
-            color_vals = q_times
-            cbar_label = "Time (s)"
-
-        min_color = min(color_vals)
-        if time_min:
-            min_color = time_min
-        max_color = max(color_vals)
-        if time_max:
-            max_color = time_max
-        normalise = mcolors.Normalize(
-            vmin=min_color, vmax=max_color
-        )
-
-        for i,q in enumerate(quantities):
-            c_val = color_vals[i]
-            ax.errorbar(
-                q.x_vals,
-                q.y_vals,
-                fmt=marker_style,
-                capsize=2.0,
-                markersize=marker_size,
-                color=cmap(normalise(c_val))
-            )
-
-        if(len(quantities) > 1):
-            scalarmappaple = cm.ScalarMappable(norm=normalise, cmap=cmap)
-            scalarmappaple.set_array(color_vals)
-            cbar = fig.colorbar(scalarmappaple, ax=ax)
-            cbar.ax.set_ylabel(cbar_label)
-
-    if xmin:
+    if xmin is not None:
         ax.set_xlim(left=xmin)
-    if xmax:
+    if xmax is not None:
         ax.set_xlim(right=xmax)
 
+    if ymin is not None:
+        ax.set_ylim(bottom=ymin)
+    if ymax is not None:
+        ax.set_ylim(top=ymax)
+
+   
 
     if 'lin' in x_scale:
         ax.ticklabel_format(axis='x', style='sci', scilimits=(-2, 2), useOffset=True)
     if 'lin' in y_scale:
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2), useOffset=True)
+
+
+    axs = [ax]
+
+    if inset_axes:
+        # inset Axes....
+        x1, x2, y1, y2 = inset_axes  # subregion of the original image
+        axins = ax.inset_axes(
+            inset_axes_loc,
+            xlim=(x1, x2), ylim=(y1, y2)
+        )
+        axins.tick_params(labelbottom=True, labelleft=True)
+
+        ax.indicate_inset_zoom(axins, edgecolor="lightgrey")
+        axs.append(axins)
+        coords = ax.transAxes.inverted().transform(axins.get_tightbbox())
+        border = 0.035
+        w, h = coords[1] - coords[0] + 2*border
+        ax.add_patch(
+            plt.Rectangle(
+                coords[0]-border, w, h, fc="white", 
+                transform=ax.transAxes, zorder=2
+            )
+        )
+        
+
+    for i_ax,ax in enumerate(axs):
+        if select_times:
+            labels = select_times
+            quantities = list(np.array(quantities)[select_times])
+
+            if time_map:
+                times = list(np.array(time_map.times)[select_times])
+                labels = [f"t={t:.3g}s" for t in times]
+
+        if labels is not None:
+            cmap = plt.cm.tab10
+            for i,pair in enumerate(zip(labels, quantities)):
+                label, mac_quantity = pair
+                color = cmap(i/len(quantities))
+                ax.errorbar(
+                    mac_quantity.x_vals,
+                    mac_quantity.y_vals,
+                    fmt=marker_style,
+                    label=label,
+                    capsize=2.0,
+                    markersize=marker_size
+                    #color=color
+                )
+                if len(err_quantities) >0:
+                    err_quantity = err_quantities[i]
+                    print(err_quantity)
+                    ax.fill_between(
+                        mac_quantity.x_vals,
+                        mac_quantity.y_vals-err_quantity.y_vals,
+                        mac_quantity.y_vals+err_quantity.y_vals,
+                        alpha=0.5
+                    )
+            if len(quantities) > 1 and i_ax==0:
+                ax.legend()
+        else:
+            cmap = plt.cm.jet
+            color_vals = np.arange(0,len(quantities))
+            cbar_label = "Normalised timestep"
+            if time_map:
+                q_timesteps = [q.timestep for q in quantities]
+                q_times = np.interp(
+                    q_timesteps,
+                    time_map.time_steps,
+                    time_map.times
+                )
+                color_vals = q_times
+                cbar_label = "Time (s)"
+
+            min_color = min(color_vals)
+            if time_min:
+                min_color = time_min
+            max_color = max(color_vals)
+            if time_max:
+                max_color = time_max
+            normalise = mcolors.Normalize(
+                vmin=min_color, vmax=max_color
+            )
+
+            for i,q in enumerate(quantities):
+                c_val = color_vals[i]
+                ax.errorbar(
+                    q.x_vals,
+                    q.y_vals,
+                    fmt=marker_style,
+                    capsize=2.0,
+                    markersize=marker_size,
+                    color=cmap(normalise(c_val))
+                )
+
+            if(len(quantities) > 1):
+                scalarmappaple = cm.ScalarMappable(norm=normalise, cmap=cmap)
+                scalarmappaple.set_array(color_vals)
+                cbar = fig.colorbar(scalarmappaple, ax=ax)
+                cbar.ax.set_ylabel(cbar_label)
+
 
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     plt.tight_layout()
@@ -279,6 +316,9 @@ if __name__ == "__main__":
     )
     parser.add_argument('-x0', '--xmin', type=float, help='Minimum X-value to plot')
     parser.add_argument('-x1', '--xmax', type=float, help="Maximum X-value to plot")
+    parser.add_argument('-y0', '--ymin', type=float, help='Minimum y-value to plot')
+    parser.add_argument('-y1', '--ymax', type=float, help="Maximum y-value to plot")
+
     parser.add_argument(
         '-xs', '--x-scale', choices=['linear','log','symlog'], help="X-axis scale",
         default='linear'
@@ -298,6 +338,14 @@ if __name__ == "__main__":
     parser.add_argument(
         '-ms', '--marker-size', type=float,
         help="Plotting marker size (x, -, etc)", default=1.0
+    )
+    parser.add_argument(
+        '-i', '--inset-axes', type=float, nargs=4,
+        help="Region of inset axes to plot", default=None
+    )
+    parser.add_argument(
+        '-il', '--inset-axes-loc', type=float, nargs=4,
+        help="Bbox of inset axes to plot", default=(0.25, 0.35, 0.25, 0.25)
     )
     parser.add_argument('-a', '--aspect-ratio', help="Axes aspect ratio", default='auto')
     parser.add_argument('-o', '--output-filename', help="Output plot filename", default=None)
@@ -347,6 +395,10 @@ if __name__ == "__main__":
         args.figure_size,
         args.xmin,
         args.xmax,
+        args.ymin,
+        args.ymax,
+        args.inset_axes,
+        args.inset_axes_loc,
         args.marker_type,
         args.marker_size,
         args.aspect_ratio,
