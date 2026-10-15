@@ -87,7 +87,7 @@ if __name__=='__main__':
         "-p", "--plot-interactive", action="store_true", help="Whether to plot interactively"
     )
     parser.add_argument(
-        '-i', '--surface-highlight-indices', nargs='+', help="Mark separate colour for flux surface indices"
+        '-i', '--surface-highlight-indices', type=int, nargs='+', help="Mark separate colour for flux surface indices"
     )
     args = parser.parse_args()
 
@@ -104,6 +104,7 @@ if __name__=='__main__':
         ]
 
     timesteps = [int(re.findall(r'\d+', s)[0]) for s in args.files]
+    timesteps,frames = zip(*sorted(zip(timesteps, frames)))
 
     use_psi_coord = np.all(['psi' in f for f in args.files])
     use_rho_coord = np.all(['rho' in f for f in args.files])
@@ -146,16 +147,23 @@ if __name__=='__main__':
 
     frame = frames[0]
     sps = []
+    print(args.surface_highlight_indices, "highlight")
     for i,surface in enumerate(frame):
         color='blue'
+        alpha=1.0
+        ms = args.marker_size
         if args.surface_highlight_indices:
             if i in args.surface_highlight_indices:
                 color='red'
+                alpha=1.0
+                ms = 2.0*args.marker_size
+
         sps.append(ax.scatter(
             surface.x_vals, surface.y_vals,
             marker=".",
-            s=args.marker_size,
-            color=color
+            s=ms,
+            color=color,
+            alpha=alpha
         ))
 
 
