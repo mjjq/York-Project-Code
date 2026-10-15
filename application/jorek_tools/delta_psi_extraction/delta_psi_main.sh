@@ -32,7 +32,7 @@ function extract_delta_psi_all()
     fi
     echo $first_timestamp
 
-    postproc_time $_delta_psi_SCRIPT_DIR/fourier_r_minor.pp $first_timestamp 99999 $every_nth_file
+    postproc_time $_delta_psi_SCRIPT_DIR/fourier_r_minor.pp $first_timestamp 999999 $every_nth_file
     postproc_time $_delta_psi_SCRIPT_DIR/qprofile.pp $first_timestamp_found $first_timestamp_found
 }
 

@@ -187,6 +187,7 @@ def plot_calibration_main():
     args = parser.parse_args()
 
     fourier_data = [read_four2d_profile(fname) for fname in args.fourier_data]
+    fourier_data = list(sorted(fourier_data, key=lambda f: f[0].timestep))
     qprofile = read_q_profile(args.qprofile_filename)
     tstep_map = read_timestep_map(args.time_map_filename)
 

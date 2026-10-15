@@ -427,6 +427,9 @@ def read_timestep_map(map_filename: str) -> TimestepMap:
         tsteps=[tsteps]
         times=[times]
 
+    # Sort both arrays by the values in tsteps
+    tsteps, times = zip(*sorted(zip(tsteps, times)))
+
     return TimestepMap(tsteps, times)
 
 def plot_profiles(profiles: pd.DataFrame):
