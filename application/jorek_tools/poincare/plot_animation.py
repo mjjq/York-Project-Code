@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import re
 from typing import List, Optional, Tuple
+from enum import Enum
 
 from jorek_tools.jorek_dat_to_array import (
         read_timestep_map, read_postproc_profiles, PostprocProfile
@@ -61,7 +62,7 @@ def update_offsets(sps,
             sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
             if i in highlight_indices:
                 sp.set_color('red')
-                sp.set_sizes([2.0*point_size]*len(sp.get_sizes()))
+                sp.set_sizes([50.0*point_size]*len(sp.get_sizes()))
             else:
                 sp.set_color('blue')
                 sp.set_sizes([point_size]*len(sp.get_sizes()))
@@ -72,7 +73,7 @@ def update_offsets(sps,
             ))
             if i in highlight_indices:
                 sp.set_color('red')
-                sp.set_sizes([2.0*point_size]*len(sp.get_sizes()))
+                sp.set_sizes([50.0*point_size]*len(sp.get_sizes()))
             else:
                 sp.set_color('blue')
                 sp.set_sizes([point_size]*len(sp.get_sizes()))
@@ -101,7 +102,70 @@ def closest_surface_to_pos(frame: List[PostprocProfile],
 
     return min_dist_global_surface
 
+def intersect_linesegment_z0(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
+    """
+    Get R-coordinate of intersection between midplane and line segment p2-p1
+    """
+    p1x, p1y = p1
+    p2x, p2y = p2
 
+    return p1x - p1y*(p2x-p1x)/(p2y-p1y)
+
+
+class MPLoc(Enum):
+    inboard = 1
+    outboard = 2
+def get_midplane_intersections(surface: PostprocProfile, 
+                               loc: MPLoc = MPLoc.outboard) -> float:
+    """
+    Get R-value of the intersection between a surface and the
+    midplane.
+    """
+    centroid_R = np.mean(surface.x_values)
+    centroid_Z = np.mean(surface.y_values)
+
+    if loc==MPLoc.outboard:
+        theta0 = 0.0
+    elif loc==MPLoc.inboard:
+        theta0 = np.pi/2.0
+    else:
+        raise ValueError("Must specify inboard or outboard")
+
+    thetas = np.atan2(
+        surface.y_values-centroid_Z,
+        surface.x_values-centroid_R
+    ) - theta0
+    negative_branch = thetas[thetas < 0.0]
+    positive_branch = thetas[thetas >= 0.0]
+
+    closest_positive = np.argmin(positive_branch)
+    closest_negative = np.argmin(negative_branch)
+    
+    p1 = (
+        surface.x_values[closest_positive],
+        surface.y_values[closest_positive]
+    )
+    p2 = (
+        surface.x_values[closest_negative],
+        surface.y_values[closest_negative]
+    )
+    r_midplane = intersect_linesegment_z0(p1, p2)
+
+    return r_midplane
+
+def get_minor_radius(frame: List[PostprocProfile]) -> float:
+    max_r = -1e9
+    min_r = 1e9
+    for surface in frame:
+        curr_max_r = np.max(surface.x_vals)
+        if curr_max_r > max_r:
+            max_r = curr_max_r
+
+        curr_min_r = np.min(surface.x_vals)
+        if curr_min_r < min_r:
+            min_r = curr_min_r
+
+    return 0.5*(max_r - min_r)
 
 if __name__=='__main__':
     parser = ArgumentParser()
@@ -212,8 +276,16 @@ if __name__=='__main__':
         from matplotlib.widgets import Slider
 
         highlight_indices = args.surface_highlight_indices
+        curr_time = np.interp(
+            timesteps[0],
+            tstep_map.time_steps,
+            tstep_map.times
+        )
+        curr_minor_radius = get_minor_radius(frame)
         def bar(pos):
             global frame
+            global curr_time
+            global curr_minor_radius
             pos = int(pos)
             frame = frames[pos]
             update_offsets(
@@ -226,8 +298,9 @@ if __name__=='__main__':
                     tstep_map.time_steps,
                     tstep_map.times
                 )
+                curr_time = time
                 ax.set_title(f"Time {time:.4g}s")
-
+            curr_minor_radius = get_minor_radius(frame)
             fig.canvas.draw()
         barpos = plt.axes([0.18,0.0,0.65,0.03], facecolor="skyblue")
         slider = Slider(barpos, "Frame", 0, len(frames)-1, valinit=0, valstep=1)
@@ -240,8 +313,10 @@ if __name__=='__main__':
                 mouse_pos = event.xdata, event.ydata
         fig.canvas.mpl_connect("motion_notify_event", on_move)
 
+        r_measurements = []
         def onclick(event):
             global highlight_indices
+            global r_measurements
             if event.key=='h':
                 index = closest_surface_to_pos(frame, mouse_pos)
                 if index is not None:
@@ -257,6 +332,15 @@ if __name__=='__main__':
                         sps, frame, args.marker_size, highlight_indices
                     )
                     fig.canvas.draw()
+            elif event.key == 'm':
+                r_measurements.append(mouse_pos[0])
+                if len(r_measurements)==2:
+                    print(
+                        curr_time, 
+                        (r_measurements[1]-r_measurements[0])/curr_minor_radius
+                    )
+                    r_measurements = []
+                
         fig.canvas.mpl_connect("key_press_event", onclick)
 
 
