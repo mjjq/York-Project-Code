@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import numpy as np
 from matplotlib import pyplot as plt
 import re
-from typing import List
+from typing import List, Optional, Tuple
 
 from jorek_tools.jorek_dat_to_array import (
         read_timestep_map, read_postproc_profiles, PostprocProfile
@@ -51,16 +51,56 @@ class BunchOFiles(FileMovieWriter):
         #self._frame_sink().close()
         return
 
-def update_offsets(sps, frame: List[PostprocProfile]):
+def update_offsets(sps, 
+                   frame: List[PostprocProfile], 
+                   point_size: float,
+                   highlight_indices: Optional[List[int]] = []):
     for i,sp in enumerate(sps):
         last_good_index = 0
         try:
             sp.set_offsets(np.column_stack((frame[i].x_vals, frame[i].y_vals)))
+            if i in highlight_indices:
+                sp.set_color('red')
+                sp.set_sizes([2.0*point_size]*len(sp.get_sizes()))
+            else:
+                sp.set_color('blue')
+                sp.set_sizes([point_size]*len(sp.get_sizes()))
             last_good_index = i
         except IndexError:
             sp.set_offsets(np.column_stack((
                 frame[last_good_index].x_vals, frame[last_good_index].y_vals)
             ))
+            if i in highlight_indices:
+                sp.set_color('red')
+                sp.set_sizes([2.0*point_size]*len(sp.get_sizes()))
+            else:
+                sp.set_color('blue')
+                sp.set_sizes([point_size]*len(sp.get_sizes()))
+            last_good_index = i
+
+
+def closest_surface_to_pos(frame: List[PostprocProfile], 
+                           pos: Tuple[float, float]) -> int:
+    """
+    Return closest surface index to a given position
+    """
+    x, y = pos
+
+    min_dist_global = 1e6
+    min_dist_global_surface = None
+    for i,surface in enumerate(frame):
+        distances_sq = (
+            (surface.x_vals-x)**2 + (surface.y_vals-y)**2
+        )
+        min_dist_index = np.argmin(distances_sq)
+        min_dist = distances_sq[min_dist_index]
+
+        if min_dist < min_dist_global:
+            min_dist_global = min_dist
+            min_dist_global_surface = i
+
+    return min_dist_global_surface
+
 
 
 if __name__=='__main__':
@@ -87,7 +127,8 @@ if __name__=='__main__':
         "-p", "--plot-interactive", action="store_true", help="Whether to plot interactively"
     )
     parser.add_argument(
-        '-i', '--surface-highlight-indices', type=int, nargs='+', help="Mark separate colour for flux surface indices"
+        '-i', '--surface-highlight-indices', type=int, nargs='+', help="Mark separate colour for flux surface indices",
+        default=[]
     )
     args = parser.parse_args()
 
@@ -169,10 +210,15 @@ if __name__=='__main__':
 
     if args.plot_interactive:
         from matplotlib.widgets import Slider
+
+        highlight_indices = args.surface_highlight_indices
         def bar(pos):
+            global frame
             pos = int(pos)
             frame = frames[pos]
-            update_offsets(sps, frame)
+            update_offsets(
+                sps, frame, args.marker_size, highlight_indices
+            )
             
             if tstep_map:
                 time = np.interp(
@@ -183,10 +229,37 @@ if __name__=='__main__':
                 ax.set_title(f"Time {time:.4g}s")
 
             fig.canvas.draw()
-
         barpos = plt.axes([0.18,0.0,0.65,0.03], facecolor="skyblue")
         slider = Slider(barpos, "Frame", 0, len(frames)-1, valinit=0, valstep=1)
         slider.on_changed(bar)
+
+        mouse_pos = (0,0)
+        def on_move(event):
+            global mouse_pos
+            if event.inaxes:
+                mouse_pos = event.xdata, event.ydata
+        fig.canvas.mpl_connect("motion_notify_event", on_move)
+
+        def onclick(event):
+            global highlight_indices
+            if event.key=='h':
+                index = closest_surface_to_pos(frame, mouse_pos)
+                if index is not None:
+                    highlight_indices.append(index)
+                    update_offsets(
+                        sps, frame, args.marker_size, highlight_indices
+                    )
+                    fig.canvas.draw()
+            elif event.key == 'r':
+                if highlight_indices:
+                    highlight_indices = []
+                    update_offsets(
+                        sps, frame, args.marker_size, highlight_indices
+                    )
+                    fig.canvas.draw()
+        fig.canvas.mpl_connect("key_press_event", onclick)
+
+
         fig.tight_layout()
         plt.show()
 
@@ -199,7 +272,7 @@ if __name__=='__main__':
             pos = int(pos)
             frame = frames[pos]
 
-            update_offsets(sps, frame)
+            update_offsets(sps, frame, args.marker_size)
 
             if tstep_map:
                 time = np.interp(
