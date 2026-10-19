@@ -252,6 +252,7 @@ if __name__=='__main__':
 
     frame = frames[0]
     sps = []
+    
     for i,surface in enumerate(frame):
         color='blue'
         alpha=1.0
@@ -274,7 +275,7 @@ if __name__=='__main__':
     if args.plot_interactive:
         from matplotlib.widgets import Slider
 
-        highlight_indices = args.surface_highlight_indices
+        position_markers = []
 
         curr_time = 0.0
         if tstep_map:
@@ -290,6 +291,10 @@ if __name__=='__main__':
             global curr_minor_radius
             pos = int(pos)
             frame = frames[pos]
+            highlight_indices = [
+                    closest_surface_to_pos(frame, pos)
+                    for pos in position_markers
+            ]
             update_offsets(
                 sps, frame, args.marker_size, highlight_indices
             )
@@ -317,21 +322,23 @@ if __name__=='__main__':
 
         r_measurements = []
         def onclick(event):
-            global highlight_indices
+            global position_markers
             global r_measurements
             if event.key=='h':
-                index = closest_surface_to_pos(frame, mouse_pos)
-                if index is not None:
-                    highlight_indices.append(index)
-                    update_offsets(
-                        sps, frame, args.marker_size, highlight_indices
-                    )
-                    fig.canvas.draw()
+                position_markers.append(mouse_pos)
+                highlight_indices = [
+                    closest_surface_to_pos(frame, pos)
+                    for pos in position_markers
+                ]
+                update_offsets(
+                    sps, frame, args.marker_size, highlight_indices
+                )
+                fig.canvas.draw()
             elif event.key == 'r':
-                if highlight_indices:
-                    highlight_indices = []
+                if position_markers:
+                    position_markers = []
                     update_offsets(
-                        sps, frame, args.marker_size, highlight_indices
+                        sps, frame, args.marker_size, []
                     )
                     fig.canvas.draw()
             elif event.key == 'm':
