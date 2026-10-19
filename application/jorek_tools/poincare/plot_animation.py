@@ -5,6 +5,7 @@ import re
 from typing import List, Optional, Tuple
 from enum import Enum
 from dataclasses import dataclass
+from matplotlib.collections import PathCollection
 
 from jorek_tools.jorek_dat_to_array import (
         read_timestep_map, read_postproc_profiles, PostprocProfile
@@ -218,6 +219,22 @@ def create_plot(plot_type: PlotType) -> Tuple[plt.Figure, plt.Axes]:
 
     return fig, ax
 
+def setup_sps(frame: List[PostprocProfile], ax: plt.Axes) -> List[PathCollection]:
+    sps = []
+    for i,surface in enumerate(frame):
+        color='blue'
+        alpha=1.0
+        ms = args.marker_size
+
+        sps.append(ax.scatter(
+            surface.x_vals, surface.y_vals,
+            marker=".",
+            s=ms,
+            color=color,
+            alpha=alpha
+        ))
+
+    return sps
 
 class AnimatedPoincare():
     def __init__(self,
@@ -234,10 +251,14 @@ class AnimatedPoincare():
         self.frame = self.frames[0]
 
         self.plot_type = get_plot_type(filenames)
+        if self.plot_type.use_psi_coord:
+            for frame in self.frames:
+                for surface in frame:
+                    # Convert psi_N -> s=sqrt(psi_N) co-ords
+                    surface.x_vals = np.sqrt(surface.x_vals)
+
         self.fig, self.ax = create_plot(self.plot_type)
-        self.setup_coordinates()
-        self.sps = []
-        self.setup_sps()
+        self.sps = setup_sps(self. frame, self.ax)
         
         self.tstep_map = None
         self.setup_tstep_map_if_exists(timestep_map_filename)
@@ -250,29 +271,8 @@ class AnimatedPoincare():
             print(e)
             print("Unable to load timestep map. Plotting without...")
 
-    def setup_coordinates(self):
-        if self.plot_type.use_psi_coord:
-            for frame in self.frames:
-                for surface in frame:
-                    # Convert psi_N -> s=sqrt(psi_N) co-ords
-                    surface.x_vals = np.sqrt(surface.x_vals)
 
-
-    def setup_sps(self):
-        for i,surface in enumerate(self.frame):
-            color='blue'
-            alpha=1.0
-            ms = args.marker_size
-
-            self.sps.append(self.ax.scatter(
-                surface.x_vals, surface.y_vals,
-                marker=".",
-                s=ms,
-                color=color,
-                alpha=alpha
-            ))
-
-    def bar(self, pos):
+    def on_slider_change(self, pos):
         if pos < 0 or pos > len(self.frames)-1:
             return
 
@@ -356,7 +356,7 @@ class AnimatedPoincare():
         barpos = plt.axes([0.18,0.0,0.65,0.03], facecolor="skyblue")
         self.slider = Slider(barpos, "Frame", 0, len(self.frames)-1, valinit=0, valstep=1)
         
-        self.slider.on_changed(self.bar)
+        self.slider.on_changed(self.on_slider_change)
         self.fig.canvas.mpl_connect("motion_notify_event", self.on_mouse_move)
         self.fig.canvas.mpl_connect("key_press_event", self.on_button_press)
 
