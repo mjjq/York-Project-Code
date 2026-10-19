@@ -285,10 +285,17 @@ if __name__=='__main__':
                 tstep_map.times
             )
         curr_minor_radius = get_minor_radius(frame)
+
+        curr_pos = 0
         def bar(pos):
             global frame
             global curr_time
             global curr_minor_radius
+            global curr_pos
+            if pos < 0 or pos > len(frames)-1:
+                return
+
+            curr_pos = pos
             pos = int(pos)
             frame = frames[pos]
             highlight_indices = [
@@ -324,6 +331,8 @@ if __name__=='__main__':
         def onclick(event):
             global position_markers
             global r_measurements
+            global curr_pos
+            global slider
             if event.key=='h':
                 position_markers.append(mouse_pos)
                 highlight_indices = [
@@ -349,6 +358,12 @@ if __name__=='__main__':
                         (r_measurements[1]-r_measurements[0])/curr_minor_radius
                     )
                     r_measurements = []
+            elif event.key == ',':
+                if curr_pos > 0:
+                    slider.set_val(curr_pos - 1)
+            elif event.key == '.':
+                if curr_pos < len(frames)-1:
+                    slider.set_val(curr_pos + 1)
                 
         fig.canvas.mpl_connect("key_press_event", onclick)
 
