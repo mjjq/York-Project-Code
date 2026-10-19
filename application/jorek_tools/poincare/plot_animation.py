@@ -252,7 +252,6 @@ if __name__=='__main__':
 
     frame = frames[0]
     sps = []
-    print(args.surface_highlight_indices, "highlight")
     for i,surface in enumerate(frame):
         color='blue'
         alpha=1.0
@@ -276,11 +275,14 @@ if __name__=='__main__':
         from matplotlib.widgets import Slider
 
         highlight_indices = args.surface_highlight_indices
-        curr_time = np.interp(
-            timesteps[0],
-            tstep_map.time_steps,
-            tstep_map.times
-        )
+
+        curr_time = 0.0
+        if tstep_map:
+            curr_time = np.interp(
+                timesteps[0],
+                tstep_map.time_steps,
+                tstep_map.times
+            )
         curr_minor_radius = get_minor_radius(frame)
         def bar(pos):
             global frame
