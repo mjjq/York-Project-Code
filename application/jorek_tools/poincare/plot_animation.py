@@ -283,7 +283,7 @@ class AnimatedPoincare():
                     self.sps, self.frame, self.marker_size, []
                 )
                 self.fig.canvas.draw()
-        elif event.key == 'm':
+        elif event.key == 'w':
             self.r_measurements.append(self.mouse_pos[0])
             if len(self.r_measurements)==2:
                 print(
@@ -291,10 +291,10 @@ class AnimatedPoincare():
                     (self.r_measurements[1]-self.r_measurements[0])/self.curr_minor_radius
                 )
                 self.r_measurements = []
-        elif event.key == ',':
+        elif event.key == 'a':
             if self.curr_pos > 0:
                 self.slider.set_val(self.curr_pos - 1)
-        elif event.key == '.':
+        elif event.key == 'd':
             if self.curr_pos < len(self.frames)-1:
                 self.slider.set_val(self.curr_pos + 1)
 
