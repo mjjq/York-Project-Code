@@ -104,56 +104,7 @@ def closest_surface_to_pos(frame: List[PostprocProfile],
 
     return min_dist_global_surface
 
-def intersect_linesegment_z0(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
-    """
-    Get R-coordinate of intersection between midplane and line segment p2-p1
-    """
-    p1x, p1y = p1
-    p2x, p2y = p2
 
-    return p1x - p1y*(p2x-p1x)/(p2y-p1y)
-
-
-class MPLoc(Enum):
-    inboard = 1
-    outboard = 2
-def get_midplane_intersections(surface: PostprocProfile, 
-                               loc: MPLoc = MPLoc.outboard) -> float:
-    """
-    Get R-value of the intersection between a surface and the
-    midplane.
-    """
-    centroid_R = np.mean(surface.x_values)
-    centroid_Z = np.mean(surface.y_values)
-
-    if loc==MPLoc.outboard:
-        theta0 = 0.0
-    elif loc==MPLoc.inboard:
-        theta0 = np.pi/2.0
-    else:
-        raise ValueError("Must specify inboard or outboard")
-
-    thetas = np.atan2(
-        surface.y_values-centroid_Z,
-        surface.x_values-centroid_R
-    ) - theta0
-    negative_branch = thetas[thetas < 0.0]
-    positive_branch = thetas[thetas >= 0.0]
-
-    closest_positive = np.argmin(positive_branch)
-    closest_negative = np.argmin(negative_branch)
-    
-    p1 = (
-        surface.x_values[closest_positive],
-        surface.y_values[closest_positive]
-    )
-    p2 = (
-        surface.x_values[closest_negative],
-        surface.y_values[closest_negative]
-    )
-    r_midplane = intersect_linesegment_z0(p1, p2)
-
-    return r_midplane
 
 def get_minor_radius(frame: List[PostprocProfile]) -> float:
     max_r = -1e9
@@ -170,18 +121,18 @@ def get_minor_radius(frame: List[PostprocProfile]) -> float:
     return 0.5*(max_r - min_r)
 
 def load_files(filenames: List[str]) -> List[PostprocProfile]:
-    if np.all([".vtk" in f for f in args.files]):
+    if np.all([".vtk" in f for f in filenames]):
         frames = [
-            read_poincare_vtk(f) for f in args.files
+            read_poincare_vtk(f) for f in filenames
         ]
     else:
         frames = [
-            read_postproc_profiles(f) for f in args.files
+            read_postproc_profiles(f) for f in filenames
         ]
     return frames
 
 def get_timesteps_from_filenames(filenames: List[str]) -> List[int]:
-    return [int(re.findall(r'\d+', s)[0]) for s in args.files]
+    return [int(re.findall(r'\d+', s)[0]) for s in filenames]
 
 @dataclass
 class PlotType:
@@ -191,10 +142,10 @@ class PlotType:
     is_rz_plot: bool
 
 def get_plot_type(filenames: List[str]) -> PlotType:
-    use_psi_coord = np.all(['psi' in f for f in args.files])
-    use_rho_coord = np.all(['rho' in f for f in args.files])
-    use_theta_coord = np.all(['theta' in f for f in args.files])
-    is_rz_plot = np.all(['R-Z' in f for f in args.files])
+    use_psi_coord = np.all(['psi' in f for f in filenames])
+    use_rho_coord = np.all(['rho' in f for f in filenames])
+    use_theta_coord = np.all(['theta' in f for f in filenames])
+    is_rz_plot = np.all(['R-Z' in f for f in filenames])
 
     return PlotType(
         use_psi_coord,
@@ -219,18 +170,20 @@ def create_plot(plot_type: PlotType) -> Tuple[plt.Figure, plt.Axes]:
 
     return fig, ax
 
-def setup_sps(frame: List[PostprocProfile], ax: plt.Axes) -> List[PathCollection]:
+def setup_sps(frame: List[PostprocProfile], 
+              ax: plt.Axes,
+              marker_size: float,
+              colour: str) -> List[PathCollection]:
     sps = []
     for i,surface in enumerate(frame):
-        color='blue'
         alpha=1.0
-        ms = args.marker_size
+        ms = marker_size
 
         sps.append(ax.scatter(
             surface.x_vals, surface.y_vals,
             marker=".",
             s=ms,
-            color=color,
+            color=colour,
             alpha=alpha
         ))
 
@@ -258,10 +211,20 @@ class AnimatedPoincare():
                     surface.x_vals = np.sqrt(surface.x_vals)
 
         self.fig, self.ax = create_plot(self.plot_type)
-        self.sps = setup_sps(self. frame, self.ax)
         
         self.tstep_map = None
         self.setup_tstep_map_if_exists(timestep_map_filename)
+
+        self.standard_colour = 'blue'
+        self.highlight_colour = 'red'
+        self.marker_size = 0.1
+
+        self.sps = setup_sps(
+            self.frame, 
+            self.ax, 
+            self.marker_size, 
+            self.standard_colour
+        )
         
     def setup_tstep_map_if_exists(self, timestep_map_filename: str):
         try:
@@ -278,13 +241,13 @@ class AnimatedPoincare():
 
         self.curr_pos = pos
         pos = int(pos)
-        frame = self.frames[pos]
+        self.frame = self.frames[pos]
         highlight_indices = [
-                closest_surface_to_pos(frame, pos)
+                closest_surface_to_pos(self.frame, pos)
                 for pos in self.position_markers
         ]
         update_offsets(
-            self.sps, frame, args.marker_size, highlight_indices
+            self.sps, self.frame, self.marker_size, highlight_indices
         )
         
         if self.tstep_map:
@@ -295,7 +258,7 @@ class AnimatedPoincare():
             )
             self.curr_time = time
             self.ax.set_title(f"Time {time:.4g}s")
-        self.curr_minor_radius = get_minor_radius(frame)
+        self.curr_minor_radius = get_minor_radius(self.frame)
         self.fig.canvas.draw()
 
     def on_mouse_move(self, event):
@@ -310,14 +273,14 @@ class AnimatedPoincare():
                 for pos in self.position_markers
             ]
             update_offsets(
-                self.sps, self.frame, args.marker_size, highlight_indices
+                self.sps, self.frame, self.marker_size, highlight_indices
             )
             self.fig.canvas.draw()
         elif event.key == 'r':
             if self.position_markers:
                 self.position_markers = []
                 update_offsets(
-                    self.sps, self.frame, args.marker_size, []
+                    self.sps, self.frame, self.marker_size, []
                 )
                 self.fig.canvas.draw()
         elif event.key == 'm':
@@ -368,7 +331,7 @@ class AnimatedPoincare():
         pos = int(pos)
         frame = self.frames[pos]
 
-        update_offsets(self.sps, frame, args.marker_size)
+        update_offsets(self.sps, frame, self.marker_size)
 
         if self.tstep_map:
             time = np.interp(
