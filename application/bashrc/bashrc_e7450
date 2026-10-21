@@ -1,0 +1,48 @@
+# User specific aliases and functions
+
+# Source this file in your ~/.bashrc. 
+
+# Set HPC_SOFTWARE to folder containing all software (jorek, libs, this code, etc.)
+export HPC_SOFTWARE="/home/marcus/Nextcloud/Documents/Fusion CDT/Project/Code"
+# Set HPC_DATA to folder containing all data (jorek_data, xtor_data, mastu_equilibria, etc.)
+export HPC_DATA=/pitagora_scratch/userexternal/mquantri
+
+export FZF_EDITOR=nvim
+
+export PROJ_HOME=/home/mjjq500/Documents/York-Project-Code
+
+export JOREK_MODELS=$HPC_DATA/jorek_models
+export JOREK_DATA=$HPC_DATA/jorek_data
+export XTOR_DATA=$HPC_DATA/xtor_data
+export MASTU=$HPC_DATA/mastu_equilibria
+export JX_DATA=$HPC_DATA/jorek_xtor_benchmark_data
+
+export XTOR=$HPC_SOFTWARE/xtor_k
+export JOREK=$HPC_SOFTWARE/jorek
+export JOREK_UTIL=$JOREK/util
+
+export YP_CODE=$HPC_SOFTWARE/York-Project-Code/application/
+export JOREK_TOOLS=$YP_CODE/jorek_tools
+export CHEASE_TOOLS=$YP_CODE/chease_tools
+export XTOR_TOOLS=$YP_CODE/xtor_tools
+export RDCON_TOOLS=$YP_CODE/rdcon_tools
+
+alias sq="squeue --user=mquantri"
+alias tmux="$HPC_SOFTWARE/tmux-3.6a/tmux"
+PATH=$PATH:$WORK/JOREK_LIBRARIES/new_gnuplot/bin/
+
+alias analysis-venv="conda activate venv_conda"
+
+function inode() {
+	srun -N 1 --ntasks-per-node=$1 --cpus-per-task=$2 -t 06:00:00 -p dcgp_fua_prod -A FUPA2_JOREKUK --pty /bin/bash
+}
+
+source $YP_CODE/bashrc/generic_aliases
+
+# Disable "smart" tab completion (stops it from escaping $ symbolsi
+shopt -u progcomp 
+
+# Set unlimited to avoid segfault in JOREK
+#ulimit -s unlimited
+
+#source ~/load_modules.sh
