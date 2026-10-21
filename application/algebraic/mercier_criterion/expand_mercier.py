@@ -78,7 +78,7 @@ def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
 
 def RZ_lutjens() -> ToroidalCoordinates:
     r, omega, epsilon, ellip, R0 = sp.symbols(
-        "r omega epsilon ellip R0"
+        "r omega epsilon e R0"
     )
     D = sp.Function("D")
     E = sp.Function("E")
@@ -86,9 +86,9 @@ def RZ_lutjens() -> ToroidalCoordinates:
     P = sp.Function("P")
 
     R = (
-        R0 - epsilon**2 * D(r) - epsilon*(r-E(r)) * sp.cos(omega) + 
+        R0 - epsilon*(r-ellip*E(r)) * sp.cos(omega) - epsilon**2 * D(r)  + 
         epsilon**2 * T(r) * sp.cos(2*omega) + 
-        epsilon**3 * P(r) * sp.cos(3*omega)
+        epsilon**3 * P(r) * sp.cos(omega)
     )
     Z = (
         epsilon * (r+ellip*E(r)) * sp.sin(omega) +
@@ -96,9 +96,14 @@ def RZ_lutjens() -> ToroidalCoordinates:
         epsilon**3 * P(r) * sp.sin(omega)
     )
 
-    return ToroidalCoordinates(
-        R, Z, r, omega, epsilon, ellip, R0, P
+    coords = ToroidalCoordinates(
+        R, Z, D, P, R0, r, omega, epsilon, ellip
     )
+    shaping = LutjensShaping(
+        E, T
+    )
+
+    return coords, shaping
 
 @dataclass
 class Derivatives:
@@ -140,22 +145,80 @@ def calc_jacobian(coords: ToroidalCoordinates,
         derivatives.R_omega * derivatives.Z_r
     )
 
-if __name__=='__main__':
-    coords, shaping = RZ_epfl()
+def summarise_expansions(coords: ToroidalCoordinates):
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
 
-    #print(sp.pprint(derivatives.Z_omega, use_unicode=True))
+    print("Co-ordinates")
+    sp.pprint(sp.series(coords.R, coords.epsilon, 0, 4), use_unicode=True)
+    sp.pprint(sp.series(coords.Z, coords.epsilon, 0, 4), use_unicode=True)
+    
+    print()
+    print("Metrics")
+
+    sp.pprint(sp.series(metric.g_rw, coords.epsilon, 0, 2), use_unicode=True)
+    sp.pprint(sp.series(metric.g_rr, coords.epsilon, 0, 2), use_unicode=True)
+    sp.pprint(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2))), use_unicode=True)
+
+    print()
+    print("Jacobian")
+    sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
+
+
+def summarise_to_latex(coords: ToroidalCoordinates):
+    """
+    Generates latex document called formula.tex.
+
+    Run pdflatex formula.tex to render equations to pdf.
+    """
+    derivatives = calc_derivatives(coords)
+    metric = calc_metric_tensor(derivatives)
+    j = calc_jacobian(coords, derivatives)
 
     # print("Co-ordinates")
-    # sp.pprint(sp.series(coords.R, coords.epsilon, 0, 4), use_unicode=True)
-    # sp.pprint(sp.series(coords.Z, coords.epsilon, 0, 4), use_unicode=True)
-    
-
+    latex = []
+    latex.append(sp.latex(sp.series(coords.R, coords.epsilon, 0, 4)))
+    latex.append(sp.latex(sp.series(coords.Z, coords.epsilon, 0, 4)))
+    latex.append(" ")
+    latex.append(" ")
     # print()
     # print("Metrics")
+    
+    latex.append(sp.latex(sp.series(derivatives.R_r, coords.epsilon, 0, 3)))
+    latex.append(sp.latex(sp.series(derivatives.R_omega, coords.epsilon, 0, 3)))
+    latex.append(sp.latex(sp.series(derivatives.Z_r, coords.epsilon, 0, 3)))
+    latex.append(sp.latex(sp.series(derivatives.Z_omega, coords.epsilon, 0, 3)))
+    latex.append(" ")
+    latex.append(" ")
 
-    sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
-    # sp.pprint(sp.series(metric.g_rw, coords.epsilon, 0, 2), use_unicode=True)
-    #sp.pprint(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2))), use_unicode=True)
+    latex.append(sp.latex(sp.series(metric.g_rw, coords.epsilon, 0, 2)))
+    latex.append(sp.latex(sp.series(metric.g_rr, coords.epsilon, 0, 2)))
+    latex.append(sp.latex(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2)))))
+
+    # print()
+    # print("Jacobian")
+    # sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
+
+    to_latex = "\]\[".join(latex)
+    document = rf"""
+    \documentclass[a3paper]{{article}}
+    \usepackage[left=0.1cm, right=0.1cm]{{geometry}}
+    \usepackage{{amsmath}}
+    \pagestyle{{empty}}
+    \begin{{document}}
+    \tiny
+    \[
+    """+to_latex+rf"""
+    \]
+    \end{{document}}
+    """
+    print(document)
+
+    with open("formula.tex", "w") as file:
+        file.write(document)
+
+if __name__=='__main__':
+    coords, shaping = RZ_lutjens()
+    
+    summarise_to_latex(coords)
