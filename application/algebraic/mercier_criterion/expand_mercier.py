@@ -15,23 +15,39 @@ def expand_small_param_x():
 
 @dataclass
 class ToroidalCoordinates:
-    R: sp.Function
-    Z: sp.Function
+    R: sp.Function # Major radius
+    Z: sp.Function # Vertical distance
 
-    r: sp.Symbol
-    omega: sp.Symbol
-    epsilon: sp.Symbol
-    ellip: sp.Symbol
-    R0: sp.Symbol
-    P: sp.Symbol
+    D: sp.Function # Shafranov shift (function of r)
+    P: sp.Function # P(r)
 
-def RZ_epfl() -> ToroidalCoordinates:
+    R0: sp.Symbol # Major radius of magnetic axis
+    
+    # New co-ords
+    r: sp.Symbol # Minor radius
+    omega: sp.Symbol # Generalised angle
+
+    # Expansion params
+    epsilon: sp.Symbol # Inverse aspect ratio tag
+    ellip: sp.Symbol # Ellipticity tag
+
+@dataclass
+class EPFLShaping:
+    # Shaping
+    S: sp.Function # Shaping coefficients (S_m(r))
+    m: sp.Symbol # Shaping coef indices
+    N: sp.Symbol # sum_{m=1}^N...
+
+@dataclass
+class LutjensShaping:
+    E: sp.Function # ellipticity E(r)
+    T: sp.Function # Triangularity T(r)
+
+def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
     r, omega, epsilon, ellip, R0 = sp.symbols(
         "r omega epsilon ellip R0"
     )
     D = sp.Function("D")
-    E = sp.Function("E")
-    T = sp.Function("T")
     P = sp.Function("P")
 
     # For fourier summation
@@ -42,19 +58,23 @@ def RZ_epfl() -> ToroidalCoordinates:
     sin_expr = sp.Sum(S(m,r) * sp.sin((m-1)*omega), (m, 2, N))
 
     R = (
-        R0/epsilon + r * sp.cos(omega) - epsilon * D(r) + 
-        epsilon * cos_expr + 
-        epsilon**2 * P(r) * sp.cos(omega)
+        R0 + epsilon * r * sp.cos(omega) - epsilon**2 * D(r) + 
+        epsilon**2 * cos_expr + 
+        epsilon**3 * P(r) * sp.cos(omega)
     )
     Z = (
-        r * sp.sin(omega) -
-        epsilon * sin_expr +
-        epsilon**2 * P(r) * sp.sin(omega)
+        epsilon * r * sp.sin(omega) -
+        epsilon**2 * sin_expr +
+        epsilon**3 * P(r) * sp.sin(omega)
     )
 
-    return ToroidalCoordinates(
-        R, Z, r, omega, epsilon, ellip, R0, P
+    coords = ToroidalCoordinates(
+        R, Z, D, P, R0, r, omega, epsilon, ellip
     )
+    shaping = EPFLShaping(
+        S, m, N
+    )
+    return coords, shaping
 
 def RZ_lutjens() -> ToroidalCoordinates:
     r, omega, epsilon, ellip, R0 = sp.symbols(
@@ -89,10 +109,10 @@ class Derivatives:
 
 def calc_derivatives(coords: ToroidalCoordinates) -> Derivatives:
     return Derivatives(
-        sp.diff(coords.R, coords.r),
-        sp.diff(coords.R, coords.omega),
-        sp.diff(coords.Z, coords.r),
-        sp.diff(coords.Z, coords.omega)
+        sp.diff(coords.R, coords.r)/coords.epsilon,
+        sp.diff(coords.R, coords.omega)/coords.epsilon,
+        sp.diff(coords.Z, coords.r)/coords.epsilon,
+        sp.diff(coords.Z, coords.omega)/coords.epsilon
     )
 
 @dataclass
@@ -121,7 +141,7 @@ def calc_jacobian(coords: ToroidalCoordinates,
     )
 
 if __name__=='__main__':
-    coords = RZ_epfl()
+    coords, shaping = RZ_epfl()
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
@@ -136,6 +156,6 @@ if __name__=='__main__':
     # print()
     # print("Metrics")
 
-    # sp.pprint(sp.series(j, coords.epsilon, 0, 2), use_unicode=True)
+    sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
     # sp.pprint(sp.series(metric.g_rw, coords.epsilon, 0, 2), use_unicode=True)
-    sp.pprint(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2))), use_unicode=True)
+    #sp.pprint(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2))), use_unicode=True)
