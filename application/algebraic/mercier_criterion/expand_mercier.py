@@ -42,14 +42,14 @@ def RZ_epfl() -> ToroidalCoordinates:
     sin_expr = sp.Sum(S(m,r) * sp.sin((m-1)*omega), (m, 2, N))
 
     R = (
-        R0 + epsilon*r * sp.cos(omega) - epsilon**2 * D(r) + 
-        epsilon**2 * cos_expr + 
-        epsilon**3 * P(r) * sp.cos(3*omega)
+        R0/epsilon + r * sp.cos(omega) - epsilon * D(r) + 
+        epsilon * cos_expr + 
+        epsilon**2 * P(r) * sp.cos(omega)
     )
     Z = (
-        epsilon * (r+ellip*E(r)) * sp.sin(omega) +
-        epsilon**2 * sin_expr -
-        epsilon**3 * P(r) * sp.sin(omega)
+        r * sp.sin(omega) -
+        epsilon * sin_expr +
+        epsilon**2 * P(r) * sp.sin(omega)
     )
 
     return ToroidalCoordinates(
@@ -126,14 +126,16 @@ if __name__=='__main__':
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
 
-    print("Co-ordinates")
-    sp.pprint(sp.series(coords.R, coords.epsilon, 0, 4), use_unicode=True)
-    sp.pprint(sp.series(coords.Z, coords.epsilon, 0, 4), use_unicode=True)
+    #print(sp.pprint(derivatives.Z_omega, use_unicode=True))
+
+    # print("Co-ordinates")
+    # sp.pprint(sp.series(coords.R, coords.epsilon, 0, 4), use_unicode=True)
+    # sp.pprint(sp.series(coords.Z, coords.epsilon, 0, 4), use_unicode=True)
     
 
-    print()
-    print("Metrics")
+    # print()
+    # print("Metrics")
 
-    sp.pprint(sp.series(j, coords.epsilon, 0, 2), use_unicode=True)
-    sp.pprint(sp.series(metric.g_rw, coords.epsilon, 0, 2), use_unicode=True)
-    sp.pprint(sp.series(metric.g_ww, coords.epsilon, 0, 2), use_unicode=True)
+    # sp.pprint(sp.series(j, coords.epsilon, 0, 2), use_unicode=True)
+    # sp.pprint(sp.series(metric.g_rw, coords.epsilon, 0, 2), use_unicode=True)
+    sp.pprint(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2))), use_unicode=True)
