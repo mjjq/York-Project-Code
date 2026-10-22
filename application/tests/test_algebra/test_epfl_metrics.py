@@ -10,14 +10,14 @@ def test_g_ww_eps2():
     derivs = calc_derivatives(coords)
     tens = calc_metric_tensor(derivs)
 
-    trunc_g_ww = sp.series(tens.g_ww, coords.epsilon, 0, 2).removeO()
+    trunc_g_ww = sp.series(tens.g_ww, coords.epsilon, 0, 4).removeO()
 
     S=shaping.S
     m=shaping.m
     N=shaping.N
     expr_sum = sp.Sum((m-1)*S(m,coords.r) * sp.cos(m*coords.omega), (m, 2, N))
 
-    true_g_ww = coords.r**2 * (
+    true_g_ww = coords.epsilon**2 * coords.r**2 * (
         1 - 2*coords.epsilon/coords.r * expr_sum
     )
 
@@ -32,7 +32,7 @@ def test_g_rw_eps2():
     derivs = calc_derivatives(coords)
     tens = calc_metric_tensor(derivs)
 
-    trunc_g_rw = sp.series(tens.g_rw, coords.epsilon, 0, 2).removeO()
+    trunc_g_rw = sp.series(tens.g_rw, coords.epsilon, 0, 4).removeO()
 
     S = shaping.S
     m = shaping.m
@@ -42,7 +42,7 @@ def test_g_rw_eps2():
         (m, 2, N)
     )
 
-    true_g_rw = coords.epsilon*coords.r * (
+    true_g_rw = coords.epsilon**3 * coords.r * (
         sp.diff(coords.D(coords.r), coords.r)*sp.sin(coords.omega) - expr_sum
     )
 
@@ -58,7 +58,7 @@ def test_jacobian_eps2():
 
     jac = calc_jacobian(coords, derivs)
 
-    trunc_jac = sp.simplify(sp.series(jac, coords.epsilon, 0, 2).removeO())
+    trunc_jac = sp.simplify(sp.series(jac, coords.epsilon, 0, 4).removeO())
 
     print(trunc_jac)
 
@@ -68,7 +68,7 @@ def test_jacobian_eps2():
         (m, 2, N)
     )
 
-    true_jac = sp.simplify(coords.r * coords.R0 * (
+    true_jac = sp.simplify(coords.epsilon**2 * coords.r * coords.R0 * (
         1 + 
         coords.epsilon * (coords.r/coords.R0 - sp.diff(coords.D(coords.r), coords.r)) * sp.cos(coords.omega) +
         coords.epsilon * expr_sum

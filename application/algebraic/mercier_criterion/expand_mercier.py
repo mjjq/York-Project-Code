@@ -114,10 +114,10 @@ class Derivatives:
 
 def calc_derivatives(coords: ToroidalCoordinates) -> Derivatives:
     return Derivatives(
-        sp.diff(coords.R, coords.r)/coords.epsilon,
-        sp.diff(coords.R, coords.omega)/coords.epsilon,
-        sp.diff(coords.Z, coords.r)/coords.epsilon,
-        sp.diff(coords.Z, coords.omega)/coords.epsilon
+        sp.diff(coords.R, coords.r),
+        sp.diff(coords.R, coords.omega),
+        sp.diff(coords.Z, coords.r),
+        sp.diff(coords.Z, coords.omega)
     )
 
 @dataclass
@@ -165,18 +165,20 @@ def summarise_expansions(coords: ToroidalCoordinates):
     print("Jacobian")
     sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
 
-def simplify_lutjens(f: sp.Function, coords: ToroidalCoordinates) -> sp.Function:
+def simplify_full(f: sp.Function, coords: ToroidalCoordinates) -> sp.Function:
     """
-    Simplify equation to O(eps**2 * e)
+    Simplify equation to O(eps**2 * ellip)
+    If ellip not specified, just simplify to O(eps**2)
     """
-    return sp.trigsimp(
-                sp.simplify(
-                    sp.series(
-                        sp.series(f, coords.epsilon, 0, 3).removeO(),
-                        coords.ellip, 0, 2
-                    )
-                )
-            )
+    series = f
+
+    if coords.epsilon in f.free_symbols:
+        series =  sp.series(f, coords.epsilon, 0, 4).removeO()
+
+    if coords.ellip in f.free_symbols:
+        series = sp.series(series, coords.ellip, 0, 2)
+
+    return sp.simplify(sp.trigsimp(sp.simplify(series)))
 
 def summarise_to_latex(coords: ToroidalCoordinates):
     """
@@ -204,12 +206,12 @@ def summarise_to_latex(coords: ToroidalCoordinates):
     latex.append(" ")
     latex.append(" ")
 
-    latex.append(sp.latex(simplify_lutjens(metric.g_rr, coords)))
-    latex.append(sp.latex(simplify_lutjens(metric.g_rw, coords)))
-    latex.append(sp.latex(simplify_lutjens(metric.g_ww, coords)))
+    latex.append(sp.latex(simplify_full(metric.g_rr, coords)))
+    latex.append(sp.latex(simplify_full(metric.g_rw, coords)))
+    latex.append(sp.latex(simplify_full(metric.g_ww, coords)))
     latex.append(" ")
     latex.append(" ")
-    latex.append(sp.latex(simplify_lutjens(j, coords)))
+    latex.append(sp.latex(simplify_full(j, coords)))
 
     # print()
     # print("Jacobian")
@@ -234,6 +236,6 @@ def summarise_to_latex(coords: ToroidalCoordinates):
         file.write(document)
 
 if __name__=='__main__':
-    coords, shaping = RZ_lutjens()
+    coords, shaping = RZ_epfl()
     
     summarise_to_latex(coords)
