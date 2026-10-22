@@ -145,6 +145,103 @@ def calc_jacobian(coords: ToroidalCoordinates,
         derivatives.R_omega * derivatives.Z_r
     )
 
+def cos_power_to_sum(expr: sp.Function, x: sp.Symbol):
+    expr = sp.expand(expr)
+
+    replacements = {}
+
+    for power in expr.atoms(sp.Pow):
+        base, exponent = power.as_base_exp()
+
+        if base == sp.cos(x) and exponent.is_Integer and exponent >= 2:
+            n = int(exponent)
+
+            replacements[power] = sp.expand(
+                sum(
+                    sp.binomial(n, k) * sp.cos((n - 2*k)*x)
+                    for k in range(n + 1)
+                ) / 2**n
+            )
+
+    return expr.xreplace(replacements)
+
+
+@dataclass
+class GradShafVariables:
+    gs: sp.Function # Equation A.3. in Lutjens 1992 expanded
+
+    f: sp.Function # dpsi/dr = R0 B0 eps * f(r)
+    g: sp.Function # G = R0 B0 g(r), g(r) = 1+O(eps^2)
+
+    p: sp.Function # pressure p(r)
+
+    B0: sp.Symbol # On-axis toroidal field
+
+def grad_shafranov(coords: ToroidalCoordinates, 
+                   tens: MetricTensor, 
+                   jac: sp.Function) -> GradShafVariables:
+    """
+    Expand grad shafranov equation expression in Lutjens 1992
+    Eq A.3
+    """
+    f = sp.Function('f')
+    g = sp.Function('g')
+    p = sp.Function('p')
+    B0 = sp.Symbol('B0')
+    r = coords.r
+
+    # Need to perform series truncations here to avoid 
+    # ungodly computation times
+    # 1/J ~ O(1/eps**2), so multiply by eps**2, perform
+    # series expansion, then divide by eps**2 again
+    inv_jac = (1/coords.epsilon**2)*(
+            simplify_full(coords.epsilon**2/jac, coords, 2)
+    )
+    inv_jac = cos_power_to_sum(inv_jac, coords.omega)
+    cos_terms = sorted(
+        inv_jac.atoms(sp.cos),
+        key=sp.default_sort_key
+    )
+    result = sp.collect(inv_jac, cos_terms)
+    function_to_latex(result); return
+
+    # Need g_ww to go to O(eps**4) since 
+    # 1/J ~ 1/eps**2 to lowest order
+    tens_gww = simplify_full(tens.g_ww, coords, 4)
+    prod = tens_gww*inv_jac
+    #function_to_latex(prod); return
+
+    diffand = f(r)*simplify_full(tens_gww*inv_jac, coords)
+
+    #function_to_latex(diffand); return
+
+    diff_r = sp.diff(diffand, r)
+
+    #function_to_latex(diff_r); return
+
+    tens_grw = simplify_full(tens.g_rw, coords)
+    diffand_omega = f(r)*simplify_full(tens_grw*inv_jac, coords)
+    diff_omega = simplify_full(sp.diff(diffand_omega, coords.omega), coords)
+    
+    difference = simplify_full(diff_r - diff_omega, coords)
+
+
+    first_term = simplify_full(f(r)*inv_jac*difference, coords)
+    function_to_latex(first_term)
+
+    return
+
+    p_term = sp.diff(p(r), r)/coords.epsilon / (coords.R0 * B0)
+
+    g_term = g(r) * sp.diff(g(r),r)/coords.epsilon / coords.R**2
+
+    gs = (f(r)/jac) * (diff_r - diff_omega) + p_term + g_term
+
+    return GradShafVariables(
+        gs, f, g, p, B0
+    )
+
+
 def summarise_expansions(coords: ToroidalCoordinates):
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
@@ -165,7 +262,10 @@ def summarise_expansions(coords: ToroidalCoordinates):
     print("Jacobian")
     sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
 
-def simplify_full(f: sp.Function, coords: ToroidalCoordinates) -> sp.Function:
+def simplify_full(f: sp.Function, 
+                  coords: ToroidalCoordinates, 
+                  order_epsilon: int = 3,
+                  order_ellip: int = 2) -> sp.Function:
     """
     Simplify equation to O(eps**2 * ellip)
     If ellip not specified, just simplify to O(eps**2)
@@ -173,12 +273,12 @@ def simplify_full(f: sp.Function, coords: ToroidalCoordinates) -> sp.Function:
     series = f
 
     if coords.epsilon in f.free_symbols:
-        series =  sp.series(f, coords.epsilon, 0, 4).removeO()
+        series =  sp.series(series, coords.epsilon, 0, order_epsilon).removeO()
 
     if coords.ellip in f.free_symbols:
-        series = sp.series(series, coords.ellip, 0, 2)
+        series = sp.series(series, coords.ellip, 0, order_ellip).removeO()
 
-    return sp.simplify(sp.trigsimp(sp.simplify(series)))
+    return sp.simplify(sp.trigsimp(series))
 
 def summarise_to_latex(coords: ToroidalCoordinates):
     """
@@ -235,7 +335,46 @@ def summarise_to_latex(coords: ToroidalCoordinates):
     with open("formula.tex", "w") as file:
         file.write(document)
 
+def function_to_latex(f_list: list[sp.Function]):
+    print(type(f_list))
+    if isinstance(f_list, list):
+        latex = [sp.latex(f) for f in f_list]
+    else:
+        latex = [sp.latex(f_list)]
+
+    # print()
+    # print("Jacobian")
+    # sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
+
+    to_latex = "\]\[".join(latex)
+    document = rf"""
+    \documentclass[a3paper,landscape]{{article}}
+    \usepackage[left=0.1cm, right=0.1cm]{{geometry}}
+    \usepackage{{amsmath}}
+    \pagestyle{{empty}}
+    \begin{{document}}
+    \tiny
+    \[
+    """+to_latex+rf"""
+    \]
+    \end{{document}}
+    """
+    print(document)
+
+    with open("formula.tex", "w") as file:
+        file.write(document)
+
 if __name__=='__main__':
-    coords, shaping = RZ_epfl()
+    coords, shaping = RZ_lutjens()
     
-    summarise_to_latex(coords)
+    derivatives = calc_derivatives(coords)
+    metric = calc_metric_tensor(derivatives)
+    j = calc_jacobian(coords, derivatives)
+
+    gs = grad_shafranov(coords, metric, j)
+
+    #function_to_latex(gs.gs)
+    #print(simplify_full(gs.gs, coords))
+
+
+    #summarise_to_latex(coords)
