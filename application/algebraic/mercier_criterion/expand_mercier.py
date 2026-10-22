@@ -47,7 +47,7 @@ def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
     r, omega, epsilon, ellip, R0 = sp.symbols(
         "r omega epsilon ellip R0"
     )
-    D = sp.Function("D")
+    D = sp.Function("Delta")
     P = sp.Function("P")
 
     # For fourier summation
@@ -80,7 +80,7 @@ def RZ_lutjens() -> ToroidalCoordinates:
     r, omega, epsilon, ellip, R0 = sp.symbols(
         "r omega epsilon e R0"
     )
-    D = sp.Function("D")
+    D = sp.Function("Delta")
     E = sp.Function("E")
     T = sp.Function("T")
     P = sp.Function("P")
@@ -165,6 +165,18 @@ def summarise_expansions(coords: ToroidalCoordinates):
     print("Jacobian")
     sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
 
+def simplify_lutjens(f: sp.Function, coords: ToroidalCoordinates) -> sp.Function:
+    """
+    Simplify equation to O(eps**2 * e)
+    """
+    return sp.trigsimp(
+                sp.simplify(
+                    sp.series(
+                        sp.series(f, coords.epsilon, 0, 3).removeO(),
+                        coords.ellip, 0, 2
+                    )
+                )
+            )
 
 def summarise_to_latex(coords: ToroidalCoordinates):
     """
@@ -192,9 +204,12 @@ def summarise_to_latex(coords: ToroidalCoordinates):
     latex.append(" ")
     latex.append(" ")
 
-    latex.append(sp.latex(sp.series(metric.g_rw, coords.epsilon, 0, 2)))
-    latex.append(sp.latex(sp.series(metric.g_rr, coords.epsilon, 0, 2)))
-    latex.append(sp.latex(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2)))))
+    latex.append(sp.latex(simplify_lutjens(metric.g_rr, coords)))
+    latex.append(sp.latex(simplify_lutjens(metric.g_rw, coords)))
+    latex.append(sp.latex(simplify_lutjens(metric.g_ww, coords)))
+    latex.append(" ")
+    latex.append(" ")
+    latex.append(sp.latex(simplify_lutjens(j, coords)))
 
     # print()
     # print("Jacobian")
@@ -202,7 +217,7 @@ def summarise_to_latex(coords: ToroidalCoordinates):
 
     to_latex = "\]\[".join(latex)
     document = rf"""
-    \documentclass[a3paper]{{article}}
+    \documentclass[a3paper,landscape]{{article}}
     \usepackage[left=0.1cm, right=0.1cm]{{geometry}}
     \usepackage{{amsmath}}
     \pagestyle{{empty}}
