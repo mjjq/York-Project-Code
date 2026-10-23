@@ -9,7 +9,7 @@ from algebraic.mercier_criterion.datatypes import (
     GradShafVariables
 )
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
-from algebraic.mercier_criterion.identities import cos_power_to_sum
+from algebraic.mercier_criterion.identities import trig_power_to_sum, sin2n_to_cos2n, collect_cos_coefs
 
 
 def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
@@ -103,27 +103,6 @@ def calc_jacobian(coords: ToroidalCoordinates,
         derivatives.R_omega * derivatives.Z_r
     )
 
-def cos_power_to_sum(expr: sp.Function, x: sp.Symbol):
-    expr = sp.expand(expr)
-
-    replacements = {}
-
-    for power in expr.atoms(sp.Pow):
-        base, exponent = power.as_base_exp()
-
-        if base == sp.cos(x) and exponent.is_Integer and exponent >= 2:
-            n = int(exponent)
-
-            replacements[power] = sp.expand(
-                sum(
-                    sp.binomial(n, k) * sp.cos((n - 2*k)*x)
-                    for k in range(n + 1)
-                ) / 2**n
-            )
-
-    return expr.xreplace(replacements)
-
-
 
 def grad_shafranov(coords: ToroidalCoordinates, 
                    tens: MetricTensor, 
@@ -145,16 +124,20 @@ def grad_shafranov(coords: ToroidalCoordinates,
     inv_jac = (1/coords.epsilon**2)*(
             simplify_full(coords.epsilon**2/jac, coords, 2)
     )
-    #function_to_latex(coords.R0**2 * coords.epsilon**2 * coords.r**3 * inv_jac); return
+    #function_to_latex(coords.R0**2 * coords.epsilon**2 * coords.r**3 * sp.expand(inv_jac)); return
 
-    inv_jac = cos_power_to_sum(inv_jac, coords.omega)
+    #inv_jac = trig_power_to_sum(inv_jac, coords.omega)
     # cos_terms = sorted(
     #     sp.expand(inv_jac).atoms(sp.cos),
     #     key=sp.default_sort_key
     # )
     #result = sp.collect(inv_jac, cos_terms)
-    result = sp.expand(inv_jac).coeff(sp.cos(coords.omega))
-    function_to_latex(result); return
+    #result = sp.expand(inv_jac).coeff(sp.cos(2*coords.omega))
+    inv_jac = sin2n_to_cos2n(inv_jac, coords.omega)
+    inv_jac = trig_power_to_sum(inv_jac, coords.omega)
+    inv_jac = collect_cos_coefs(inv_jac)
+
+    function_to_latex(inv_jac); return
 
     # Need g_ww to go to O(eps**4) since 
     # 1/J ~ 1/eps**2 to lowest order

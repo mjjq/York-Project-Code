@@ -1,7 +1,39 @@
 import sympy as sp
 
-def cos_power_to_sum(expr: sp.Expr, x: sp.Symbol):
+def collect_cos_coefs(expr):
+    expanded = sp.expand(expr)
+    cos_terms = sorted(
+        expanded.atoms(sp.cos),
+        key=sp.default_sort_key
+    )
+    return sp.collect(expanded, cos_terms)
+
+def sin2n_to_cos2n(expr, x):
+    s = sp.sin(x)
+    c = sp.cos(x)
+
+    expr = expr.replace(
+        lambda e: (
+            e.is_Pow
+            and e.base == s
+            and e.exp.is_even
+            and e.exp.is_Integer
+            and e.exp > 0
+        ),
+        lambda e: (1 - c**2)**(e.exp // 2)
+    )
+
+    return sp.expand(expr)
+
+def trig_power_to_sum(expr: sp.Expr, x: sp.Symbol):
+    """
+    Expands sin^n(x) or cos^n(x) in terms of sums of
+    cos(nx) (or sin(nx) if n is odd for sin^n(x)).
+
+    Any powers of sin^
+    """
     expr = sp.expand(expr)
+
     replacements = {}
 
     for power in expr.atoms(sp.Pow):
@@ -11,23 +43,32 @@ def cos_power_to_sum(expr: sp.Expr, x: sp.Symbol):
             n = int(exponent)
 
             if base == sp.cos(x):
-                replacements[power] = sum(
-                    sp.binomial(n, k) * sp.cos((n - 2*k)*x)
-                    for k in range(n + 1)
-                ) / 2**n
+                replacements[power] = sp.expand(
+                    sum(
+                        sp.binomial(n, k) * sp.cos((n - 2*k)*x)
+                        for k in range(n + 1)
+                    ) / 2**n
+                )
 
             elif base == sp.sin(x):
-                replacements[power] = sum(
-                    (-1)**k * sp.binomial(n, k)
-                    * sp.cos((n - 2*k)*x + n*sp.pi/2)
-                    for k in range(n + 1)
-                ) / 2**n
-
-                replacements[power] = sp.expand_trig(
-                    replacements[power]
+                replacements[power] = sp.expand(
+                    sum(
+                        (-1)**k * sp.binomial(n, k)
+                        * sp.cos((n - 2*k)*x - n*sp.pi/2)
+                        for k in range(n + 1)
+                    ) / 2**n
                 )
 
     return expr.xreplace(replacements)
 
 
+if __name__=='__main__':
+    from algebraic.mercier_criterion.rendering import function_to_latex
 
+    x = sp.symbols('x')
+    n = sp.symbols('n', integer=True, nonnegative=True)
+
+    expr = sp.sin(x)**(4) + sp.sin(x)**6
+    expanded = sp.expand(expr.subs(sp.sin(x)**2, 1 - sp.cos(x)**2))
+    #expr_sum = trig_power_to_sum(expanded, x)
+    function_to_latex(expanded)

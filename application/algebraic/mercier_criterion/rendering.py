@@ -66,24 +66,28 @@ def function_to_latex(f_list: list[sp.Function]):
     else:
         latex = [sp.latex(f_list)]
 
+    #latex = [l.replace("+", r"\allowbreak{}+") for l in latex]
+
+    print(latex)
+
     # print()
     # print("Jacobian")
     # sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
 
-    to_latex = "\]\[".join(latex)
+    to_latex = r"\end{dmath*}\begin{dmath*}".join(latex)
     document = rf"""
-    \documentclass[a3paper,landscape]{{article}}
-    \usepackage[left=0.1cm, right=0.1cm]{{geometry}}
+    \documentclass[a4paper]{{article}}
+    \usepackage[left=1cm, right=1cm]{{geometry}}
     \usepackage{{amsmath}}
+    \usepackage{{breqn}}
     \pagestyle{{empty}}
     \begin{{document}}
-    \tiny
-    \[
+    \small
+    \begin{{dmath*}}
     """+to_latex+rf"""
-    \]
+    \end{{dmath*}}
     \end{{document}}
     """
-    print(document)
 
     with open("formula.tex", "w") as file:
         file.write(document)
