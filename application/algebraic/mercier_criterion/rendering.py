@@ -77,12 +77,12 @@ def function_to_latex(f_list: list[sp.Function]):
     to_latex = r"\end{dmath*}\begin{dmath*}".join(latex)
     document = rf"""
     \documentclass[a4paper]{{article}}
-    \usepackage[left=1cm, right=1cm]{{geometry}}
+    \usepackage[left=1.5cm, right=1.5cm]{{geometry}}
     \usepackage{{amsmath}}
     \usepackage{{breqn}}
     \pagestyle{{empty}}
     \begin{{document}}
-    \small
+    \footnotesize
     \begin{{dmath*}}
     """+to_latex+rf"""
     \end{{dmath*}}

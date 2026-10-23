@@ -118,8 +118,8 @@ def calc_inv_jacobian(jac: sp.Function, order_epsilon: int = 2) -> sp.Function:
     #function_to_latex(coords.R0**2 * coords.epsilon**2 * coords.r**3 * sp.expand(inv_jac)); return
 
     inv_jac = sin2n_to_cos2n(inv_jac, coords.omega)
-    inv_jac = trig_power_to_sum(inv_jac, coords.omega)
-    inv_jac = collect_cos_coefs(inv_jac)
+    #inv_jac = trig_power_to_sum(inv_jac, coords.omega)
+    #inv_jac = collect_cos_coefs(inv_jac)
 
     return inv_jac
 
@@ -141,30 +141,33 @@ def grad_shafranov(coords: ToroidalCoordinates,
     r = coords.r
 
     
+    # RHS of A.3==0 so just multiply inv_jac by eps**2
+    # to remove 1/eps**2 terms
+    inv_jac = coords.epsilon**2 * inv_jac
 
-    # Need g_ww to go to O(eps**4) since 
-    # 1/J ~ 1/eps**2 to lowest order
-    tens_gww = simplify_full(tens.g_ww, coords, 4)
-    prod = tens_gww*inv_jac
-    #function_to_latex(prod); return
-
-    diffand = f(r)*simplify_full(tens_gww*inv_jac, coords)
-
-    #function_to_latex(diffand); return
-
+    tens_gww = simplify_full(tens.g_ww, coords, 3)
+    diffand = f(r)*tens_gww*inv_jac
     diff_r = sp.diff(diffand, r)
 
-    #function_to_latex(diff_r); return
+    tens_grw = simplify_full(tens.g_rw, coords, 3)
+    diffand_omega = f(r)*tens_grw*inv_jac
+    diff_omega = sp.diff(diffand_omega, coords.omega)
 
-    tens_grw = simplify_full(tens.g_rw, coords)
-    diffand_omega = f(r)*simplify_full(tens_grw*inv_jac, coords)
-    diff_omega = simplify_full(sp.diff(diffand_omega, coords.omega), coords)
-    
-    difference = simplify_full(diff_r - diff_omega, coords)
+    difference = diff_r-diff_omega
+    first_term = f(r)*inv_jac*difference/coords.epsilon**2
+    print("Multiplied")
+    first_term = truncate_expr(
+        first_term, coords, order_epsilon=1, order_ellip=2
+    )
+    print("Truncated")
+    first_term = sin2n_to_cos2n(first_term, coords.omega)
+    print("sin2n to cos2n done")
+    first_term = trig_power_to_sum(first_term, coords.omega)
+    print("expanded cosine powers")
+    first_term = collect_cos_coefs(first_term)
+    print("Collected cos coefs")
+    function_to_latex(first_term); return
 
-
-    first_term = simplify_full(f(r)*inv_jac*difference, coords)
-    function_to_latex(first_term)
 
     return
 
@@ -178,15 +181,24 @@ def grad_shafranov(coords: ToroidalCoordinates,
         gs, f, g, p, B0
     )
 
+def truncate_expr_fast(f: sp.Expr,
+                       coords: ToroidalCoordinates,
+                       order_epsilon: int = 3,
+                       order_ellip: int = 2) -> sp.Expr:
+    series = f
 
-def simplify_full(f: sp.Function, 
-                  coords: ToroidalCoordinates, 
+    if coords.epsilon in f.free_symbols:
+        series = (series + sp.O(coords.omega**order_epsilon)).removeO()
+
+    if coords.ellip in f.free_symbols:
+                series = (series + sp.O(coords.omega**order_ellip)).removeO()
+
+    return series
+
+def truncate_expr(f: sp.Expr,
+                  coords: ToroidalCoordinates,
                   order_epsilon: int = 3,
-                  order_ellip: int = 2) -> sp.Function:
-    """
-    Simplify equation to O(eps**2 * ellip)
-    If ellip not specified, just simplify to O(eps**2)
-    """
+                  order_ellip: int = 2) -> sp.Expr:
     series = f
 
     if coords.epsilon in f.free_symbols:
@@ -195,7 +207,23 @@ def simplify_full(f: sp.Function,
     if coords.ellip in f.free_symbols:
         series = sp.series(series, coords.ellip, 0, order_ellip).removeO()
 
-    return sp.simplify(sp.trigsimp(series))
+    return series
+
+def simplify(f: sp.Expr) -> sp.Expr:
+    return sp.simplify(sp.trigsimp(f))
+
+
+def simplify_full(f: sp.Expr, 
+                  coords: ToroidalCoordinates, 
+                  order_epsilon: int = 3,
+                  order_ellip: int = 2) -> sp.Expr:
+    """
+    Simplify equation to O(eps**2 * ellip)
+    If ellip not specified, just simplify to O(eps**2)
+    """
+    series = truncate_expr(f, coords, order_epsilon, order_ellip)
+
+    return simplify(series)
 
 if __name__=='__main__':
     coords, shaping = RZ_lutjens()
@@ -205,9 +233,11 @@ if __name__=='__main__':
     j = calc_jacobian(coords, derivatives)
     inv_jac = calc_inv_jacobian(j)
 
-    function_to_latex([metric.g_rr, inv_jac])
+    #inv_jac = trig_power_to_sum(inv_jac, coords.omega)
+    #inv_jac = collect_cos_coefs(inv_jac)    
+    #function_to_latex([inv_jac])
 
-    #gs = grad_shafranov(coords, metric, inv_j)
+    gs = grad_shafranov(coords, metric, inv_jac)
 
     #function_to_latex(gs.gs)
     #print(simplify_full(gs.gs, coords))

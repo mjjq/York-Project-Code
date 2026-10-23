@@ -70,12 +70,17 @@ def trig_power_to_sum(expr: sp.Expr, x: sp.Symbol):
 
 
 if __name__=='__main__':
-    from algebraic.mercier_criterion.rendering import function_to_latex
+    # from algebraic.mercier_criterion.rendering import function_to_latex
 
-    x = sp.symbols('x')
-    n = sp.symbols('n', integer=True, nonnegative=True)
+    # x = sp.symbols('x')
+    # n = sp.symbols('n', integer=True, nonnegative=True)
 
-    expr = sp.sin(x)**(4) + sp.sin(x)**6
-    expanded = sp.expand(expr.subs(sp.sin(x)**2, 1 - sp.cos(x)**2))
-    #expr_sum = trig_power_to_sum(expanded, x)
-    function_to_latex(expanded)
+    # expr = sp.sin(x)**(4) + sp.sin(x)**6
+    # expanded = sp.expand(expr.subs(sp.sin(x)**2, 1 - sp.cos(x)**2))
+    # #expr_sum = trig_power_to_sum(expanded, x)
+    # function_to_latex(expanded)
+
+    x, y, z = sp.symbols('x y z')
+    expr = x*y**2 * (3*x**2 + 4*x*y + 5*sp.cos(z))
+
+    print(sp.degree(expr, y))
