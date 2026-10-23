@@ -154,11 +154,27 @@ def order_truncation(cosine_harmonic: int) -> tuple[int, int]:
     
     return order_epsilon, order_ellip
 
+def gs_simplify(first_term: sp.Expr, 
+                coords: ToroidalCoordinates,
+                cosine_harmonic: int = 1) -> list[sp.Expr]:
+    order_epsilon, order_ellip = order_truncation(cosine_harmonic)
+    first_term = truncate_expr(
+        first_term, coords, 
+        order_epsilon=order_epsilon, 
+        order_ellip=order_ellip
+    )
+    first_term = sin2n_to_cos2n(first_term, coords.omega)
+    print("sin2n to cos2n done")
+    first_term = trig_power_to_sum(first_term, coords.omega)
+    print("expanded cosine powers")
+    first_term = collect_cos_coefs(first_term)
+    print("Collected cos coefs")
+    return first_term
 
 def grad_shafranov(coords: ToroidalCoordinates, 
                    tens: MetricTensor, 
                    inv_jac: sp.Function,
-                   cosine_harmonic: int = 1) -> GradShafVariables:
+                   cosine_harmonic: int = 3) -> GradShafVariables:
     """
     Expand grad shafranov equation expression in Lutjens 1992
     Eq A.3
@@ -186,20 +202,17 @@ def grad_shafranov(coords: ToroidalCoordinates,
     diff_omega = sp.diff(diffand_omega, coords.omega)
 
     difference = diff_r-diff_omega
+    # Remove extra O(eps**2) term
     first_term = f(r)*inv_jac*difference/coords.epsilon**2
     print("Multiplied")
-    order_epsilon, order_ellip = order_truncation(cosine_harmonic)
-    first_term = truncate_expr(
-        first_term, coords, order_epsilon=order_epsilon, order_ellip=order_ellip
+
+    first_term_0_2 = gs_simplify(
+        first_term, coords, 2
     )
-    print("Truncated")
-    first_term = sin2n_to_cos2n(first_term, coords.omega)
-    print("sin2n to cos2n done")
-    first_term = trig_power_to_sum(first_term, coords.omega)
-    print("expanded cosine powers")
-    first_term = collect_cos_coefs(first_term)
-    print("Collected cos coefs")
-    function_to_latex(first_term); return
+    first_term_0_1_3 = gs_simplify(
+        first_term, coords, 3
+    )
+    function_to_latex([first_term_0_2, first_term_0_1_3]); return 
 
 
     return
@@ -221,10 +234,10 @@ def truncate_expr_fast(f: sp.Expr,
     series = f
 
     if coords.epsilon in f.free_symbols:
-        series = (series + sp.O(coords.omega**order_epsilon)).removeO()
+        series = (series + sp.O(coords.omega**(order_epsilon-1))).removeO()
 
     if coords.ellip in f.free_symbols:
-                series = (series + sp.O(coords.omega**order_ellip)).removeO()
+                series = (series + sp.O(coords.omega**(order_ellip-1))).removeO()
 
     return series
 
