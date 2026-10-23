@@ -1,47 +1,16 @@
 import sympy as sp
-from dataclasses import dataclass
 
-def expand_small_parameter():
-    epsilon = sp.symbols('epsilon')
-    f = sp.exp(epsilon)/(1+epsilon)
+from algebraic.mercier_criterion.datatypes import (
+    ToroidalCoordinates, 
+    EPFLShaping, 
+    LutjensShaping,
+    Derivatives,
+    MetricTensor,
+    GradShafVariables
+)
+from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
+from algebraic.mercier_criterion.identities import cos_power_to_sum
 
-    print(sp.series(f, epsilon, 0, 3))
-
-def expand_small_param_x():
-    a, x, epsilon = sp.symbols('a x epsilon')
-    f = sp.sqrt(1 + a*epsilon*x)
-
-    print(sp.series(f, epsilon, 0, 3))
-
-@dataclass
-class ToroidalCoordinates:
-    R: sp.Function # Major radius
-    Z: sp.Function # Vertical distance
-
-    D: sp.Function # Shafranov shift (function of r)
-    P: sp.Function # P(r)
-
-    R0: sp.Symbol # Major radius of magnetic axis
-    
-    # New co-ords
-    r: sp.Symbol # Minor radius
-    omega: sp.Symbol # Generalised angle
-
-    # Expansion params
-    epsilon: sp.Symbol # Inverse aspect ratio tag
-    ellip: sp.Symbol # Ellipticity tag
-
-@dataclass
-class EPFLShaping:
-    # Shaping
-    S: sp.Function # Shaping coefficients (S_m(r))
-    m: sp.Symbol # Shaping coef indices
-    N: sp.Symbol # sum_{m=1}^N...
-
-@dataclass
-class LutjensShaping:
-    E: sp.Function # ellipticity E(r)
-    T: sp.Function # Triangularity T(r)
 
 def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
     r, omega, epsilon, ellip, R0 = sp.symbols(
@@ -105,12 +74,6 @@ def RZ_lutjens() -> ToroidalCoordinates:
 
     return coords, shaping
 
-@dataclass
-class Derivatives:
-    R_r: sp.Function
-    R_omega: sp.Function
-    Z_r: sp.Function
-    Z_omega: sp.Function
 
 def calc_derivatives(coords: ToroidalCoordinates) -> Derivatives:
     return Derivatives(
@@ -120,11 +83,6 @@ def calc_derivatives(coords: ToroidalCoordinates) -> Derivatives:
         sp.diff(coords.Z, coords.omega)
     )
 
-@dataclass
-class MetricTensor:
-    g_rr: sp.Function
-    g_rw: sp.Function
-    g_ww: sp.Function
 
 def calc_metric_tensor(derivatives: Derivatives) -> MetricTensor:
     g_rr = derivatives.R_r**2 + derivatives.Z_r**2
@@ -166,16 +124,6 @@ def cos_power_to_sum(expr: sp.Function, x: sp.Symbol):
     return expr.xreplace(replacements)
 
 
-@dataclass
-class GradShafVariables:
-    gs: sp.Function # Equation A.3. in Lutjens 1992 expanded
-
-    f: sp.Function # dpsi/dr = R0 B0 eps * f(r)
-    g: sp.Function # G = R0 B0 g(r), g(r) = 1+O(eps^2)
-
-    p: sp.Function # pressure p(r)
-
-    B0: sp.Symbol # On-axis toroidal field
 
 def grad_shafranov(coords: ToroidalCoordinates, 
                    tens: MetricTensor, 
@@ -197,12 +145,15 @@ def grad_shafranov(coords: ToroidalCoordinates,
     inv_jac = (1/coords.epsilon**2)*(
             simplify_full(coords.epsilon**2/jac, coords, 2)
     )
+    #function_to_latex(coords.R0**2 * coords.epsilon**2 * coords.r**3 * inv_jac); return
+
     inv_jac = cos_power_to_sum(inv_jac, coords.omega)
-    cos_terms = sorted(
-        inv_jac.atoms(sp.cos),
-        key=sp.default_sort_key
-    )
-    result = sp.collect(inv_jac, cos_terms)
+    # cos_terms = sorted(
+    #     sp.expand(inv_jac).atoms(sp.cos),
+    #     key=sp.default_sort_key
+    # )
+    #result = sp.collect(inv_jac, cos_terms)
+    result = sp.expand(inv_jac).coeff(sp.cos(coords.omega))
     function_to_latex(result); return
 
     # Need g_ww to go to O(eps**4) since 
@@ -242,26 +193,6 @@ def grad_shafranov(coords: ToroidalCoordinates,
     )
 
 
-def summarise_expansions(coords: ToroidalCoordinates):
-    derivatives = calc_derivatives(coords)
-    metric = calc_metric_tensor(derivatives)
-    j = calc_jacobian(coords, derivatives)
-
-    print("Co-ordinates")
-    sp.pprint(sp.series(coords.R, coords.epsilon, 0, 4), use_unicode=True)
-    sp.pprint(sp.series(coords.Z, coords.epsilon, 0, 4), use_unicode=True)
-    
-    print()
-    print("Metrics")
-
-    sp.pprint(sp.series(metric.g_rw, coords.epsilon, 0, 2), use_unicode=True)
-    sp.pprint(sp.series(metric.g_rr, coords.epsilon, 0, 2), use_unicode=True)
-    sp.pprint(sp.trigsimp(sp.simplify(sp.series(metric.g_ww, coords.epsilon, 0, 2))), use_unicode=True)
-
-    print()
-    print("Jacobian")
-    sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
-
 def simplify_full(f: sp.Function, 
                   coords: ToroidalCoordinates, 
                   order_epsilon: int = 3,
@@ -279,90 +210,6 @@ def simplify_full(f: sp.Function,
         series = sp.series(series, coords.ellip, 0, order_ellip).removeO()
 
     return sp.simplify(sp.trigsimp(series))
-
-def summarise_to_latex(coords: ToroidalCoordinates):
-    """
-    Generates latex document called formula.tex.
-
-    Run pdflatex formula.tex to render equations to pdf.
-    """
-    derivatives = calc_derivatives(coords)
-    metric = calc_metric_tensor(derivatives)
-    j = calc_jacobian(coords, derivatives)
-
-    # print("Co-ordinates")
-    latex = []
-    latex.append(sp.latex(sp.series(coords.R, coords.epsilon, 0, 4)))
-    latex.append(sp.latex(sp.series(coords.Z, coords.epsilon, 0, 4)))
-    latex.append(" ")
-    latex.append(" ")
-    # print()
-    # print("Metrics")
-    
-    latex.append(sp.latex(sp.series(derivatives.R_r, coords.epsilon, 0, 3)))
-    latex.append(sp.latex(sp.series(derivatives.R_omega, coords.epsilon, 0, 3)))
-    latex.append(sp.latex(sp.series(derivatives.Z_r, coords.epsilon, 0, 3)))
-    latex.append(sp.latex(sp.series(derivatives.Z_omega, coords.epsilon, 0, 3)))
-    latex.append(" ")
-    latex.append(" ")
-
-    latex.append(sp.latex(simplify_full(metric.g_rr, coords)))
-    latex.append(sp.latex(simplify_full(metric.g_rw, coords)))
-    latex.append(sp.latex(simplify_full(metric.g_ww, coords)))
-    latex.append(" ")
-    latex.append(" ")
-    latex.append(sp.latex(simplify_full(j, coords)))
-
-    # print()
-    # print("Jacobian")
-    # sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
-
-    to_latex = "\]\[".join(latex)
-    document = rf"""
-    \documentclass[a3paper,landscape]{{article}}
-    \usepackage[left=0.1cm, right=0.1cm]{{geometry}}
-    \usepackage{{amsmath}}
-    \pagestyle{{empty}}
-    \begin{{document}}
-    \tiny
-    \[
-    """+to_latex+rf"""
-    \]
-    \end{{document}}
-    """
-    print(document)
-
-    with open("formula.tex", "w") as file:
-        file.write(document)
-
-def function_to_latex(f_list: list[sp.Function]):
-    print(type(f_list))
-    if isinstance(f_list, list):
-        latex = [sp.latex(f) for f in f_list]
-    else:
-        latex = [sp.latex(f_list)]
-
-    # print()
-    # print("Jacobian")
-    # sp.pprint(sp.simplify(sp.simplify(sp.series(j, coords.epsilon, 0, 2))), use_unicode=True)
-
-    to_latex = "\]\[".join(latex)
-    document = rf"""
-    \documentclass[a3paper,landscape]{{article}}
-    \usepackage[left=0.1cm, right=0.1cm]{{geometry}}
-    \usepackage{{amsmath}}
-    \pagestyle{{empty}}
-    \begin{{document}}
-    \tiny
-    \[
-    """+to_latex+rf"""
-    \]
-    \end{{document}}
-    """
-    print(document)
-
-    with open("formula.tex", "w") as file:
-        file.write(document)
 
 if __name__=='__main__':
     coords, shaping = RZ_lutjens()
