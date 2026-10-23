@@ -124,9 +124,41 @@ def calc_inv_jacobian(jac: sp.Function, order_epsilon: int = 2) -> sp.Function:
     return inv_jac
 
 
+def order_truncation(cosine_harmonic: int) -> tuple[int, int]:
+    """
+    The epsilon and ellipticity ordering for a given cosine harmonic.
+
+    See just below A.4 in Lutjens 1992:
+
+    'Equations for the
+    Shafranov shift and the elliptic and the triangular
+    deformation of the flux surfaces are obtained from the
+    cosw component at O ( epsilon ), the cos2w component at O(e)
+    and the cos3w component at O ( epsilon ) ,
+    respectively'
+    """
+    if cosine_harmonic==0:
+        order_epsilon = 1
+        order_ellip=1
+    elif cosine_harmonic==1:
+        order_epsilon=2
+        order_ellip=1
+    elif cosine_harmonic==2:
+        order_epsilon = 1
+        order_ellip = 2
+    elif cosine_harmonic==3:
+        order_epsilon = 2
+        order_ellip = 1
+    else:
+        raise ValueError("Harmonic not supported")
+    
+    return order_epsilon, order_ellip
+
+
 def grad_shafranov(coords: ToroidalCoordinates, 
                    tens: MetricTensor, 
-                   inv_jac: sp.Function) -> GradShafVariables:
+                   inv_jac: sp.Function,
+                   cosine_harmonic: int = 1) -> GradShafVariables:
     """
     Expand grad shafranov equation expression in Lutjens 1992
     Eq A.3
@@ -156,8 +188,9 @@ def grad_shafranov(coords: ToroidalCoordinates,
     difference = diff_r-diff_omega
     first_term = f(r)*inv_jac*difference/coords.epsilon**2
     print("Multiplied")
+    order_epsilon, order_ellip = order_truncation(cosine_harmonic)
     first_term = truncate_expr(
-        first_term, coords, order_epsilon=1, order_ellip=2
+        first_term, coords, order_epsilon=order_epsilon, order_ellip=order_ellip
     )
     print("Truncated")
     first_term = sin2n_to_cos2n(first_term, coords.omega)
