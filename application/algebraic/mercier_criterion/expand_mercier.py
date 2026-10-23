@@ -103,13 +103,36 @@ def calc_jacobian(coords: ToroidalCoordinates,
         derivatives.R_omega * derivatives.Z_r
     )
 
+def calc_inv_jacobian(jac: sp.Function, order_epsilon: int = 2) -> sp.Function:
+    """
+    Calculate truncated inverse jacobian collected by 
+    cosine terms (e.g. 1/J = A*cos(omega) + B*cos(2*omega)...)
+    """
+    # Need to perform series truncations here to avoid 
+    # ungodly computation times
+    # 1/J ~ O(1/eps**2), so multiply by eps**2, perform
+    # series expansion, then divide by eps**2 again
+    inv_jac = (1/coords.epsilon**2)*(
+            simplify_full(coords.epsilon**2/jac, coords, order_epsilon)
+    )
+    #function_to_latex(coords.R0**2 * coords.epsilon**2 * coords.r**3 * sp.expand(inv_jac)); return
+
+    inv_jac = sin2n_to_cos2n(inv_jac, coords.omega)
+    inv_jac = trig_power_to_sum(inv_jac, coords.omega)
+    inv_jac = collect_cos_coefs(inv_jac)
+
+    return inv_jac
+
 
 def grad_shafranov(coords: ToroidalCoordinates, 
                    tens: MetricTensor, 
-                   jac: sp.Function) -> GradShafVariables:
+                   inv_jac: sp.Function) -> GradShafVariables:
     """
     Expand grad shafranov equation expression in Lutjens 1992
     Eq A.3
+
+    Note: inv_jac is J^(-1), which can be calculated using 
+    calc_inv_jacobian()
     """
     f = sp.Function('f')
     g = sp.Function('g')
@@ -117,27 +140,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     B0 = sp.Symbol('B0')
     r = coords.r
 
-    # Need to perform series truncations here to avoid 
-    # ungodly computation times
-    # 1/J ~ O(1/eps**2), so multiply by eps**2, perform
-    # series expansion, then divide by eps**2 again
-    inv_jac = (1/coords.epsilon**2)*(
-            simplify_full(coords.epsilon**2/jac, coords, 2)
-    )
-    #function_to_latex(coords.R0**2 * coords.epsilon**2 * coords.r**3 * sp.expand(inv_jac)); return
-
-    #inv_jac = trig_power_to_sum(inv_jac, coords.omega)
-    # cos_terms = sorted(
-    #     sp.expand(inv_jac).atoms(sp.cos),
-    #     key=sp.default_sort_key
-    # )
-    #result = sp.collect(inv_jac, cos_terms)
-    #result = sp.expand(inv_jac).coeff(sp.cos(2*coords.omega))
-    inv_jac = sin2n_to_cos2n(inv_jac, coords.omega)
-    inv_jac = trig_power_to_sum(inv_jac, coords.omega)
-    inv_jac = collect_cos_coefs(inv_jac)
-
-    function_to_latex(inv_jac); return
+    
 
     # Need g_ww to go to O(eps**4) since 
     # 1/J ~ 1/eps**2 to lowest order
@@ -200,8 +203,11 @@ if __name__=='__main__':
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
+    inv_jac = calc_inv_jacobian(j)
 
-    gs = grad_shafranov(coords, metric, j)
+    function_to_latex([metric.g_rr, inv_jac])
+
+    #gs = grad_shafranov(coords, metric, inv_j)
 
     #function_to_latex(gs.gs)
     #print(simplify_full(gs.gs, coords))

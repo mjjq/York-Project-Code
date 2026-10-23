@@ -1,6 +1,10 @@
 import sympy as sp
 
-def collect_cos_coefs(expr):
+def collect_cos_coefs(expr: sp.Expr):
+    """
+    Collect all coefficients of cosine harmonics
+    e.g. A + B*cos(x) + C*cos(2x) + ...
+    """
     expanded = sp.expand(expr)
     cos_terms = sorted(
         expanded.atoms(sp.cos),
@@ -8,7 +12,10 @@ def collect_cos_coefs(expr):
     )
     return sp.collect(expanded, cos_terms)
 
-def sin2n_to_cos2n(expr, x):
+def sin2n_to_cos2n(expr: sp.Expr, x: sp.Symbol):
+    """
+    Replace sin^(2n)(x) with (1-cos^2(x))^n
+    """
     s = sp.sin(x)
     c = sp.cos(x)
 
