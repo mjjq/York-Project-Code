@@ -49,7 +49,11 @@ class MetricTensor:
 
 @dataclass
 class GradShafVariables:
-    gs: sp.Function # Equation A.3. in Lutjens 1992 expanded
+    # Equation A.3. in Lutjens 1992 expanded
+    gs_equil:  sp.Eq # cos(0w) component at O(1)
+    gs_1omega: sp.Eq # cos(1w) component at O(eps)
+    gs_2omega: sp.Eq # cos(2w) component at O(e)
+    gs_3omega: sp.Eq # cos(3w) component at O(eps)
 
     f: sp.Function # dpsi/dr = R0 B0 eps * f(r)
     g: sp.Function # G = R0 B0 g(r), g(r) = 1+O(eps^2)
