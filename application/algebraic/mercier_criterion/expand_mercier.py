@@ -9,7 +9,12 @@ from algebraic.mercier_criterion.datatypes import (
     GradShafVariables
 )
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
-from algebraic.mercier_criterion.identities import trig_power_to_sum, sin2n_to_cos2n, collect_cos_coefs
+from algebraic.mercier_criterion.identities import (
+    trig_power_to_sum, 
+    sin2n_to_cos2n, 
+    collect_cos_coefs,
+    get_cos_coefs
+)
 
 
 def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
@@ -176,7 +181,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
                    inv_jac: sp.Function) -> GradShafVariables:
     """
     Expand grad shafranov equation expression in Lutjens 1992
-    Eq A.3
+    Eq A.3, with both sides multiplied by R^2
 
     Note: inv_jac is J^(-1), which can be calculated using 
     calc_inv_jacobian()
@@ -203,8 +208,18 @@ def grad_shafranov(coords: ToroidalCoordinates,
 
     difference = diff_r-diff_omega
     # Remove extra O(eps**2) term
-    first_term = f(r)*inv_jac*difference/coords.epsilon**2
+    first_term = f(r)*difference/coords.epsilon**2
+    first_term = truncate_expr(
+        first_term, coords, 2, 2
+    )
+    #function_to_latex(gs_simplify(first_term, coords, 3)); return
+
     print("Multiplied")
+    R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
+    first_term = R_squared_simp * first_term
+    #first_term = truncate_expr(first_term, coords, 2, 2)
+    print("Multiplied R**2")
+    #function_to_latex(first_term); return
 
     first_term_0_2 = gs_simplify(
         first_term, coords, 2
@@ -215,7 +230,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     function_to_latex([first_term_0_2, first_term_0_1_3]); return
 
 
-    # return
+    return
 
     # Should divide by epsilon since p'=1/eps * d/dr
     # However the RHS of this expression==0 so
@@ -288,6 +303,8 @@ def simplify_full(f: sp.Expr,
 
 if __name__=='__main__':
     coords, shaping = RZ_lutjens()
+
+    #function_to_latex(truncate_expr(coords.R**2, coords)); exit()
     
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)

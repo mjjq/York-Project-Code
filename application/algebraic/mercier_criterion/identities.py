@@ -12,6 +12,22 @@ def collect_cos_coefs(expr: sp.Expr):
     )
     return sp.collect(expanded, cos_terms)
 
+def get_cos_coefs(expr: sp.Expr, 
+                  x: sp.Symbol, 
+                  indices: list[int]) -> list[sp.Expr]:
+    basis = []
+    for index in indices:
+        if index!=0:
+            basis.append(sp.cos(index*x))
+
+    coefs = [expr.coeff(term) for term in basis]
+
+    if 0 in indices:
+        constant, variable_part = expr.as_independent(x, as_Add=True)
+        coefs.insert(0, constant)
+    
+    return coefs
+
 def sin2n_to_cos2n(expr: sp.Expr, x: sp.Symbol):
     """
     Replace sin^(2n)(x) with (1-cos^2(x))^n
@@ -70,7 +86,7 @@ def trig_power_to_sum(expr: sp.Expr, x: sp.Symbol):
 
 
 if __name__=='__main__':
-    # from algebraic.mercier_criterion.rendering import function_to_latex
+    from algebraic.mercier_criterion.rendering import function_to_latex
 
     # x = sp.symbols('x')
     # n = sp.symbols('n', integer=True, nonnegative=True)
@@ -80,7 +96,16 @@ if __name__=='__main__':
     # #expr_sum = trig_power_to_sum(expanded, x)
     # function_to_latex(expanded)
 
-    x, y, z = sp.symbols('x y z')
-    expr = x*y**2 * (3*x**2 + 4*x*y + 5*sp.cos(z))
+    a0,a1,a2,a3 = sp.symbols('a0 a1 a2 a3')
+    x = sp.Symbol('x')
 
-    print(sp.degree(expr, y))
+    expr = (
+        a0 + a1 + a1*sp.cos(x) + 
+        a2*sp.cos(2*x) + 
+        (a3-a2)*sp.cos(3*x)
+    )
+
+    coefs = get_cos_coefs(expr, x, [1,3])
+
+    function_to_latex(coefs)
+    print(expr.atoms(sp.cos))
