@@ -177,8 +177,9 @@ def gs_simplify(first_term: sp.Expr,
     return first_term
 
 def grad_shafranov(coords: ToroidalCoordinates, 
-                   tens: MetricTensor, 
-                   inv_jac: sp.Function) -> GradShafVariables:
+                   tens: MetricTensor,
+                   jac: sp.Expr, 
+                   inv_jac: sp.Expr) -> GradShafVariables:
     """
     Expand grad shafranov equation expression in Lutjens 1992
     Eq A.3, with both sides multiplied by R^2
@@ -197,6 +198,13 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # RHS of A.3==0 so just multiply inv_jac by eps**2
     # to remove 1/eps**2 terms
     inv_jac = coords.epsilon**2 * inv_jac
+    # J~O(eps^2). Divide by factor eps^2 as GS
+    # equation equals zero
+    jac = jac/coords.epsilon**2
+    jac_simp = sp.simplify(
+        truncate_expr(jac, coords, 2, 2)
+    )
+    R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
 
     tens_gww = simplify_full(tens.g_ww, coords, 3)
     diffand = f(r)*tens_gww*inv_jac
@@ -215,7 +223,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     #function_to_latex(gs_simplify(first_term, coords, 3)); return
 
     print("Multiplied")
-    R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
+    
     first_term = R_squared_simp * first_term
     #first_term = truncate_expr(first_term, coords, 2, 2)
     print("Multiplied R**2")
@@ -227,15 +235,21 @@ def grad_shafranov(coords: ToroidalCoordinates,
     first_term_0_1_3 = gs_simplify(
         first_term, coords, 3
     )
-    function_to_latex([first_term_0_2, first_term_0_1_3]); return
+    # function_to_latex([first_term_0_2, first_term_0_1_3]); return
 
 
-    return
+    # return
 
     # Should divide by epsilon since p'=1/eps * d/dr
     # However the RHS of this expression==0 so
     # don't bother with this
-    p_term = sp.diff(p(r), r) / (coords.R0 * B0)
+    p_term = sp.diff(p(r), r) / (coords.R0**2 * B0**2)
+    
+    p_term = p_term * R_squared_simp * jac_simp
+
+    p_term_0_2 = gs_simplify(p_term, coords, 2)
+    p_term_0_1_3 = gs_simplify(p_term, coords, 3)
+
 
     # In Lutjens 1992, g(r)=1+O(eps^2)
     # Let g(r)=1+a(r), s.t. a(r)~O(eps^2)
@@ -249,8 +263,14 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # So gg'/R^2 = [g'(r)+O(eps^3)][1/R0^2 + O(eps^2)] = g'(r)/R0^2 + O(eps^2)
     # Therefore, to order eps, gg'/R^2 ~ g'/R0^2
     # No need to use sympy to auto expand gg'/R^2
-    g_term = sp.diff(g(r),r) / coords.R0**2
+    g_term = sp.diff(g(r),r) * jac_simp
+    
+    g_term_0_2 = gs_simplify(g_term, coords, 2)
+    g_term_0_1_3 = gs_simplify(g_term, coords, 3)
 
+    function_to_latex(
+        [first_term_0_2, first_term_0_1_3, p_term_0_2, p_term_0_1_3, g_term_0_2, g_term_0_1_3]
+    );return
     #gs_equil = 
 
     return GradShafVariables(
@@ -315,7 +335,7 @@ if __name__=='__main__':
     #inv_jac = collect_cos_coefs(inv_jac)    
     #function_to_latex([inv_jac])
 
-    gs = grad_shafranov(coords, metric, inv_jac)
+    gs = grad_shafranov(coords, metric, j, inv_jac)
 
     #function_to_latex(gs.gs)
     #print(simplify_full(gs.gs, coords))
