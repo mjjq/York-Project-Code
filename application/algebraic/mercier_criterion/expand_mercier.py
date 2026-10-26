@@ -13,7 +13,8 @@ from algebraic.mercier_criterion.identities import (
     trig_power_to_sum, 
     sin2n_to_cos2n, 
     collect_cos_coefs,
-    get_cos_coefs
+    get_cos_coefs,
+    expand_sin_terms
 )
 
 
@@ -147,13 +148,13 @@ def order_truncation(cosine_harmonic: int) -> tuple[int, int]:
         order_ellip=1
     elif cosine_harmonic==1:
         order_epsilon=2
-        order_ellip=1
+        order_ellip=2
     elif cosine_harmonic==2:
-        order_epsilon = 1
+        order_epsilon = 2
         order_ellip = 2
     elif cosine_harmonic==3:
         order_epsilon = 2
-        order_ellip = 1
+        order_ellip = 2
     else:
         raise ValueError("Harmonic not supported")
     
@@ -170,6 +171,8 @@ def gs_simplify(first_term: sp.Expr,
     )
     first_term = sin2n_to_cos2n(first_term, coords.omega)
     print("sin2n to cos2n done")
+    first_term = expand_sin_terms(first_term, coords.omega)
+    print("Expanded sin(mx) terms")
     first_term = trig_power_to_sum(first_term, coords.omega)
     print("expanded cosine powers")
     first_term = collect_cos_coefs(first_term)
@@ -206,36 +209,32 @@ def grad_shafranov(coords: ToroidalCoordinates,
     )
     R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
 
-    tens_gww = simplify_full(tens.g_ww, coords, 3)
-    diffand = f(r)*tens_gww*inv_jac
-    diff_r = sp.diff(diffand, r)
+    # tens_gww = simplify_full(tens.g_ww, coords, 3)
+    # diffand = f(r)*tens_gww*inv_jac
+    # diff_r = sp.diff(diffand, r)
 
-    tens_grw = simplify_full(tens.g_rw, coords, 3)
-    diffand_omega = f(r)*tens_grw*inv_jac
-    diff_omega = sp.diff(diffand_omega, coords.omega)
+    # tens_grw = simplify_full(tens.g_rw, coords, 3)
+    # diffand_omega = f(r)*tens_grw*inv_jac
+    # diff_omega = sp.diff(diffand_omega, coords.omega)
 
-    difference = diff_r-diff_omega
-    # Remove extra O(eps**2) term
-    first_term = f(r)*difference/coords.epsilon**2
-    first_term = truncate_expr(
-        first_term, coords, 2, 2
-    )
-    #function_to_latex(gs_simplify(first_term, coords, 3)); return
+    # difference = diff_r-diff_omega
+    # # Remove extra O(eps**2) term
+    # first_term = f(r)*difference/coords.epsilon**2
+    # first_term = truncate_expr(
+    #     first_term, coords, 2, 2
+    # )
 
-    print("Multiplied")
+    # print("Multiplied")
     
-    first_term = R_squared_simp * first_term
-    #first_term = truncate_expr(first_term, coords, 2, 2)
-    print("Multiplied R**2")
-    #function_to_latex(first_term); return
+    # first_term = R_squared_simp * first_term
+    # print("Multiplied R**2")
 
-    first_term_0_2 = gs_simplify(
-        first_term, coords, 2
-    )
-    first_term_0_1_3 = gs_simplify(
-        first_term, coords, 3
-    )
-    # function_to_latex([first_term_0_2, first_term_0_1_3]); return
+    # first_term_0_2 = gs_simplify(
+    #     first_term, coords, 2
+    # )
+    # first_term_0_1_3 = gs_simplify(
+    #     first_term, coords, 3
+    # )
 
 
     # return
@@ -245,7 +244,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # don't bother with this
     p_term = sp.diff(p(r), r) / (coords.R0**2 * B0**2)
     
-    p_term = p_term * R_squared_simp * jac_simp
+    p_term = p_term * R_squared_simp * jac
 
     p_term_0_2 = gs_simplify(p_term, coords, 2)
     p_term_0_1_3 = gs_simplify(p_term, coords, 3)
@@ -269,7 +268,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     g_term_0_1_3 = gs_simplify(g_term, coords, 3)
 
     function_to_latex(
-        [first_term_0_2, first_term_0_1_3, p_term_0_2, p_term_0_1_3, g_term_0_2, g_term_0_1_3]
+        [R_squared_simp, gs_simplify(jac_simp, coords, 1), p_term_0_2, p_term_0_1_3]
     );return
     #gs_equil = 
 

@@ -84,6 +84,27 @@ def trig_power_to_sum(expr: sp.Expr, x: sp.Symbol):
 
     return expr.xreplace(replacements)
 
+def expand_sin_terms(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
+    """
+    Expand sin(mx) terms in expression to sum of sin^n(x), cos^n(x)
+    terms while leaving cos(mx) terms untouched.
+    """
+    replacements = {}
+    
+    for sin_term in expr.atoms(sp.sin):
+        arg = sin_term.args[0]
+        m = arg.coeff(x)
+
+        if m.is_Integer and m >= 2:
+            replacements[sin_term] = sum(
+                (-1)**k * sp.binomial(m, 2*k+1)
+                * sp.sin(x)**(2*k + 1)
+                * sp.cos(x)**(m-2*k-1)
+                for k in range((m+1)//2)
+            )
+
+    return expr.xreplace(replacements)
+
 
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
@@ -101,11 +122,12 @@ if __name__=='__main__':
 
     expr = (
         a0 + a1 + a1*sp.cos(x) + 
-        a2*sp.cos(2*x) + 
-        (a3-a2)*sp.cos(3*x)
+        a2*sp.cos(2*x) + sp.sin(6*x) +
+        (a3-a2)*sp.sin(3*x)
     )
 
-    coefs = get_cos_coefs(expr, x, [1,3])
+    expanded = expand_sin_terms(expr, x)
 
-    function_to_latex(coefs)
-    print(expr.atoms(sp.cos))
+    print(expanded)
+
+    function_to_latex(expanded)
