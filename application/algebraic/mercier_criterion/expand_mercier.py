@@ -152,11 +152,11 @@ def order_truncation(cosine_harmonic: int) -> tuple[int, int]:
         order_epsilon=2
         order_ellip=2
     elif cosine_harmonic==2:
-        order_epsilon = 2
+        order_epsilon = 1
         order_ellip = 2
     elif cosine_harmonic==3:
         order_epsilon = 2
-        order_ellip = 2
+        order_ellip = 1
     else:
         raise ValueError("Harmonic not supported")
     
@@ -165,12 +165,12 @@ def order_truncation(cosine_harmonic: int) -> tuple[int, int]:
 def gs_simplify(first_term: sp.Expr, 
                 coords: ToroidalCoordinates,
                 cosine_harmonic: int = 1) -> list[sp.Expr]:
-    order_epsilon, order_ellip = order_truncation(cosine_harmonic)
-    first_term = truncate_expr(
-        first_term, coords, 
-        order_epsilon=order_epsilon, 
-        order_ellip=order_ellip
-    )
+    # order_epsilon, order_ellip = order_truncation(cosine_harmonic)
+    # first_term = truncate_expr(
+    #     first_term, coords, 
+    #     order_epsilon=order_epsilon, 
+    #     order_ellip=order_ellip
+    # )
     first_term = expand_sin_terms(first_term, coords.omega)
     print("Expanded sin(mx) terms")
     first_term = expand_cos_terms(first_term, coords.omega)
@@ -200,7 +200,6 @@ def extract_cosine_equation(terms: list[sp.Expr],
         cosine_terms.add(coef)
 
     sum_of_terms = sp.Add(*cosine_terms)
-    print(sum_of_terms)
     return sp.expand(remove_common_factors(sum_of_terms))
 
 
@@ -228,10 +227,10 @@ def grad_shafranov(coords: ToroidalCoordinates,
     inv_jac = coords.epsilon**2 * inv_jac
     # J~O(eps^2). Divide by factor eps^2 as GS
     # equation equals zero
-    jac = jac/coords.epsilon**2
-    jac_simp = sp.simplify(
-        truncate_expr(jac, coords, 2, 2)
-    )
+    #jac = jac/coords.epsilon**2
+    # jac_simp = sp.simplify(
+    #     truncate_expr(jac, coords, 2, 2)
+    # )
     R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
 
     tens_gww = simplify_full(tens.g_ww, coords, 3)
@@ -246,34 +245,20 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # Remove extra O(eps**2) term
     first_term = f(r)*difference/coords.epsilon**2
     first_term = truncate_expr(
-        first_term, coords, 2, 2
+        first_term, coords, 3, 2
     )
 
     print("Multiplied")
     
-    first_term = R_squared_simp * first_term
-    print("Multiplied R**2")
-
-    first_term_0_2 = gs_simplify(
-        first_term, coords, 2
-    )
-    first_term_0_1_3 = gs_simplify(
-        first_term, coords, 3
-    )
+    first_term = gs_simplify(first_term, coords, 1)
 
 
     # return
 
-    # p/B0^2 ~ O(eps^2)
-    # so p'/B0^2 ~ O(eps)
-    # so multiply by epsilon
-    p_coeff = coords.epsilon*sp.diff(p(r), r) / (coords.R0**2 * B0**2)
-    
-    p_term = p_coeff*R_squared_simp * jac
-
-    p_term_0_2 = gs_simplify(p_term, coords, 2)
-    p_term_0_1_3 = gs_simplify(p_term, coords, 3)
-
+    # p' = 1/eps * dp/dr
+    p_term = sp.diff(p(r), r) / coords.epsilon / (coords.R0**2 * B0**2) * jac
+    p_term = truncate_expr(p_term, coords, 3)
+    p_term = gs_simplify(p_term, coords, 1)
 
     # In Lutjens 1992, g(r)=1+O(eps^2)
     # Let g(r)=1+a(r), s.t. a(r)~O(eps^2)
@@ -287,17 +272,37 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # So gg'/R^2 = [g'(r)+O(eps^3)][1/R0^2 + O(eps^2)] = g'(r)/R0^2 + O(eps^2)
     # Therefore, to order eps, gg'/R^2 ~ g'/R0^2
     # No need to use sympy to auto expand gg'/R^2
-    # g_term = sp.diff(g(r),r) * jac_simp
+    # inv_R_squared = 
+    inv_R_squared = truncate_expr(1/coords.R**2, coords, 3, 2)
+    #inv_R_squared = gs_simplify(inv_R_squared, coords, 1)
+    #function_to_latex(inv_R_squared); return
+    g_term = -sp.diff(p(r), r)/B0**2 - f(r)*sp.diff(f(r),r) - f(r)**2 / r
+    g_term = g_term * inv_R_squared / coords.epsilon
+    g_term = truncate_expr(g_term, coords, 3, 2)
+    g_term = g_term * jac
+    g_term = truncate_expr(g_term, coords, 3, 2)
+
+    g_term = gs_simplify(g_term, coords, 1)
+    #function_to_latex([p_term, g_term]); return
     
     # g_term_0_2 = gs_simplify(g_term, coords, 2)
     # g_term_0_1_3 = gs_simplify(g_term, coords, 3)
+    #function_to_latex([first_term, p_term, g_term]); return
 
-    terms = [first_term_0_1_3, first_term_0_2, p_term_0_2, p_term_0_1_3]
+
+    terms = [
+        g_term
+    ]
 
     cos_0 = extract_cosine_equation(terms, 0)
     cos_1 = extract_cosine_equation(terms, 1)
     cos_2 = extract_cosine_equation(terms, 2)
     cos_3 = extract_cosine_equation(terms, 3)
+
+    # cos_0 = truncate_expr(cos_0, coords, *order_truncation(0))
+    # cos_1 = truncate_expr(cos_1, coords, *order_truncation(1))
+    # cos_2 = truncate_expr(cos_2, coords, *order_truncation(2))
+    # cos_3 = truncate_expr(cos_3, coords, *order_truncation(3))
 
     function_to_latex(
         cos_0, "cos_0.tex"
