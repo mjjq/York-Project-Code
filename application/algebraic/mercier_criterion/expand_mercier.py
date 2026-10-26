@@ -14,7 +14,8 @@ from algebraic.mercier_criterion.identities import (
     sin2n_to_cos2n, 
     collect_cos_coefs,
     get_cos_coefs,
-    expand_sin_terms
+    expand_sin_terms,
+    expand_cos_terms
 )
 
 
@@ -169,10 +170,12 @@ def gs_simplify(first_term: sp.Expr,
         order_epsilon=order_epsilon, 
         order_ellip=order_ellip
     )
-    first_term = sin2n_to_cos2n(first_term, coords.omega)
-    print("sin2n to cos2n done")
     first_term = expand_sin_terms(first_term, coords.omega)
     print("Expanded sin(mx) terms")
+    first_term = expand_cos_terms(first_term, coords.omega)
+    print("Expanded cos(mx) terms")
+    first_term = sin2n_to_cos2n(first_term, coords.omega)
+    print("sin2n to cos2n done")
     first_term = trig_power_to_sum(first_term, coords.omega)
     print("expanded cosine powers")
     first_term = collect_cos_coefs(first_term)
@@ -242,9 +245,9 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # Should divide by epsilon since p'=1/eps * d/dr
     # However the RHS of this expression==0 so
     # don't bother with this
-    p_term = sp.diff(p(r), r) / (coords.R0**2 * B0**2)
+    p_coeff = sp.diff(p(r), r) / (coords.R0**2 * B0**2)
     
-    p_term = p_term * R_squared_simp * jac
+    p_term = R_squared_simp * jac
 
     p_term_0_2 = gs_simplify(p_term, coords, 2)
     p_term_0_1_3 = gs_simplify(p_term, coords, 3)

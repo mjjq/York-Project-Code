@@ -106,6 +106,28 @@ def expand_sin_terms(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
     return expr.xreplace(replacements)
 
 
+def expand_cos_terms(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
+    """
+    Expand cos(mx) terms in expression to sum of sin^n(x), cos^n(x)
+    terms while leaving sin(mx) terms untouched.
+    """
+    replacements = {}
+
+    for cos_term in expr.atoms(sp.cos):
+        arg = cos_term.args[0]
+        m = arg.coeff(x)
+
+        if m.is_Integer and m >= 2 and arg == m*x:
+            replacements[cos_term] = sum(
+                (-1)**k * sp.binomial(m, 2*k)
+                * sp.sin(x)**(2*k)
+                * sp.cos(x)**(m - 2*k)
+                for k in range(m // 2 + 1)
+            )
+
+    return expr.xreplace(replacements)
+
+
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
 
@@ -121,12 +143,10 @@ if __name__=='__main__':
     x = sp.Symbol('x')
 
     expr = (
-        a0 + a1 + a1*sp.cos(x) + 
-        a2*sp.cos(2*x) + sp.sin(6*x) +
-        (a3-a2)*sp.sin(3*x)
+        (a0*sp.cos(2*x) + a1*sp.cos(x)) * sp.cos(2*x)
     )
 
-    expanded = expand_sin_terms(expr, x)
+    expanded = expand_cos_terms(expr, x)
 
     print(expanded)
 
