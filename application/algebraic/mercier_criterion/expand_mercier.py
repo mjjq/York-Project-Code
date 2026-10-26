@@ -238,7 +238,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     difference = diff_r-diff_omega
 
     
-    first_term = f(r)*difference
+    first_term = coords.epsilon*f(r)*difference
     first_term = gs_simplify(first_term, coords)
 
     print("Multiplied")
