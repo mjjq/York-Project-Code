@@ -59,7 +59,8 @@ def summarise_to_latex(coords: ToroidalCoordinates):
     with open("formula.tex", "w") as file:
         file.write(document)
 
-def function_to_latex(f_list: list[sp.Function]):
+def function_to_latex(f_list: list[sp.Function], 
+                      filename: str = 'formula.tex'):
     print(type(f_list))
     if isinstance(f_list, list):
         latex = [sp.latex(f) for f in f_list]
@@ -89,7 +90,7 @@ def function_to_latex(f_list: list[sp.Function]):
     \end{{document}}
     """
 
-    with open("formula.tex", "w") as file:
+    with open(filename, "w") as file:
         file.write(document)
 
 def summarise_expansions(coords: ToroidalCoordinates):

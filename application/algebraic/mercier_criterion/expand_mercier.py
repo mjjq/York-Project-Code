@@ -15,7 +15,8 @@ from algebraic.mercier_criterion.identities import (
     collect_cos_coefs,
     get_cos_coefs,
     expand_sin_terms,
-    expand_cos_terms
+    expand_cos_terms,
+    remove_common_factors
 )
 
 
@@ -182,6 +183,27 @@ def gs_simplify(first_term: sp.Expr,
     print("Collected cos coefs")
     return first_term
 
+def extract_cosine_equation(terms: list[sp.Expr],
+                            cosine_harmonic: int) -> sp.Expr:
+    """
+    Extract cosine harmonic equation from a list of
+    terms containing a sum of harmonics
+
+    Any repeated terms are automatically excluded
+    using set()
+    """
+    cosine_terms = set()
+    for term in terms:
+        coef = get_cos_coefs(
+            term, coords.omega, [cosine_harmonic]
+        )[0]
+        cosine_terms.add(coef)
+
+    sum_of_terms = sp.Add(*cosine_terms)
+    print(sum_of_terms)
+    return sp.expand(remove_common_factors(sum_of_terms))
+
+
 def grad_shafranov(coords: ToroidalCoordinates, 
                    tens: MetricTensor,
                    jac: sp.Expr, 
@@ -212,42 +234,42 @@ def grad_shafranov(coords: ToroidalCoordinates,
     )
     R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
 
-    # tens_gww = simplify_full(tens.g_ww, coords, 3)
-    # diffand = f(r)*tens_gww*inv_jac
-    # diff_r = sp.diff(diffand, r)
+    tens_gww = simplify_full(tens.g_ww, coords, 3)
+    diffand = f(r)*tens_gww*inv_jac
+    diff_r = sp.diff(diffand, r)
 
-    # tens_grw = simplify_full(tens.g_rw, coords, 3)
-    # diffand_omega = f(r)*tens_grw*inv_jac
-    # diff_omega = sp.diff(diffand_omega, coords.omega)
+    tens_grw = simplify_full(tens.g_rw, coords, 3)
+    diffand_omega = f(r)*tens_grw*inv_jac
+    diff_omega = sp.diff(diffand_omega, coords.omega)
 
-    # difference = diff_r-diff_omega
-    # # Remove extra O(eps**2) term
-    # first_term = f(r)*difference/coords.epsilon**2
-    # first_term = truncate_expr(
-    #     first_term, coords, 2, 2
-    # )
+    difference = diff_r-diff_omega
+    # Remove extra O(eps**2) term
+    first_term = f(r)*difference/coords.epsilon**2
+    first_term = truncate_expr(
+        first_term, coords, 2, 2
+    )
 
-    # print("Multiplied")
+    print("Multiplied")
     
-    # first_term = R_squared_simp * first_term
-    # print("Multiplied R**2")
+    first_term = R_squared_simp * first_term
+    print("Multiplied R**2")
 
-    # first_term_0_2 = gs_simplify(
-    #     first_term, coords, 2
-    # )
-    # first_term_0_1_3 = gs_simplify(
-    #     first_term, coords, 3
-    # )
+    first_term_0_2 = gs_simplify(
+        first_term, coords, 2
+    )
+    first_term_0_1_3 = gs_simplify(
+        first_term, coords, 3
+    )
 
 
     # return
 
-    # Should divide by epsilon since p'=1/eps * d/dr
-    # However the RHS of this expression==0 so
-    # don't bother with this
-    p_coeff = sp.diff(p(r), r) / (coords.R0**2 * B0**2)
+    # p/B0^2 ~ O(eps^2)
+    # so p'/B0^2 ~ O(eps)
+    # so multiply by epsilon
+    p_coeff = coords.epsilon*sp.diff(p(r), r) / (coords.R0**2 * B0**2)
     
-    p_term = R_squared_simp * jac
+    p_term = p_coeff*R_squared_simp * jac
 
     p_term_0_2 = gs_simplify(p_term, coords, 2)
     p_term_0_1_3 = gs_simplify(p_term, coords, 3)
@@ -265,14 +287,31 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # So gg'/R^2 = [g'(r)+O(eps^3)][1/R0^2 + O(eps^2)] = g'(r)/R0^2 + O(eps^2)
     # Therefore, to order eps, gg'/R^2 ~ g'/R0^2
     # No need to use sympy to auto expand gg'/R^2
-    g_term = sp.diff(g(r),r) * jac_simp
+    # g_term = sp.diff(g(r),r) * jac_simp
     
-    g_term_0_2 = gs_simplify(g_term, coords, 2)
-    g_term_0_1_3 = gs_simplify(g_term, coords, 3)
+    # g_term_0_2 = gs_simplify(g_term, coords, 2)
+    # g_term_0_1_3 = gs_simplify(g_term, coords, 3)
+
+    terms = [first_term_0_1_3, first_term_0_2, p_term_0_2, p_term_0_1_3]
+
+    cos_0 = extract_cosine_equation(terms, 0)
+    cos_1 = extract_cosine_equation(terms, 1)
+    cos_2 = extract_cosine_equation(terms, 2)
+    cos_3 = extract_cosine_equation(terms, 3)
 
     function_to_latex(
-        [R_squared_simp, gs_simplify(jac_simp, coords, 1), p_term_0_2, p_term_0_1_3]
-    );return
+        cos_0, "cos_0.tex"
+    )
+    function_to_latex(
+        cos_1, "cos_1.tex"
+    )
+    function_to_latex(
+        cos_2, "cos_2.tex"
+    )
+    function_to_latex(
+        cos_3, "cos_3.tex"
+    )
+    return
     #gs_equil = 
 
     return GradShafVariables(

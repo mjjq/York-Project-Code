@@ -128,6 +128,11 @@ def expand_cos_terms(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
     return expr.xreplace(replacements)
 
 
+def remove_common_factors(expr: sp.Expr) -> sp.Expr:
+    common_factor = sp.gcd_list(sp.Add.make_args(expr))
+
+    return sp.simplify(expr/common_factor)
+
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
 
@@ -143,11 +148,9 @@ if __name__=='__main__':
     x = sp.Symbol('x')
 
     expr = (
-        (a0*sp.cos(2*x) + a1*sp.cos(x)) * sp.cos(2*x)
+        12*x**2 - 3*x**3 + 6*x
     )
 
-    expanded = expand_cos_terms(expr, x)
-
-    print(expanded)
+    expanded = remove_common_factors(expr)
 
     function_to_latex(expanded)

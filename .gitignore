@@ -5,3 +5,7 @@ output/
 *venv*
 .vscode
 *.json
+*.tex
+*.aux
+*.pdf
+*.log
