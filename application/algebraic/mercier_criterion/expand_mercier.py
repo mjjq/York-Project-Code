@@ -184,6 +184,7 @@ def gs_simplify(first_term: sp.Expr,
     return first_term
 
 def extract_cosine_equation(terms: list[sp.Expr],
+                            coords: ToroidalCoordinates,
                             cosine_harmonic: int) -> sp.Expr:
     """
     Extract cosine harmonic equation from a list of
@@ -221,37 +222,29 @@ def grad_shafranov(coords: ToroidalCoordinates,
     B0 = sp.Symbol('B0')
     r = coords.r
 
-    
-    # RHS of A.3==0 so just multiply inv_jac by eps**2
-    # to remove 1/eps**2 terms
-    inv_jac = coords.epsilon**2 * inv_jac
-    # J~O(eps^2). Divide by factor eps^2 as GS
-    # equation equals zero
-    #jac = jac/coords.epsilon**2
-    # jac_simp = sp.simplify(
-    #     truncate_expr(jac, coords, 2, 2)
-    # )
-    R_squared_simp = truncate_expr(coords.R**2, coords, 2, 2)
 
     tens_gww = simplify_full(tens.g_ww, coords, 3)
     diffand = f(r)*tens_gww*inv_jac
+    diffand = truncate_expr(diffand, coords, 3)
     diff_r = sp.diff(diffand, r)
+    #diff_r = gs_simplify(diff_r, coords)
 
     tens_grw = simplify_full(tens.g_rw, coords, 3)
-    diffand_omega = f(r)*tens_grw*inv_jac
-    diff_omega = sp.diff(diffand_omega, coords.omega)
+    diffand_omega = tens_grw*inv_jac
+    diffand_omega = truncate_expr(diffand_omega, coords, 3)
+    diff_omega = f(r)*sp.diff(diffand_omega, coords.omega)
+    #diff_omega = gs_simplify(diff_omega, coords)
 
     difference = diff_r-diff_omega
-    # Remove extra O(eps**2) term
-    first_term = f(r)*difference/coords.epsilon**2
-    first_term = truncate_expr(
-        first_term, coords, 3, 2
-    )
+
+    
+    first_term = f(r)*difference
+    first_term = gs_simplify(first_term, coords)
 
     print("Multiplied")
-    
-    first_term = gs_simplify(first_term, coords, 1)
-
+    # cos_2 = get_cos_coefs(first_term, coords.omega, [2])
+    # cos_2_eq = extract_cosine_equation([first_term], coords, 2)
+    # function_to_latex([first_term, cos_2, cos_2_eq]); return
 
     # return
 
@@ -276,8 +269,8 @@ def grad_shafranov(coords: ToroidalCoordinates,
     inv_R_squared = truncate_expr(1/coords.R**2, coords, 3, 2)
     #inv_R_squared = gs_simplify(inv_R_squared, coords, 1)
     #function_to_latex(inv_R_squared); return
-    g_term = -sp.diff(p(r), r)/B0**2 - f(r)*sp.diff(f(r),r) - f(r)**2 / r
-    g_term = g_term * inv_R_squared / coords.epsilon
+    g_term = -sp.diff(p(r), r)/B0**2 - (f(r)*sp.diff(f(r),r) + f(r)**2 / r)
+    g_term = g_term * inv_R_squared/coords.epsilon
     g_term = truncate_expr(g_term, coords, 3, 2)
     g_term = g_term * jac
     g_term = truncate_expr(g_term, coords, 3, 2)
@@ -289,15 +282,14 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # g_term_0_1_3 = gs_simplify(g_term, coords, 3)
     #function_to_latex([first_term, p_term, g_term]); return
 
-
     terms = [
-        g_term
+        first_term, g_term, p_term
     ]
 
-    cos_0 = extract_cosine_equation(terms, 0)
-    cos_1 = extract_cosine_equation(terms, 1)
-    cos_2 = extract_cosine_equation(terms, 2)
-    cos_3 = extract_cosine_equation(terms, 3)
+    cos_0 = extract_cosine_equation(terms, coords, 0)
+    cos_1 = extract_cosine_equation(terms, coords, 1)
+    cos_2 = extract_cosine_equation(terms, coords, 2)
+    cos_3 = extract_cosine_equation(terms, coords, 3)
 
     # cos_0 = truncate_expr(cos_0, coords, *order_truncation(0))
     # cos_1 = truncate_expr(cos_1, coords, *order_truncation(1))
