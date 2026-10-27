@@ -135,18 +135,12 @@ def remove_common_factors(expr: sp.Expr) -> sp.Expr:
 
 
 def total_derivative_order(term: sp.Expr) -> int:
-    """
-    Get the total derivative order of a term.
-
-    E.g. dA/dr has order 1
-         d2A/dr2 has order 2
-         dA/dr * dB/dr has order 2
-         d2A/dr2 * dB/dr has order 3
-    """
-    return sum(
-        factor.derivative_count
-        for factor in term.atoms(sp.Derivative)
-    )
+    order = 0
+    for factor in sp.Mul.make_args(term):
+        base, exp = factor.as_base_exp()
+        if isinstance(base, sp.Derivative):
+            order += base.derivative_count * int(exp)
+    return order
 
 def remove_derivative_order(expr: sp.Expr, max_order: int = 2) -> sp.Expr:
     """
