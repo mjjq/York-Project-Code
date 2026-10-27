@@ -112,7 +112,7 @@ def calc_jacobian(coords: ToroidalCoordinates,
         derivatives.R_omega * derivatives.Z_r
     )
 
-def calc_inv_jacobian(jac: sp.Function, order_epsilon: int = 2) -> sp.Function:
+def calc_inv_jacobian(jac: sp.Function, coords, order_epsilon: int = 2) -> sp.Function:
     """
     Calculate truncated inverse jacobian collected by 
     cosine terms (e.g. 1/J = A*cos(omega) + B*cos(2*omega)...)
@@ -382,7 +382,7 @@ if __name__=='__main__':
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
-    inv_jac = calc_inv_jacobian(j)
+    inv_jac = calc_inv_jacobian(j, coords)
 
     #inv_jac = trig_power_to_sum(inv_jac, coords.omega)
     #inv_jac = collect_cos_coefs(inv_jac)    
