@@ -133,6 +133,31 @@ def remove_common_factors(expr: sp.Expr) -> sp.Expr:
 
     return sp.simplify(expr/common_factor)
 
+
+def total_derivative_order(term: sp.Expr) -> int:
+    """
+    Get the total derivative order of a term.
+
+    E.g. dA/dr has order 1
+         d2A/dr2 has order 2
+         dA/dr * dB/dr has order 2
+         d2A/dr2 * dB/dr has order 3
+    """
+    return sum(
+        factor.derivative_count
+        for factor in term.atoms(sp.Derivative)
+    )
+
+def remove_derivative_order(expr: sp.Expr, max_order: int = 2) -> sp.Expr:
+    """
+    Remove terms in an expression whose derivative
+    order is larger than max_order
+    """
+    return sp.Add(*[
+        term for term in sp.expand(expr).as_ordered_terms()
+        if total_derivative_order(term) <= max_order
+    ])
+
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
 
@@ -146,11 +171,13 @@ if __name__=='__main__':
 
     a0,a1,a2,a3 = sp.symbols('a0 a1 a2 a3')
     x = sp.Symbol('x')
+    f = sp.Function('f')
 
     expr = (
-        12*x**2 - 3*x**3 + 6*x
+        x + sp.diff(f(x), x) + sp.diff(sp.diff(f(x), x), x)
+        + sp.diff(f(x), x) * sp.diff(sp.diff(f(x), x), x)
     )
 
-    expanded = remove_common_factors(expr)
+    filtered = remove_derivative_order(expr, 1)
 
-    function_to_latex(expanded)
+    function_to_latex(filtered)

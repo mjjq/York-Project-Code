@@ -16,7 +16,8 @@ from algebraic.mercier_criterion.identities import (
     get_cos_coefs,
     expand_sin_terms,
     expand_cos_terms,
-    remove_common_factors
+    remove_common_factors,
+    remove_derivative_order
 )
 
 
@@ -290,6 +291,20 @@ def grad_shafranov(coords: ToroidalCoordinates,
     cos_1 = extract_cosine_equation(terms, coords, 1)
     cos_2 = extract_cosine_equation(terms, coords, 2)
     cos_3 = extract_cosine_equation(terms, coords, 3)
+
+    # Remove derivatives higher order than 2, e.g.
+    # ~ d2E/dr2 * dDelta/dr
+    # This is because the equations later convert back
+    # to prime notation, and ' = 1/eps d/dr.
+    # So converting from d/dr to prime introduces a factor
+    # epsilon. The derivatives with order higher than 2
+    # are of order epsilon^3 when converted to primes. 
+    # Other terms are at least O(epsilon), so we wish
+    # to only preserve terms which are O(epsilon^2)
+    # cos_1 = remove_derivative_order(cos_1)
+    # cos_1 = sp.collect(cos_1, coords.ellip)
+    # cos_3 = remove_derivative_order(cos_3)
+    # cos_3 = sp.collect(cos_3, coords.ellip)
 
     # cos_0 = truncate_expr(cos_0, coords, *order_truncation(0))
     # cos_1 = truncate_expr(cos_1, coords, *order_truncation(1))
