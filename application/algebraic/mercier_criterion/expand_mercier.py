@@ -64,12 +64,12 @@ def RZ_lutjens() -> ToroidalCoordinates:
     P = sp.Function("P")
 
     R = (
-        R0 - epsilon*(r-ellip*E(r)) * sp.cos(omega) - epsilon**2 * D(r)  + 
+        R0 - epsilon*(r-0*E(r)) * sp.cos(omega) - epsilon**2 * D(r)  + 
         epsilon**2 * T(r) * sp.cos(2*omega) + 
         epsilon**3 * P(r) * sp.cos(omega)
     )
     Z = (
-        epsilon * (r+ellip*E(r)) * sp.sin(omega) +
+        epsilon * (r+0*E(r)) * sp.sin(omega) +
         epsilon**2 * T(r) * sp.sin(2*omega) -
         epsilon**3 * P(r) * sp.sin(omega)
     )
@@ -224,15 +224,15 @@ def grad_shafranov(coords: ToroidalCoordinates,
     r = coords.r
 
 
-    tens_gww = simplify_full(tens.g_ww, coords, 3)
+    tens_gww = simplify_full(tens.g_ww, coords, 4)
     diffand = f(r)*tens_gww*inv_jac
-    diffand = truncate_expr(diffand, coords, 3)
+    diffand = truncate_expr(diffand, coords, 4)
     diff_r = sp.diff(diffand, r)
     #diff_r = gs_simplify(diff_r, coords)
 
-    tens_grw = simplify_full(tens.g_rw, coords, 3)
+    tens_grw = simplify_full(tens.g_rw, coords, 4)
     diffand_omega = tens_grw*inv_jac
-    diffand_omega = truncate_expr(diffand_omega, coords, 3)
+    diffand_omega = truncate_expr(diffand_omega, coords, 4)
     diff_omega = f(r)*sp.diff(diffand_omega, coords.omega)
     #diff_omega = gs_simplify(diff_omega, coords)
 
@@ -240,6 +240,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
 
     
     first_term = coords.epsilon*f(r)*difference
+    first_term = truncate_expr(first_term, coords, 3)
     first_term = gs_simplify(first_term, coords)
 
     print("Multiplied")
@@ -286,6 +287,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     terms = [
         first_term, g_term, p_term
     ]
+    #function_to_latex(terms); return
 
     cos_0 = extract_cosine_equation(terms, coords, 0)
     cos_1 = extract_cosine_equation(terms, coords, 1)
