@@ -172,10 +172,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     diffand = f(r)*tens_gww/jac
     diffand = sp.series(diffand, coords.epsilon, 0, 2).removeO()
     diffand = sp.series(diffand, coords.ellip, 0, 2).removeO()
-    #function_to_latex(diffand); exit()
-    #diffand = truncate_expr(diffand, coords, 4)
     diff_r = sp.diff(diffand, r)
-    #diff_r = gs_simplify(diff_r, coords)
     print("diff_r calculated")
 
     tens_grw = simplify_full(tens.g_rw, coords, 4)
@@ -183,7 +180,6 @@ def grad_shafranov(coords: ToroidalCoordinates,
     diffand_omega = sp.series(diffand_omega, coords.epsilon, 0, 2).removeO()
     diffand_omega = sp.series(diffand_omega, coords.ellip, 0, 2).removeO()
     diff_omega = f(r)*sp.diff(diffand_omega, coords.omega)
-    #diff_omega = gs_simplify(diff_omega, coords)
     print("diff_omega calculated")
 
     difference = diff_r-diff_omega
@@ -210,15 +206,8 @@ def grad_shafranov(coords: ToroidalCoordinates,
         (f(r)*sp.diff(f(r),r) + f(r)**2 / r)
     )
     g_term = g_term /coords.R**2 /coords.epsilon
-    #g_term = truncate_expr(g_term, coords, 3, 2)
     g_term = g_term * jac
     g_term = truncate_expr(g_term, coords, 3, 2)
-
-    #function_to_latex([p_term, g_term]); return
-    
-    # g_term_0_2 = gs_simplify(g_term, coords, 2)
-    # g_term_0_1_3 = gs_simplify(g_term, coords, 3)
-    #function_to_latex([first_term, p_term, g_term]); return
 
     total = first_term + g_term + p_term
 
@@ -231,27 +220,8 @@ def grad_shafranov(coords: ToroidalCoordinates,
     cos_2 = cos_coefs[2]
     cos_3 = cos_coefs[3]
 
-    # Remove derivatives higher order than 2, e.g.
-    # ~ d2E/dr2 * dDelta/dr
-    # This is because the equations later convert back
-    # to prime notation, and ' = 1/eps d/dr.
-    # So converting from d/dr to prime introduces a factor
-    # epsilon. The derivatives with order higher than 2
-    # are of order epsilon^3 when converted to primes. 
-    # Other terms are at least O(epsilon), so we wish
-    # to only preserve terms which are O(epsilon^2)
-    # cos_1 = remove_derivative_order(cos_1)
     cos_1 = sp.collect(cos_1, coords.ellip)
-    # cos_3 = remove_derivative_order(cos_3)
-    #cos_3 = scale_r_derivatives(cos_3, coords.r, coords.epsilon)
-    #cos_3 = truncate_expr(cos_3, coords, 2, 2)
     cos_3 = sp.collect(cos_3, coords.ellip)
-
-    # cos_0 = truncate_expr(cos_0, coords, *order_truncation(0))
-    # cos_1 = truncate_expr(cos_1, coords, *order_truncation(1))
-    # cos_2 = truncate_expr(cos_2, coords, *order_truncation(2))
-    # cos_3 = truncate_expr(cos_3, coords, *order_truncation(3))
-
 
     return GradShafVariables(
         cos_0, cos_1, cos_2, cos_3, f, g, p, B0
