@@ -17,7 +17,8 @@ from algebraic.mercier_criterion.identities import (
     expand_sin_terms,
     expand_cos_terms,
     remove_common_factors,
-    remove_derivative_order
+    remove_derivative_order,
+    scale_r_derivatives
 )
 
 
@@ -168,14 +169,7 @@ def order_truncation(cosine_harmonic: int) -> tuple[int, int]:
     return order_epsilon, order_ellip
 
 def gs_simplify(first_term: sp.Expr, 
-                coords: ToroidalCoordinates,
-                cosine_harmonic: int = 1) -> list[sp.Expr]:
-    # order_epsilon, order_ellip = order_truncation(cosine_harmonic)
-    # first_term = truncate_expr(
-    #     first_term, coords, 
-    #     order_epsilon=order_epsilon, 
-    #     order_ellip=order_ellip
-    # )
+                coords: ToroidalCoordinates) -> list[sp.Expr]:
     first_term = expand_sin_terms(first_term, coords.omega)
     print("Expanded sin(mx) terms")
     first_term = expand_cos_terms(first_term, coords.omega)
@@ -257,7 +251,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # p' = 1/eps * dp/dr
     p_term = sp.diff(p(r), r) / coords.epsilon / (coords.R0**2 * B0**2) * jac
     p_term = truncate_expr(p_term, coords, 3)
-    p_term = gs_simplify(p_term, coords, 1)
+    p_term = gs_simplify(p_term, coords)
 
     # In Lutjens 1992, g(r)=1+O(eps^2)
     # Let g(r)=1+a(r), s.t. a(r)~O(eps^2)
@@ -281,7 +275,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
     g_term = g_term * jac
     g_term = truncate_expr(g_term, coords, 3, 2)
 
-    g_term = gs_simplify(g_term, coords, 1)
+    g_term = gs_simplify(g_term, coords)
     #function_to_latex([p_term, g_term]); return
     
     # g_term_0_2 = gs_simplify(g_term, coords, 2)
@@ -308,9 +302,11 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # Other terms are at least O(epsilon), so we wish
     # to only preserve terms which are O(epsilon^2)
     # cos_1 = remove_derivative_order(cos_1)
-    # cos_1 = sp.collect(cos_1, coords.ellip)
+    cos_1 = sp.collect(cos_1, coords.ellip)
     # cos_3 = remove_derivative_order(cos_3)
-    # cos_3 = sp.collect(cos_3, coords.ellip)
+    #cos_3 = scale_r_derivatives(cos_3, coords.r, coords.epsilon)
+    #cos_3 = truncate_expr(cos_3, coords, 2, 2)
+    cos_3 = sp.collect(cos_3, coords.ellip)
 
     # cos_0 = truncate_expr(cos_0, coords, *order_truncation(0))
     # cos_1 = truncate_expr(cos_1, coords, *order_truncation(1))

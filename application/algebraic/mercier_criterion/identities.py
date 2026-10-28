@@ -1,4 +1,6 @@
 import sympy as sp
+import re
+from sympy.core.function import AppliedUndef
 
 def collect_cos_coefs(expr: sp.Expr):
     """
@@ -151,6 +153,67 @@ def remove_derivative_order(expr: sp.Expr, max_order: int = 2) -> sp.Expr:
         term for term in sp.expand(expr).as_ordered_terms()
         if total_derivative_order(term) <= max_order
     ])
+
+
+def _scaled_function(name: str, n: int, r: sp.Symbol) -> sp.Expr:
+    """Placeholder for the n-th 'prime' derivative F^(n)(r) = eps^-n d^nF/dr^n"""
+    return sp.Function(f"{name}_{n}")(r)
+
+
+def scale_r_derivatives(expr: sp.Expr,
+                        r: sp.Symbol,
+                        epsilon: sp.Symbol) -> sp.Expr:
+    """
+    Replace d^nF/dr^n with epsilon**n * F_n(r), where F_n is the
+    n-th derivative in Lutjens' prime notation (' = (1/eps) d/dr).
+
+    After this, every derivative carries its epsilon cost explicitly,
+    so truncating in epsilon also truncates by derivative order.
+
+    Call this AFTER all sp.diff(..., r) calls are finished: F_n(r)
+    is a new undefined function, so differentiating it later would
+    not know that dF_n/dr = eps * F_{n+1}.
+    """
+    replacements = {}
+
+    for d in expr.atoms(sp.Derivative):
+        # Only pure r-derivatives of an undefined function F(r)
+        if any(var != r for var in d.variables):
+            continue
+        if not isinstance(d.expr, AppliedUndef) or d.expr.args != (r,):
+            continue
+
+        n = d.derivative_count
+        name = d.expr.func.__name__
+        replacements[d] = epsilon**n * _scaled_function(name, n, r)
+
+    return expr.xreplace(replacements)
+
+
+def restore_r_derivatives(expr: sp.Expr,
+                          r: sp.Symbol,
+                          epsilon: sp.Symbol,
+                          as_primes: bool = False) -> sp.Expr:
+    """
+    Inverse of scale_r_derivatives.
+
+    as_primes=False: F_n(r) -> eps**(-n) * d^nF/dr^n  (exact inverse)
+    as_primes=True:  F_n(r) -> d^nF/dr^n, i.e. treat the Derivative
+                     objects as Lutjens' primes (use this for rendering
+                     the final equations once epsilon has been divided out)
+    """
+    pattern = re.compile(r"^(.+)_(\d+)$")
+    replacements = {}
+
+    for f in expr.atoms(AppliedUndef):
+        m = pattern.match(f.func.__name__)
+        if not m or f.args != (r,):
+            continue
+        name, n = m.group(1), int(m.group(2))
+        deriv = sp.Derivative(sp.Function(name)(r), (r, n))
+        replacements[f] = deriv if as_primes else deriv / epsilon**n
+
+    return expr.xreplace(replacements)
 
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
