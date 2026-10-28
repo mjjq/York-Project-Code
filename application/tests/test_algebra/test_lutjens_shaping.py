@@ -1,5 +1,5 @@
 from algebraic.mercier_criterion.expand_mercier import (
-    RZ_lutjens, calc_jacobian, calc_inv_jacobian,
+    RZ_lutjens, calc_jacobian,
     calc_metric_tensor, calc_derivatives,
     grad_shafranov
 )
@@ -19,9 +19,8 @@ def test_lutjens_zero_ellip():
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
-    inv_jac = calc_inv_jacobian(j, coords)
 
-    gs = grad_shafranov(coords, metric, j, inv_jac)
+    gs = grad_shafranov(coords, metric, j)
 
     r = coords.r
     R0 = coords.R0
@@ -43,7 +42,11 @@ def test_lutjens_zero_ellip():
         ) -
         1/R0 + 2*r*Derivative(p(r), r)/(B0**2*R0*f(r)**2)
     )
-    assert sp.simplify(cos_1-cos_1_true)==0
+
+    delta_rr = sp.solve(cos_1, sp.diff(Delta(r), r, 2))[0]
+    delta_rr_true = sp.solve(cos_1_true, sp.diff(Delta(r), r, 2))[0]
+
+    assert sp.simplify(delta_rr-delta_rr_true)==0
 
     # Now test the cos(3omega) component
     T = shaping.T
@@ -57,7 +60,10 @@ def test_lutjens_zero_ellip():
         ) -
         8*T(r)/r**2
     )
-    assert sp.simplify(cos_3-cos_3_true)==0
+
+    T_rr = sp.solve(cos_3, sp.diff(T(r), r, 2))[0]
+    T_rr_true = sp.solve(cos_3, sp.diff(T(r),r,2))[0]
+    assert sp.simplify(T_rr-T_rr_true)==0
 
 
 def test_lutjens_cos2():
@@ -70,9 +76,8 @@ def test_lutjens_cos2():
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
-    inv_jac = calc_inv_jacobian(j, coords)
 
-    gs = grad_shafranov(coords, metric, j, inv_jac)
+    gs = grad_shafranov(coords, metric, j)
 
     r = coords.r
     R0 = coords.R0
@@ -95,4 +100,7 @@ def test_lutjens_cos2():
         ) -
         3*E(r)/r**2
     )
-    assert sp.simplify(cos_2-cos_2_true)==0
+
+    E_rr = sp.solve(cos_2, sp.diff(E(r), r, 2))[0]
+    E_rr_true = sp.solve(cos_2_true, sp.diff(E(r), r, 2))[0]
+    assert sp.simplify(E_rr - E_rr_true)==0

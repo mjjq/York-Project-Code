@@ -63,9 +63,9 @@ def function_to_latex(f_list: list[sp.Function],
                       filename: str = 'formula.tex'):
     print(type(f_list))
     if isinstance(f_list, list):
-        latex = [sp.latex(f) for f in f_list]
+        latex = [sp.latex(f, long_frac_ratio=2) for f in f_list]
     else:
-        latex = [sp.latex(f_list)]
+        latex = [sp.latex(f_list, long_frac_ratio=2)]
 
     #latex = [l.replace("+", r"\allowbreak{}+") for l in latex]
 
