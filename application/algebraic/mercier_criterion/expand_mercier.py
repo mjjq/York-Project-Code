@@ -317,20 +317,6 @@ def grad_shafranov(coords: ToroidalCoordinates,
     # cos_2 = truncate_expr(cos_2, coords, *order_truncation(2))
     # cos_3 = truncate_expr(cos_3, coords, *order_truncation(3))
 
-    # function_to_latex(
-    #     cos_0, "cos_0.tex"
-    # )
-    # function_to_latex(
-    #     cos_1, "cos_1.tex"
-    # )
-    # function_to_latex(
-    #     cos_2, "cos_2.tex"
-    # )
-    # function_to_latex(
-    #     cos_3, "cos_3.tex"
-    # )
-    # return
-    #gs_equil = 
 
     return GradShafVariables(
         cos_0, cos_1, cos_2, cos_3, f, g, p, B0
@@ -381,26 +367,24 @@ def simplify_full(f: sp.Expr,
     return simplify(series)
 
 if __name__=='__main__':
-    coords, shaping = RZ_lutjens(False)
+    coords, shaping = RZ_lutjens()
 
-    #function_to_latex(truncate_expr(coords.R**2, coords)); exit()
-    
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
     inv_jac = calc_inv_jacobian(j, coords)
 
-    #inv_jac = trig_power_to_sum(inv_jac, coords.omega)
-    #inv_jac = collect_cos_coefs(inv_jac)    
-    #function_to_latex([inv_jac])
-
     gs = grad_shafranov(coords, metric, j, inv_jac)
 
-    print(gs.gs_1omega)
-    print(gs.gs_3omega)
-
-    #function_to_latex(gs.gs)
-    #print(simplify_full(gs.gs, coords))
-
-
-    #summarise_to_latex(coords)
+    function_to_latex(
+        gs.gs_equil, "cos_0.tex"
+    )
+    function_to_latex(
+        gs.gs_1omega, "cos_1.tex"
+    )
+    function_to_latex(
+        gs.gs_2omega, "cos_2.tex"
+    )
+    function_to_latex(
+        gs.gs_3omega, "cos_3.tex"
+    )
