@@ -1,5 +1,6 @@
 import sympy as sp
 from argparse import ArgumentParser
+from copy import deepcopy
 
 from algebraic.mercier_criterion.datatypes import (
     ToroidalCoordinates, 
@@ -239,11 +240,72 @@ def gs_simplify_lutjens(gs: GradShafVariables,
     substitute in the O(e^0) values of d2Delta/dr2, d2T/dr2, d2E/dr2
     as the O(e) components become O(e^2) and are thus eliminated.
     """
-    Delta = coords.D
     r = coords.r
+
+    # Get d2Delta/dr2, d2E/dr2 and d2T/dr2 to O(e)
+    Delta = coords.D
+    gs_1omega_order_1 = sp.series(gs.gs_1omega, coords.ellip, 0, 1).removeO()
     delta_rr = sp.solve(
-        gs.gs_1omega, sp.diff(Delta(r), r, 2)
+        gs_1omega_order_1, sp.diff(Delta(r), r, 2)
+    )[0]
+
+    E = shaping.E
+    E_rr = sp.solve(
+        gs.gs_2omega, sp.diff(E(r), r, 2)
+    )[0]
+
+    T = shaping.T
+    gs_3omega_order_1 = sp.series(gs.gs_3omega, coords.ellip, 0, 1).removeO()
+    T_rr = sp.solve(
+        gs_3omega_order_1, sp.diff(T(r), r, 2)
+    )[0]
+
+    # Create a copy of the original GS object
+    gs_simp = deepcopy(gs)
+
+    # Now begin substituting E_rr and T_rr into the cos(omega)
+    # harmonic
+    subs_1omega = {
+        sp.diff(E(r), r, 2): E_rr,
+        sp.diff(T(r), r, 2): T_rr
+    }
+    
+
+    gs_simp.gs_1omega = sp.solve(
+        gs_simp.gs_1omega.subs(subs_1omega),
+        sp.diff(Delta(r), r, 2)
+    )[0]
+    gs_simp.gs_1omega = sp.collect(
+        sp.simplify(
+            sp.series(
+                gs_simp.gs_1omega, 
+                coords.ellip, 0, 2
+            ).removeO()
+        ), 
+        (coords.ellip, shaping.E(r))
     )
+
+    # Now do similar for the cos(3omega) harmonic
+    subs_3omega = {
+        sp.diff(E(r), r, 2): E_rr,
+        sp.diff(Delta(r), r, 2): delta_rr
+    }
+
+    gs_simp.gs_3omega = sp.solve(
+        gs_simp.gs_3omega.subs(subs_3omega),
+        sp.diff(T(r), r, 2)
+    )[0]
+    gs_simp.gs_3omega = sp.collect(
+        sp.simplify(
+            sp.series(
+                gs_simp.gs_3omega, 
+                coords.ellip, 0, 2
+            ).removeO()
+        ), 
+        coords.ellip
+    )
+
+    return gs_simp
 
 def truncate_expr_fast(f: sp.Expr,
                        coords: ToroidalCoordinates,
@@ -320,6 +382,10 @@ if __name__=='__main__':
         state.to_disk(
             "expand_mercier_state.pkl"
         )
+
+    state.gs = gs_simplify_lutjens(
+        state.gs, state.coords, state.shaping
+    )
 
     function_to_latex(
         state.gs.gs_equil, "cos_0.tex"
