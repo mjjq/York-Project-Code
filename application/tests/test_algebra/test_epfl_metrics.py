@@ -43,7 +43,7 @@ def test_g_rw_eps2():
     )
 
     true_g_rw = coords.epsilon**3 * coords.r * (
-        sp.diff(coords.D(coords.r), coords.r)*sp.sin(coords.omega) - expr_sum
+        sp.diff(shaping.D(coords.r), coords.r)*sp.sin(coords.omega) - expr_sum
     )
 
     assert sp.simplify(sp.trigsimp(sp.simplify(trunc_g_rw-true_g_rw)))==0
@@ -70,7 +70,7 @@ def test_jacobian_eps2():
 
     true_jac = sp.simplify(coords.epsilon**2 * coords.r * coords.R0 * (
         1 + 
-        coords.epsilon * (coords.r/coords.R0 - sp.diff(coords.D(coords.r), coords.r)) * sp.cos(coords.omega) +
+        coords.epsilon * (coords.r/coords.R0 - sp.diff(shaping.D(coords.r), coords.r)) * sp.cos(coords.omega) +
         coords.epsilon * expr_sum
     ))
 

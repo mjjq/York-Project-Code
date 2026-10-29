@@ -13,15 +13,6 @@ from algebraic.mercier_criterion.datatypes import (
 )
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
 from algebraic.mercier_criterion.identities import (
-    trig_power_to_sum, 
-    sin2n_to_cos2n, 
-    collect_cos_coefs,
-    get_cos_coefs,
-    expand_sin_terms,
-    expand_cos_terms,
-    remove_common_factors,
-    remove_derivative_order,
-    scale_r_derivatives,
     fourier_coefficients,
     fourier_expression
 )
@@ -307,19 +298,6 @@ def gs_simplify_lutjens(gs: GradShafVariables,
 
     return shaping_copy
 
-def truncate_expr_fast(f: sp.Expr,
-                       coords: ToroidalCoordinates,
-                       order_epsilon: int = 3,
-                       order_ellip: int = 2) -> sp.Expr:
-    series = f
-
-    if coords.epsilon in f.free_symbols:
-        series = (series + sp.O(coords.omega**(order_epsilon-1))).removeO()
-
-    if coords.ellip in f.free_symbols:
-                series = (series + sp.O(coords.omega**(order_ellip-1))).removeO()
-
-    return series
 
 def truncate_expr(f: sp.Expr,
                   coords: ToroidalCoordinates,
