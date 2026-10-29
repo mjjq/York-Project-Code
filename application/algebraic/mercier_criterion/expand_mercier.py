@@ -1,4 +1,5 @@
 import sympy as sp
+from argparse import ArgumentParser
 
 from algebraic.mercier_criterion.datatypes import (
     ToroidalCoordinates, 
@@ -6,7 +7,8 @@ from algebraic.mercier_criterion.datatypes import (
     LutjensShaping,
     Derivatives,
     MetricTensor,
-    GradShafVariables
+    GradShafVariables,
+    State
 )
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
 from algebraic.mercier_criterion.identities import (
@@ -227,6 +229,22 @@ def grad_shafranov(coords: ToroidalCoordinates,
         cos_0, cos_1, cos_2, cos_3, f, g, p, B0
     )
 
+def gs_simplify_lutjens(gs: GradShafVariables, 
+                        coords: ToroidalCoordinates, 
+                        shaping: LutjensShaping) -> GradShafVariables:
+    """
+    Simplify the Lutjens GS equations by eliminating extra d2/dr2 terms.
+
+    These extra d2/dr2 are O(e) in A.5 and A.7. Because of this, we can 
+    substitute in the O(e^0) values of d2Delta/dr2, d2T/dr2, d2E/dr2
+    as the O(e) components become O(e^2) and are thus eliminated.
+    """
+    Delta = coords.D
+    r = coords.r
+    delta_rr = sp.solve(
+        gs.gs_1omega, sp.diff(Delta(r), r, 2)
+    )
+
 def truncate_expr_fast(f: sp.Expr,
                        coords: ToroidalCoordinates,
                        order_epsilon: int = 3,
@@ -273,23 +291,45 @@ def simplify_full(f: sp.Expr,
     return simplify(series)
 
 if __name__=='__main__':
-    coords, shaping = RZ_lutjens()
+    parser = ArgumentParser()
+    parser.add_argument(
+        "-gs", "--gs-funcs-filename",
+        type=str,
+        help="Path to pre-calculated grad shafranov terms",
+        default=None
+    )
+    args = parser.parse_args()
 
-    derivatives = calc_derivatives(coords)
-    metric = calc_metric_tensor(derivatives)
-    j = calc_jacobian(coords, derivatives)
+    
 
-    gs = grad_shafranov(coords, metric, j)
+    if args.gs_funcs_filename:
+        state = State.from_disk(
+            args.gs_funcs_filename
+        )
+    else:
+        coords, shaping = RZ_lutjens()
+        derivatives = calc_derivatives(coords)
+        metric = calc_metric_tensor(derivatives)
+        j = calc_jacobian(coords, derivatives)
+        gs = grad_shafranov(coords, metric, j)
+
+        state = State(
+            coords, shaping, derivatives,
+            metric, gs, j
+        )
+        state.to_disk(
+            "expand_mercier_state.pkl"
+        )
 
     function_to_latex(
-        gs.gs_equil, "cos_0.tex"
+        state.gs.gs_equil, "cos_0.tex"
     )
     function_to_latex(
-        gs.gs_1omega, "cos_1.tex"
+        state.gs.gs_1omega, "cos_1.tex"
     )
     function_to_latex(
-        gs.gs_2omega, "cos_2.tex"
+        state.gs.gs_2omega, "cos_2.tex"
     )
     function_to_latex(
-        gs.gs_3omega, "cos_3.tex"
+        state.gs.gs_3omega, "cos_3.tex"
     )

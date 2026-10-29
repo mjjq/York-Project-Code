@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import sympy as sp
+import pickle
 
 @dataclass
 class ToroidalCoordinates:
@@ -50,10 +51,12 @@ class MetricTensor:
 @dataclass
 class GradShafVariables:
     # Equation A.3. in Lutjens 1992 expanded
-    gs_equil:  sp.Eq # cos(0w) component at O(1)
-    gs_1omega: sp.Eq # cos(1w) component at O(eps)
-    gs_2omega: sp.Eq # cos(2w) component at O(e)
-    gs_3omega: sp.Eq # cos(3w) component at O(eps)
+    # Given as expressions which are implicitly
+    # equal to zero
+    gs_equil:  sp.Expr # cos(0w) component at O(1)
+    gs_1omega: sp.Expr # cos(1w) component at O(eps)
+    gs_2omega: sp.Expr # cos(2w) component at O(e)
+    gs_3omega: sp.Expr # cos(3w) component at O(eps)
 
     f: sp.Function # dpsi/dr = R0 B0 eps * f(r)
     g: sp.Function # G = R0 B0 g(r), g(r) = 1+O(eps^2)
@@ -61,3 +64,45 @@ class GradShafVariables:
     p: sp.Function # pressure p(r)
 
     B0: sp.Symbol # On-axis toroidal field
+
+
+@dataclass
+class State():
+    coords: ToroidalCoordinates
+    shaping: EPFLShaping | LutjensShaping
+    derivatives: Derivatives
+    metric: MetricTensor
+    gs: GradShafVariables
+    jacobian: sp.Expr
+
+    def to_disk(self, filename: str):
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def from_disk(cls, filename: str):
+        with open(filename, "rb") as f:
+            state = pickle.load(f)
+
+            assert isinstance(state, State)
+
+            assert isinstance(
+                state.coords, ToroidalCoordinates
+            )
+            assert isinstance(
+                state.shaping, (EPFLShaping, LutjensShaping)
+            )
+            assert isinstance(
+                state.derivatives, Derivatives
+            )
+            assert isinstance(
+                state.metric, MetricTensor
+            )
+            assert isinstance(
+                state.gs, GradShafVariables
+            )
+            assert isinstance(
+                state.jacobian, sp.Expr
+            )
+
+            return state
