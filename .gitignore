@@ -11,3 +11,4 @@ output/
 *.log
 *.fdb*
 *.fls
+*.pkl
