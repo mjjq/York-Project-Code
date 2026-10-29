@@ -53,10 +53,10 @@ def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
     )
 
     coords = ToroidalCoordinates(
-        R, Z, D, P, R0, r, omega, epsilon, ellip
+        R, Z, R0, r, omega, epsilon, ellip
     )
     shaping = EPFLShaping(
-        S, m, N
+        D, S, m, N, P
     )
     return coords, shaping
 
@@ -85,10 +85,10 @@ def RZ_lutjens(include_ellip: bool = True) -> ToroidalCoordinates:
     )
 
     coords = ToroidalCoordinates(
-        R, Z, D, P, R0, r, omega, epsilon, ellip
+        R, Z, R0, r, omega, epsilon, ellip
     )
     shaping = LutjensShaping(
-        E, T
+        D, E, T, P
     )
 
     return coords, shaping
@@ -232,7 +232,7 @@ def grad_shafranov(coords: ToroidalCoordinates,
 
 def gs_simplify_lutjens(gs: GradShafVariables, 
                         coords: ToroidalCoordinates, 
-                        shaping: LutjensShaping) -> GradShafVariables:
+                        shaping: LutjensShaping) -> LutjensShaping:
     """
     Simplify the Lutjens GS equations by eliminating extra d2/dr2 terms.
 
@@ -243,7 +243,7 @@ def gs_simplify_lutjens(gs: GradShafVariables,
     r = coords.r
 
     # Get d2Delta/dr2, d2E/dr2 and d2T/dr2 to O(e)
-    Delta = coords.D
+    Delta = shaping.D
     gs_1omega_order_1 = sp.series(gs.gs_1omega, coords.ellip, 0, 1).removeO()
     delta_rr = sp.solve(
         gs_1omega_order_1, sp.diff(Delta(r), r, 2)
@@ -260,9 +260,7 @@ def gs_simplify_lutjens(gs: GradShafVariables,
         gs_3omega_order_1, sp.diff(T(r), r, 2)
     )[0]
 
-    # Create a copy of the original GS object
-    gs_simp = deepcopy(gs)
-
+    shaping_copy = deepcopy(shaping)
     # Now begin substituting E_rr and T_rr into the cos(omega)
     # harmonic
     subs_1omega = {
@@ -271,14 +269,14 @@ def gs_simplify_lutjens(gs: GradShafVariables,
     }
     
 
-    gs_simp.gs_1omega = sp.solve(
-        gs_simp.gs_1omega.subs(subs_1omega),
+    shaping_copy.D_rr = sp.solve(
+        gs.gs_1omega.subs(subs_1omega),
         sp.diff(Delta(r), r, 2)
     )[0]
-    gs_simp.gs_1omega = sp.collect(
+    shaping_copy.D_rr = sp.collect(
         sp.simplify(
             sp.series(
-                gs_simp.gs_1omega, 
+                shaping_copy.D_rr, 
                 coords.ellip, 0, 2
             ).removeO()
         ), 
@@ -291,21 +289,23 @@ def gs_simplify_lutjens(gs: GradShafVariables,
         sp.diff(Delta(r), r, 2): delta_rr
     }
 
-    gs_simp.gs_3omega = sp.solve(
-        gs_simp.gs_3omega.subs(subs_3omega),
+    shaping_copy.T_rr = sp.solve(
+        gs.gs_3omega.subs(subs_3omega),
         sp.diff(T(r), r, 2)
     )[0]
-    gs_simp.gs_3omega = sp.collect(
+    shaping_copy.T_rr = sp.collect(
         sp.simplify(
             sp.series(
-                gs_simp.gs_3omega, 
+                shaping_copy.T_rr, 
                 coords.ellip, 0, 2
             ).removeO()
         ), 
         coords.ellip
     )
 
-    return gs_simp
+    shaping_copy.E_rr = E_rr
+
+    return shaping_copy
 
 def truncate_expr_fast(f: sp.Expr,
                        coords: ToroidalCoordinates,
@@ -383,7 +383,7 @@ if __name__=='__main__':
             "expand_mercier_state.pkl"
         )
 
-    state.gs = gs_simplify_lutjens(
+    state.shaping = gs_simplify_lutjens(
         state.gs, state.coords, state.shaping
     )
 
@@ -391,11 +391,11 @@ if __name__=='__main__':
         state.gs.gs_equil, "cos_0.tex"
     )
     function_to_latex(
-        state.gs.gs_1omega, "cos_1.tex"
+        state.shaping.D_rr, "cos_1.tex"
     )
     function_to_latex(
-        state.gs.gs_2omega, "cos_2.tex"
+        state.shaping.E_rr, "cos_2.tex"
     )
     function_to_latex(
-        state.gs.gs_3omega, "cos_3.tex"
+        state.shaping.T_rr, "cos_3.tex"
     )

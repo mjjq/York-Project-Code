@@ -7,9 +7,6 @@ class ToroidalCoordinates:
     R: sp.Function # Major radius
     Z: sp.Function # Vertical distance
 
-    D: sp.Function # Shafranov shift (function of r)
-    P: sp.Function # P(r)
-
     R0: sp.Symbol # Major radius of magnetic axis
     
     # New co-ords
@@ -22,16 +19,25 @@ class ToroidalCoordinates:
 
 @dataclass
 class EPFLShaping:
+    D: sp.Function # Shafranov shift Delta(r)
+
     # Shaping
     S: sp.Function # Shaping coefficients (S_m(r))
     m: sp.Symbol # Shaping coef indices
     N: sp.Symbol # sum_{m=1}^N...
 
+    P: sp.Function # P(r)
+
 @dataclass
 class LutjensShaping:
+    D: sp.Function # Shafranov shift Delta(r)
     E: sp.Function # ellipticity E(r)
     T: sp.Function # Triangularity T(r)
+    P: sp.Function # P(r)
 
+    D_rr: sp.Function = None # d2D/dr2, derived later
+    E_rr: sp.Function = None # d2E/dr2, derived later
+    T_rr: sp.Function = None # d2T/dr2, derived later
 
 @dataclass
 class Derivatives:
