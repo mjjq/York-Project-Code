@@ -16,6 +16,7 @@ from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
     fourier_expression
 )
+import algebraic.mercier_criterion.mercier_integrals as integrals
 
 
 def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
@@ -59,6 +60,7 @@ def RZ_lutjens(include_ellip: bool = True) -> ToroidalCoordinates:
     E = sp.Function("E")
     T = sp.Function("T")
     P = sp.Function("P")
+    Q = sp.Function("Q")
 
     ellip_tag = 1
     if not include_ellip:
@@ -72,14 +74,14 @@ def RZ_lutjens(include_ellip: bool = True) -> ToroidalCoordinates:
     Z = (
         epsilon * (r+ellip_tag*ellip*E(r)) * sp.sin(omega) +
         epsilon**2 * T(r) * sp.sin(2*omega) -
-        epsilon**3 * P(r) * sp.sin(omega)
+        epsilon**3 * Q(r) * sp.sin(omega)
     )
 
     coords = ToroidalCoordinates(
         R, Z, R0, r, omega, epsilon, ellip
     )
     shaping = LutjensShaping(
-        D, E, T, P
+        D, E, T, P, Q
     )
 
     return coords, shaping
@@ -108,7 +110,7 @@ def calc_metric_tensor(derivatives: Derivatives) -> MetricTensor:
 
 def calc_jacobian(coords: ToroidalCoordinates, 
                   derivatives: Derivatives) -> sp.Function:
-    return coords.R * (
+    return -coords.R * (
         derivatives.R_r * derivatives.Z_omega -
         derivatives.R_omega * derivatives.Z_r
     )
@@ -365,15 +367,4 @@ if __name__=='__main__':
         state.gs, state.coords, state.shaping
     )
 
-    function_to_latex(
-        state.gs.gs_equil, "cos_0.tex"
-    )
-    function_to_latex(
-        state.shaping.D_rr, "cos_1.tex"
-    )
-    function_to_latex(
-        state.shaping.E_rr, "cos_2.tex"
-    )
-    function_to_latex(
-        state.shaping.T_rr, "cos_3.tex"
-    )
+    integrals.rhat_squared(state.jacobian, state.coords)

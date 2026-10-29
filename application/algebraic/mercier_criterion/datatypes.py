@@ -34,6 +34,7 @@ class LutjensShaping:
     E: sp.Function # ellipticity E(r)
     T: sp.Function # Triangularity T(r)
     P: sp.Function # P(r)
+    Q: sp.Function # Q(r)
 
     D_rr: sp.Function = None # d2D/dr2, derived later
     E_rr: sp.Function = None # d2E/dr2, derived later

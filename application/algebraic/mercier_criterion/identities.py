@@ -2,6 +2,11 @@ import sympy as sp
 import re
 from sympy.core.function import AppliedUndef
 
+def integrate_by_parts(u: sp.Expr, dv: sp.Expr, x: sp.Symbol) -> sp.Expr:
+    v = sp.integrate(dv, x)
+    du = sp.diff(u, x)
+
+    return u*v - sp.integrate(v*du, x)
 
 def fourier_coefficients(expr, x):
     """
