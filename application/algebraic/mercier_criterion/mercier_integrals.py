@@ -71,6 +71,35 @@ def drhat_squared_dr(jac: sp.Expr,
 
     return eps_squared_term
 
+
+def safety_factor(jac: sp.Expr, 
+                  coords: ToroidalCoordinates, 
+                  B0: sp.Symbol) -> sp.Expr:
+    """
+    Calculate the safety factor q = J/R^2 * G, where G = R0*B0*g(r),
+    g(r) = 1+O(eps^2)
+    """
+    a = sp.Function('a')
+
+    g = 1+coords.epsilon**2 * a(coords.r)
+    G = coords.R0 * B0 * g
+
+    f = sp.Function('f')
+    dpsi_dr = coords.R0*B0*f(coords.r)
+
+    ql = G * jac/coords.R**2/dpsi_dr / coords.epsilon**2
+    ql = sp.series(ql, coords.epsilon, 0, 3).removeO()
+    ql = sp.series(ql, coords.ellip, 0, 1).removeO()
+
+    q = sp.integrate(
+        ql,
+        (coords.omega, 0, 2*sp.pi)
+    )/(2*sp.pi)
+
+    q = sp.collect(sp.expand(q), coords.epsilon)
+
+    return q
+
 def integral_5(coords: ToroidalCoordinates, jac: sp.Expr) -> sp.Expr:
     """
     Evaluate I_5 in A.2 (Lutjens 1992).
