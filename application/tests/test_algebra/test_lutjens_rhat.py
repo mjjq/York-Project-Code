@@ -45,6 +45,11 @@ def test_rhat_squared_equation():
 
     r_constraint = drhat_squared_dr(state.jacobian, state.coords)
 
+    # Equation 5.9 in lutjens thesis is simplified by multiplying
+    # both sides by a factor of 2/r, so recover the unsimplified
+    # version before differentiating.
+    # Also, lutjens' jacobian definition is the negative of ours,
+    # so need to negate the result as well.
     r_constraint_true = -sp.diff(
         state.coords.r/2 * expected_rhat_squared(state.coords, state.shaping),
         state.coords.r
