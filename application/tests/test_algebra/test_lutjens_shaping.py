@@ -113,23 +113,17 @@ def test_lutjens_shaping_order_eps():
     """
     from algebraic.mercier_criterion.expand_mercier import gs_simplify_lutjens
     from algebraic.mercier_criterion.datatypes import State
-    state_filename = "expand_mercier_state.pkl"
-    
-    try:
-        state = State.from_disk(
-            state_filename
-        )
-    except FileNotFoundError:
-        coords, shaping = RZ_lutjens()
-        derivatives = calc_derivatives(coords)
-        metric = calc_metric_tensor(derivatives)
-        j = calc_jacobian(coords, derivatives)
-        gs = grad_shafranov(coords, metric, j)
 
-        state = State(
-            coords, shaping, derivatives,
-            metric, gs, j
-        )
+    coords, shaping = RZ_lutjens()
+    derivatives = calc_derivatives(coords)
+    metric = calc_metric_tensor(derivatives)
+    j = calc_jacobian(coords, derivatives)
+    gs = grad_shafranov(coords, metric, j)
+
+    state = State(
+        coords, shaping, derivatives,
+        metric, gs, j
+    )
 
     state.shaping = gs_simplify_lutjens(
         state.gs, state.coords, state.shaping

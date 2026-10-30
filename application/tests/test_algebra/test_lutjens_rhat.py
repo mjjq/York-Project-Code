@@ -28,21 +28,16 @@ def test_rhat_squared_equation():
     from algebraic.mercier_criterion.datatypes import State
     state_filename = "expand_mercier_state.pkl"
     
-    try:
-        state = State.from_disk(
-            state_filename
-        )
-    except FileNotFoundError:
-        coords, shaping = RZ_lutjens()
-        derivatives = calc_derivatives(coords)
-        metric = calc_metric_tensor(derivatives)
-        j = calc_jacobian(coords, derivatives)
-        gs = grad_shafranov(coords, metric, j)
+    coords, shaping = RZ_lutjens()
+    derivatives = calc_derivatives(coords)
+    metric = calc_metric_tensor(derivatives)
+    j = calc_jacobian(coords, derivatives)
+    gs = grad_shafranov(coords, metric, j)
 
-        state = State(
-            coords, shaping, derivatives,
-            metric, gs, j
-        )
+    state = State(
+        coords, shaping, derivatives,
+        metric, gs, j
+    )
 
     state.shaping = gs_simplify_lutjens(
         state.gs, state.coords, state.shaping
