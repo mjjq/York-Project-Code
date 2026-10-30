@@ -41,6 +41,24 @@ def expected_rhat_squared(coords: ToroidalCoordinates,
     return lhs - rhs
 
 
+def j_over_rsquared_integral(jac: sp.Expr,
+                             coords: ToroidalCoordinates) -> sp.Expr:
+    """
+    oint_0^2pi [J/R^2] domega
+    """
+    j_over_r2 = sp.series(
+        jac/coords.R**2/coords.epsilon**2, 
+        coords.epsilon, 
+        0, 4
+    ).removeO()
+    j_over_r2 = sp.series(j_over_r2, coords.ellip, 0, 4).removeO()
+    first_int = sp.integrate(
+        j_over_r2, 
+        (coords.omega, 0, 2*sp.pi)
+    )
+    return first_int
+
+
 def drhat_squared_dr(jac: sp.Expr, 
                      coords: ToroidalCoordinates) -> sp.Expr:
     """
@@ -54,11 +72,8 @@ def drhat_squared_dr(jac: sp.Expr,
     The O(eps^2) term must equal zero for r=rhat, which thus constrains
     shaping.P and shaping.Q
     """
-    j_over_r2 = sp.series(jac/coords.R**2/coords.epsilon**2, coords.epsilon, 0, 4).removeO()
-    j_over_r2 = sp.series(j_over_r2, coords.ellip, 0, 4).removeO()
-    first_int = sp.integrate(
-        j_over_r2, 
-        (coords.omega, 0, 2*sp.pi)
+    first_int = j_over_rsquared_integral(
+        jac, coords
     )
     first_int = sp.series(first_int, coords.epsilon, 0, 3).removeO()
     first_int = sp.series(first_int, coords.ellip, 0, 2).removeO()
@@ -70,6 +85,36 @@ def drhat_squared_dr(jac: sp.Expr,
     eps_squared_term = sp.series(eps_squared_term, coords.ellip, 0, 2).removeO()
 
     return eps_squared_term
+
+
+def drhat_squared_dr_indefinite(jac: sp.Expr, 
+                                coords: ToroidalCoordinates) -> sp.Expr:
+    """
+    Denominator integral in chi (Lutjens thesis 5.7)
+
+    The r_constraint is the output of drhat_squared_dr.
+    This expression must equal zero and contain terms 
+    which constrain P and Q. This is subbed into the indefinite
+    integral to eliminate several terms.
+    """
+    j_over_r2 = sp.series(jac/coords.R**2/coords.epsilon**2, coords.epsilon, 0, 3).removeO()
+    j_over_r2 = sp.series(j_over_r2, coords.ellip, 0, 3).removeO()
+
+    j_over_r2 = fourier_expression(
+        *fourier_coefficients(j_over_r2, coords.omega), coords.omega
+    )
+    #function_to_latex(j_over_r2); exit()
+
+    first_int = sp.integrate(
+        j_over_r2, coords.omega
+    )
+    first_int = sp.series(first_int, coords.epsilon, 0, 3).removeO()
+    first_int = sp.series(first_int, coords.ellip, 0, 2).removeO()
+
+    first_int = sp.collect(sp.expand(first_int), coords.epsilon)
+
+
+    return first_int
 
 
 def safety_factor(jac: sp.Expr, 

@@ -300,6 +300,21 @@ def gs_simplify_lutjens(gs: GradShafVariables,
 
     return shaping_copy
 
+def insert_r_constraint_lutjens(coords: ToroidalCoordinates,
+                                shaping: LutjensShaping,
+                                r_constraint: sp.Expr) -> ToroidalCoordinates:
+    """
+    Insert s.f. radius constraint into co-ordinates, replacing
+    P with the constraint.
+    """
+    new_p_expr = 2*r_constraint + shaping.P(coords.r)
+    
+    new_coords = deepcopy(coords)
+    new_coords.R.subs(shaping.P(new_coords.r), new_p_expr)
+
+    function_to_latex([new_p_expr, new_coords.R]); exit()
+
+    return new_coords
 
 def truncate_expr(f: sp.Expr,
                   coords: ToroidalCoordinates,
@@ -365,3 +380,20 @@ if __name__=='__main__':
         state.to_disk(
             "expand_mercier_state.pkl"
         )
+
+    integral_indef = integrals.drhat_squared_dr_indefinite(
+        state.jacobian, state.coords
+    )
+    inv_integral = 1/integrals.j_over_rsquared_integral(
+        state.jacobian, state.coords
+    )
+    inv_integral = sp.series(inv_integral, state.coords.epsilon, 0, 3).removeO()
+    inv_integral = sp.series(inv_integral, state.coords.ellip, 0, 2).removeO()
+
+    chi = 2*sp.pi*integral_indef*inv_integral
+    chi = sp.series(chi, state.coords.epsilon, 0, 3).removeO()
+    chi = sp.series(chi, state.coords.ellip, 0, 2).removeO()
+    chi = sp.collect(sp.expand(chi), state.coords.epsilon)
+
+
+    function_to_latex([chi])
