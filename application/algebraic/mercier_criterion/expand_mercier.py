@@ -354,17 +354,14 @@ if __name__=='__main__':
         metric = calc_metric_tensor(derivatives)
         j = calc_jacobian(coords, derivatives)
         gs = grad_shafranov(coords, metric, j)
+        shaping = gs_simplify_lutjens(
+            state.gs, state.coords, state.shaping
+        )
 
         state = State(
             coords, shaping, derivatives,
             metric, gs, j
-        )
+        )    
         state.to_disk(
             "expand_mercier_state.pkl"
         )
-
-    state.shaping = gs_simplify_lutjens(
-        state.gs, state.coords, state.shaping
-    )
-
-    integrals.rhat_squared(state.jacobian, state.coords)

@@ -60,8 +60,8 @@ def drhat_squared_dr(jac: sp.Expr,
         j_over_r2, 
         (coords.omega, 0, 2*sp.pi)
     )
-    first_int = sp.series(first_int, coords.epsilon, 0, 4).removeO()
-    first_int = sp.series(first_int, coords.ellip, 0, 4).removeO()
+    first_int = sp.series(first_int, coords.epsilon, 0, 3).removeO()
+    first_int = sp.series(first_int, coords.ellip, 0, 2).removeO()
 
     first_int = sp.expand(first_int*coords.R0/(2*sp.pi))
     first_int = sp.collect(first_int, coords.epsilon)

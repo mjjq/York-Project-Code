@@ -14,7 +14,15 @@ from sympy import Derivative
 
 def test_rhat_squared_equation():
     """
-    Test lutjens thesis eq 5.9 derivation
+    Test lutjens thesis eq 5.9 derivation.
+
+    This test will fail as we appear to recover an extra term
+    of -2TT' in our derivation of the r constraint.
+
+    The presence of this factor in our derivation is consistent
+    with Jon's derivation at zero ellipticity (EPFL slides, lecture 2, slide 37)
+
+    I therefore believe this to be an error in Hinrich's equation.
     """
     from algebraic.mercier_criterion.expand_mercier import gs_simplify_lutjens
     from algebraic.mercier_criterion.datatypes import State
@@ -40,18 +48,16 @@ def test_rhat_squared_equation():
         state.gs, state.coords, state.shaping
     )
 
-    rhat_squared_r = drhat_squared_dr(state.jacobian, state.coords)
-    expected_rhat_squared_r = sp.expand(-state.coords.r/2 * sp.diff(
-        expected_rhat_squared(state.coords, state.shaping),
+    r_constraint = drhat_squared_dr(state.jacobian, state.coords)
+
+    r_constraint_true = -sp.diff(
+        state.coords.r/2 * expected_rhat_squared(state.coords, state.shaping),
         state.coords.r
-    )).collect(state.coords.ellip)
+    )
+    r_constraint_true = sp.simplify(r_constraint_true)
+    r_constraint_true = r_constraint_true.collect(state.coords.ellip)
 
-    function_to_latex([
-        rhat_squared_r, expected_rhat_squared_r,
-        sp.simplify(rhat_squared_r-expected_rhat_squared_r)
-        ])
-
-    assert sp.simplify(rhat_squared_r-expected_rhat_squared_r)==0
+    assert sp.simplify(r_constraint-r_constraint_true)==0
 
     
     
