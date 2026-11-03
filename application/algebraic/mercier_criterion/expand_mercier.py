@@ -17,6 +17,9 @@ from algebraic.mercier_criterion.identities import (
     fourier_expression
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
+from algebraic.mercier_criterion.straight_field_expansion import (
+    expand_chi, expand_omega
+)
 
 
 def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
@@ -53,8 +56,8 @@ def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
     return coords, shaping
 
 def RZ_lutjens(include_ellip: bool = True) -> ToroidalCoordinates:
-    r, omega, epsilon, ellip, R0 = sp.symbols(
-        "r omega epsilon e R0"
+    r, omega, epsilon, ellip, R0, chi = sp.symbols(
+        "r omega epsilon e R0 chi"
     )
     D = sp.Function("Delta")
     E = sp.Function("E")
@@ -78,7 +81,7 @@ def RZ_lutjens(include_ellip: bool = True) -> ToroidalCoordinates:
     )
 
     coords = ToroidalCoordinates(
-        R, Z, R0, r, omega, epsilon, ellip
+        R, Z, R0, r, omega, chi, epsilon, ellip
     )
     shaping = LutjensShaping(
         D, E, T, P, Q
@@ -364,36 +367,25 @@ if __name__=='__main__':
             args.gs_funcs_filename
         )
     else:
-        coords, shaping = RZ_lutjens()
+        coords, shaping = RZ_lutjens(False)
         derivatives = calc_derivatives(coords)
         metric = calc_metric_tensor(derivatives)
         j = calc_jacobian(coords, derivatives)
-        gs = grad_shafranov(coords, metric, j)
-        shaping = gs_simplify_lutjens(
-            state.gs, state.coords, state.shaping
-        )
+        #gs = grad_shafranov(coords, metric, j)
+        gs = None
 
         state = State(
             coords, shaping, derivatives,
             metric, gs, j
         )    
+        # shaping = gs_simplify_lutjens(
+        #     state.gs, state.coords, state.shaping
+        # )
         state.to_disk(
             "expand_mercier_state.pkl"
         )
 
-    integral_indef = integrals.drhat_squared_dr_indefinite(
-        state.jacobian, state.coords
-    )
-    inv_integral = 1/integrals.j_over_rsquared_integral(
-        state.jacobian, state.coords
-    )
-    inv_integral = sp.series(inv_integral, state.coords.epsilon, 0, 3).removeO()
-    inv_integral = sp.series(inv_integral, state.coords.ellip, 0, 2).removeO()
+    chi = expand_chi(state.coords, state.jacobian)
+    omega_expanded = expand_omega(chi, state.coords)
 
-    chi = 2*sp.pi*integral_indef*inv_integral
-    chi = sp.series(chi, state.coords.epsilon, 0, 3).removeO()
-    chi = sp.series(chi, state.coords.ellip, 0, 2).removeO()
-    chi = sp.collect(sp.expand(chi), state.coords.epsilon)
-
-
-    function_to_latex([chi])
+    function_to_latex([omega_expanded])

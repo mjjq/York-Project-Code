@@ -12,6 +12,7 @@ class ToroidalCoordinates:
     # New co-ords
     r: sp.Symbol # Minor radius
     omega: sp.Symbol # Generalised angle
+    chi: sp.Symbol # S.f. angle
 
     # Expansion params
     epsilon: sp.Symbol # Inverse aspect ratio tag
