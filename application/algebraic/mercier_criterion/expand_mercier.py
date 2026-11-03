@@ -2,6 +2,8 @@ import sympy as sp
 from argparse import ArgumentParser
 from copy import deepcopy
 
+from debug.log import logger
+
 from algebraic.mercier_criterion.datatypes import (
     ToroidalCoordinates, 
     EPFLShaping, 
@@ -367,12 +369,14 @@ if __name__=='__main__':
             args.gs_funcs_filename
         )
     else:
-        coords, shaping = RZ_lutjens(False)
+        coords, shaping = RZ_lutjens()
         derivatives = calc_derivatives(coords)
         metric = calc_metric_tensor(derivatives)
         j = calc_jacobian(coords, derivatives)
         #gs = grad_shafranov(coords, metric, j)
-        gs = None
+        gs = GradShafVariables(
+            None, None, None, None, None, None, None, None
+        )
 
         state = State(
             coords, shaping, derivatives,
@@ -385,7 +389,17 @@ if __name__=='__main__':
             "expand_mercier_state.pkl"
         )
 
+    logger.debug("Calculated state")
     chi = expand_chi(state.coords, state.jacobian)
+    function_to_latex(chi); exit()
+
     omega_expanded = expand_omega(chi, state.coords)
 
-    function_to_latex([omega_expanded])
+    omega_eps_squared = sp.series(
+        omega_expanded, state.coords.ellip, 0, 1
+    )
+    omega_e_eps = sp.series(
+        omega_expanded, state.coords.epsilon, 2
+    )
+
+    function_to_latex([omega_eps_squared, omega_e_eps])
