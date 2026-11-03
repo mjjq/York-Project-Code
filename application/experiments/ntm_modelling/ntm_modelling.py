@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import numpy as np
+from cycler import cycler
 
 from debug.log import logger
 
@@ -29,30 +30,35 @@ if __name__=='__main__':
         help="Toroidal mode number"
     )
     parser.add_argument(
-        "-xp", "--chi-perp", type=float, default=0.15499,
-        help="On-axis perpendicular thermal diffusion coefficient"
+        "-xp", "--chi-perp", type=float,
+        help="On-axis perpendicular thermal diffusion coefficient", nargs='+',
+        default=[0.15499]
     )
     parser.add_argument(
-        "-xpa", "--chi-parallel", type=float, default=1.0934e7,
-        help="On-axis perpendicular thermal diffusion coefficient"
+        "-xpa", "--chi-parallel", type=float,
+        help="On-axis perpendicular thermal diffusion coefficient", nargs='+',
+        default=[1.0934e7]
     )
     parser.add_argument(
-        "-e", "--resistivity", type=float, default=1.9413e-7,
-        help="Resistivity at the rational surface"
+        "-e", "--resistivity", type=float,
+        help="Resistivity at the rational surface", nargs='+',
+        default=[1.9413e-7]
     )
     parser.add_argument(
         '-s', "--scale-factor", type=float, default=1.0,
         help="Scale factor for q-profile (to simulate B_phi ramp)"
     )
     parser.add_argument(
-        '-g', "--ggj-scale-factor", type=float, default=1.0,
-        help="Scale factor for GGJ (to simulate rMHD)"
+        '-g', "--ggj-scale-factor", type=float,
+        help="Scale factor for GGJ (to simulate rMHD)", nargs='+',
+        default=[1.0]
     )
     parser.add_argument(
         "-w", "--island-width-data-filename",
         type=str,
+        nargs='+',
         help="Path to measured island width time trace.",
-        default=""
+        default=[]
     )
     parser.add_argument(
         "-i", "--inset-axes", 
@@ -93,8 +99,9 @@ if __name__=='__main__':
         plot_total=True
 
     from matplotlib import pyplot as plt
+    default_cycler = cycler(color=['black', 'black', 'red', 'red'])+cycler(linestyle=[':', '-', ':', '-'])
+    plt.rc('axes', prop_cycle=default_cycler)
     fig, ax = plt.subplots(1, figsize=(5,3.5))
-    linestyles = iter([':','-','--'])
     for i,cols_filename in enumerate(args.chease_cols_file):
         if args.labels:
             label = args.labels[i]
@@ -109,30 +116,28 @@ if __name__=='__main__':
             w_vals, chease_cols,
             args.poloidal_mode_number,
             args.toroidal_mode_number,
-            args.chi_perp,
-            args.chi_parallel
+            args.chi_perp[i],
+            args.chi_parallel[i]
         )
         r_s = mre_theory.r_s 
         mu0 = 4e-7*np.pi
-        eta = args.resistivity
+        eta = args.resistivity[i]
         rutherford_scale = 1.22 # See Kleiner 2016, expression for f_n
         scale_fac = rutherford_scale*eta/mu0
         print(scale_fac)
 
         delta_p_classical = mre_theory.delta_p_cl_finite_island
-        ggj_vals = args.ggj_scale_factor * mre_theory.delta_p_ggj
+        ggj_vals = args.ggj_scale_factor[i] * mre_theory.delta_p_ggj
         bootstrap_vals = mre_theory.delta_p_bs
 
         linewidth=2.0
         #ax.set_title("$B_{\phi,0}/B_{\phi,0,exp}=$"f"{args.scale_factor}")
 
-        linestyle=next(linestyles)
         if plot_cl:
             ax.plot(
                 w_vals, 
                 scale_fac*delta_p_classical, 
                 label="$\Delta'_C$ "+label, 
-                linestyle=linestyle, 
                 linewidth=linewidth,
                 color='blue'
             )
@@ -141,7 +146,6 @@ if __name__=='__main__':
                 w_vals, 
                 scale_fac*ggj_vals, 
                 label="$\Delta'_{GGJ}$ "+label, 
-                linestyle=linestyle, 
                 linewidth=linewidth,
                 color='orange'
             )
@@ -150,7 +154,6 @@ if __name__=='__main__':
                 w_vals, 
                 scale_fac*bootstrap_vals, 
                 label="$\Delta'_{BS}$ "+label, 
-                linestyle=linestyle, 
                 linewidth=linewidth,
                 color='green'
             )
@@ -159,8 +162,7 @@ if __name__=='__main__':
                 w_vals, 
                 scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals), 
                 label="MRE Total "+label,
-                color='black',
-                linestyle=linestyle,
+               # color='black',
                 linewidth=linewidth
             )
         #ax.hlines(0.0, xmin=0.0, xmax=max(w_vals), color='black', linestyle='--')
@@ -175,13 +177,13 @@ if __name__=='__main__':
             #axins.plot(w_vals, scale_fac*(delta_p_classical+ggj_vals+bootstrap_vals))
 
         if args.island_width_data_filename:
-            measured_data = read_measured_w_data(args.island_width_data_filename)
-            measured_data = avg_island_width_to_outboard(
-               chease_cols,
-                measured_data,
-                args.poloidal_mode_number,
-                args.toroidal_mode_number
-            )
+            measured_data = read_measured_w_data(args.island_width_data_filename[i])
+            #measured_data = avg_island_width_to_outboard(
+            #   chease_cols,
+            #    measured_data,
+            #    args.poloidal_mode_number,
+            #    args.toroidal_mode_number
+            #)
             # Allow simulation to equilibriate after a millisecond
             t_filter = measured_data.times > 1e-3
             times = measured_data.times[t_filter]
@@ -189,8 +191,7 @@ if __name__=='__main__':
             dw_dt = np.diff(w_vals)/np.diff(times)
             measured_delta_prime = dw_dt*mu0/eta/rutherford_scale
             measured_rs_delta_prime = mre_theory.r_s * measured_delta_prime
-            ax.plot(w_vals[:-1], dw_dt, label="JOREK", linewidth=1.25*linewidth)
-            
+            ax.plot(w_vals[:-1], dw_dt, label="JOREK "+label, linewidth=1.25*linewidth)
             #if args.inset_axes:
             #    axins.plot(w_vals[:-1], dw_dt)
         

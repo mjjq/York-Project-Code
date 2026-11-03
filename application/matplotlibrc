@@ -1,1 +1,17 @@
 axes.prop_cycle: cycler('color', ['black', 'red', 'blue', 'violet', 'olivedrab', 'cadetblue', 'deeppink', 'green', 'saddlebrown'])
+
+axes.labelsize: 12
+axes.titleweight: bold
+axes.labelweight: normal
+
+# Tick labels
+xtick.labelsize: 10
+ytick.labelsize: 10
+
+# Legend
+legend.fontsize: 10
+legend.title_fontsize: 11
+
+# Figure title
+figure.titlesize: 16
+figure.titleweight: bold
