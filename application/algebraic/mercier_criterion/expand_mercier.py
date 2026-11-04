@@ -16,7 +16,8 @@ from algebraic.mercier_criterion.datatypes import (
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
-    fourier_expression
+    fourier_expression,
+    truncate
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 from algebraic.mercier_criterion.straight_field_expansion import (
@@ -392,7 +393,6 @@ if __name__=='__main__':
 
     logger.debug("Calculated state")
     chi = expand_chi(state.coords, state.jacobian)
-    function_to_latex(chi); exit()
 
     omega_expanded = expand_omega(chi, state.coords)
 

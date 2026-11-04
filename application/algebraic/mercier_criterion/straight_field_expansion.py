@@ -44,7 +44,7 @@ def expand_chi(coords: ToroidalCoordinates, jacobian: sp.Expr) -> sp.Expr:
 
     logger.debug("Expanded chi")
 
-    return chi_of_omega
+    return truncate(chi_of_omega, coords.epsilon, coords.ellip)
 
 
 def expand_omega(chi_of_omega: sp.Expr, 

@@ -70,9 +70,12 @@ def test_rhat_squared_equation():
     chi_eps_e_T = -(
         E(r)*sp.diff(T(r), r) + 2*sp.diff(E(r), r)*T(r)
     )/r * sp.sin(omega)
-    # Note we only have P and Q, no sum over Pn or Qn.
+    # Note we only have P and Q, no sum over Pn or Qn. In Lutjens,
+    # the n=1 term in the sum exactly cancels the term proportional
+    # to omega, so omit this from the check. 
+    # (Note: sin[(n-1)w]/2(n-1)->w/2 for n->1)
     chi_eps_squared = (
-        omega * (r**2/(2*R0**2) + D(r)/R0 + r*sp.diff(D(r), r)/(2*R0)) +
+        #omega * (r**2/(2*R0**2) + D(r)/R0 + r*sp.diff(D(r), r)/(2*R0)) +
         (r**2/(4*R0**2) + r*sp.diff(D(r), r)/(4*R0))*sp.sin(2*omega) +
         (
             ((P(r)-Q(r))/r - sp.diff(P(r)-Q(r),r)) * sp.sin(2*omega)/4

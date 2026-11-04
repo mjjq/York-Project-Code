@@ -7,15 +7,13 @@ def truncate(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp.Expr:
     Truncate expression to only retain terms up to order
     x**2, y, and xy
     """
-    poly = sp.Poly(sp.expand(expr), x, y)
+    poly = sp.Poly(expr, x, y)
 
     return sp.Add(*[
         coeff * x**i * y**j
         for (i, j), coeff in poly.terms()
         if i + j <= 2
     ])
-
-    return truncated
 
 def integrate_by_parts(u: sp.Expr, dv: sp.Expr, x: sp.Symbol) -> sp.Expr:
     v = sp.integrate(dv, x)
