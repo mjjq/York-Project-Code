@@ -72,7 +72,8 @@ def RZ_lutjens(include_ellip: bool = True) -> ToroidalCoordinates:
         ellip_tag = 0
 
     R = (
-        R0 - epsilon*(r-ellip_tag*ellip*E(r)) * sp.cos(omega) - epsilon**2 * D(r)  + 
+        R0 - epsilon*(r-ellip_tag*ellip*E(r)) * sp.cos(omega) - 
+        epsilon**2 * D(r)  + 
         epsilon**2 * T(r) * sp.cos(2*omega) + 
         epsilon**3 * P(r) * sp.cos(omega)
     )

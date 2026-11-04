@@ -37,17 +37,14 @@ def expand_chi(coords: ToroidalCoordinates, jacobian: sp.Expr) -> sp.Expr:
     )
     logger.debug("Calculated chi integral")
 
-    inv_integral = sp.series(inv_integral, coords.ellip, 0, 2).removeO()
-    inv_integral = sp.series(inv_integral, coords.epsilon, 0, 3).removeO()
-
     chi_of_omega = 2*sp.pi*integral_indef*inv_integral
     chi_of_omega = sp.series(chi_of_omega, coords.ellip, 0, 2).removeO()
     chi_of_omega = sp.series(chi_of_omega, coords.epsilon, 0, 3).removeO()
-    chi_of_omega = sp.collect(sp.expand(chi_of_omega), coords.epsilon)
+    #chi_of_omega = sp.collect(chi_of_omega, coords.epsilon)
 
     logger.debug("Expanded chi")
 
-    return truncate(chi_of_omega, coords.epsilon, coords.ellip)
+    return chi_of_omega
 
 
 def expand_omega(chi_of_omega: sp.Expr, 

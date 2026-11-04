@@ -51,7 +51,7 @@ def j_over_rsquared_integral(jac: sp.Expr,
         coords.epsilon, 
         0, 3
     ).removeO()
-    j_over_r2 = sp.series(j_over_r2, coords.ellip, 0, 3).removeO()
+    j_over_r2 = sp.series(j_over_r2, coords.ellip, 0, 2).removeO()
     first_int = sp.integrate(
         j_over_r2, 
         (coords.omega, 0, 2*sp.pi)
@@ -97,7 +97,9 @@ def drhat_squared_dr_indefinite(jac: sp.Expr,
     which constrain P and Q. This is subbed into the indefinite
     integral to eliminate several terms.
     """
-    j_over_r2 = sp.series(jac/coords.R**2/coords.epsilon**2, coords.epsilon, 0, 3).removeO()
+    j_over_r2 = sp.series(
+        jac/coords.R**2/coords.epsilon**2, coords.epsilon, 0, 3
+    ).removeO()
     j_over_r2 = sp.series(j_over_r2, coords.ellip, 0, 2).removeO()
 
     j_over_r2 = fourier_expression(
