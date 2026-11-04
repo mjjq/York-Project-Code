@@ -26,8 +26,8 @@ from algebraic.mercier_criterion.straight_field_expansion import (
 
 
 def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
-    r, omega, epsilon, ellip, R0 = sp.symbols(
-        "r omega epsilon ellip R0"
+    r, omega, chi, epsilon, ellip, R0 = sp.symbols(
+        "r omega chi epsilon ellip R0"
     )
     D = sp.Function("Delta")
     P = sp.Function("P")
@@ -51,7 +51,7 @@ def RZ_epfl() -> tuple[ToroidalCoordinates, EPFLShaping]:
     )
 
     coords = ToroidalCoordinates(
-        R, Z, R0, r, omega, epsilon, ellip
+        R, Z, R0, r, omega, chi, epsilon, ellip
     )
     shaping = EPFLShaping(
         D, S, m, N, P

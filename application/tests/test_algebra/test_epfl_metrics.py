@@ -56,7 +56,9 @@ def test_jacobian_eps2():
 
     derivs = calc_derivatives(coords)
 
-    jac = calc_jacobian(coords, derivs)
+    # Note: Hinrich's jacobian is negative of Jon's,
+    # so negate the output here.
+    jac = -calc_jacobian(coords, derivs)
 
     trunc_jac = sp.simplify(sp.series(jac, coords.epsilon, 0, 4).removeO())
 
