@@ -21,6 +21,30 @@ def integrate_by_parts(u: sp.Expr, dv: sp.Expr, x: sp.Symbol) -> sp.Expr:
 
     return u*v - sp.integrate(v*du, x)
 
+def fast_trig_expand(expr: sp.Expr, 
+                     x: sp.Symbol, 
+                     order: int = 2) -> sp.Expr:
+    # Taylor approximations of sin(x) and cos(x)
+    replacements = {
+        sp.sin(x): sp.series(sp.sin(x), x, 0, order).removeO(),
+        sp.cos(x): sp.series(sp.cos(x), x, 0, order).removeO()
+    }
+
+    # Replace trig functions throughout the expression
+    expr = expr.xreplace(replacements)
+
+    # Convert to polynomial and truncate higher-order terms
+    poly = sp.Poly(expr, x)
+
+    # Keep only terms with powers lower than order
+    result = sum(
+        coeff * x**power[0]
+        for power, coeff in poly.terms()
+        if power[0] < order
+    )
+
+    return result
+
 def fourier_coefficients(expr, x):
     """
     Extract Fourier coefficients from a trigonometric polynomial.
@@ -149,11 +173,11 @@ if __name__=='__main__':
     n = sp.symbols('n', integer=True, nonnegative=True)
     a0,a1,a2 = sp.symbols('a0 a1 a2')
 
-    expr = sp.sin(2*x)**2 + 2*sp.sin(3*x)**2 * sp.cos(3*x)
+    expr = (sp.sin(x) +  sp.cos(x))
 
-    coefs = fourier_coefficients(expr, x)
-    new_expr = fourier_expression(*coefs, x)
-    function_to_latex(new_expr)
+    expanded = fast_trig_expand(expr, x, 2)
+    series_expand = sp.series(expr, x, 0, 2)
+    function_to_latex([expanded, series_expand])
     # expanded = sp.expand(expr.subs(sp.sin(x)**2, 1 - sp.cos(x)**2))
     # #expr_sum = trig_power_to_sum(expanded, x)
     # function_to_latex(expanded)

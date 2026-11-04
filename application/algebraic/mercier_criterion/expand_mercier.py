@@ -383,11 +383,9 @@ if __name__=='__main__':
         )
         chi = expand_chi(coords, j)
 
-        omega_e_eps = expand_omega(chi, coords, 2, 2)
-        omega_eps_squared = expand_omega(chi, coords, 3, 1)
 
         expanded_coords = ExpandedCoordinates(
-            chi, omega_e_eps, omega_eps_squared
+            chi, None, None
         )
 
         state = State(
@@ -401,3 +399,12 @@ if __name__=='__main__':
             "expand_mercier_state.pkl"
         )
         logger.info("Calculated state")
+
+    
+    omega_e_eps = expand_omega(
+        state.expanded_coords.chi, state.coords, 2, 2
+    )
+    omega_eps_squared = expand_omega(
+        state.expanded_coords.chi, state.coords, 3, 1
+    )
+    function_to_latex([omega_e_eps, omega_eps_squared])
