@@ -104,3 +104,24 @@ def expand_omega(chi_of_omega: sp.Expr,
     )
 
     return omega_expanded
+
+
+def expand_omega_e_eps(chi_of_omega: sp.Expr, 
+                       coords: ToroidalCoordinates) -> sp.Expr:
+    """
+    Expand omega to order e*epsilon
+    """
+    return expand_omega(
+        chi_of_omega, coords,
+        2, 2
+    )
+
+def expand_omega_eps_sq(chi_of_omega: sp.Expr, 
+                        coords: ToroidalCoordinates) -> sp.Expr:
+    """
+    Expand omega to order epsilon^2 + e^0
+    """
+    return expand_omega(
+        chi_of_omega, coords,
+        3,1
+    )
