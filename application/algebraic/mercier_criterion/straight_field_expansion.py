@@ -18,7 +18,8 @@ from algebraic.mercier_criterion.rendering import (
 )
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
-    fourier_expression
+    fourier_expression,
+    truncate
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 
@@ -46,7 +47,7 @@ def expand_chi(coords: ToroidalCoordinates, jacobian: sp.Expr) -> sp.Expr:
 
     logger.debug("Expanded chi")
 
-    return chi_of_omega
+    return truncate(chi_of_omega, coords.epsilon, coords.ellip)
 
 
 def expand_omega(chi_of_omega: sp.Expr, 

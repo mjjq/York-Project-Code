@@ -9,6 +9,12 @@ from algebraic.mercier_criterion.rendering import(
 from algebraic.mercier_criterion.mercier_integrals import (
     drhat_squared_dr, expected_rhat_squared, safety_factor
 )
+from algebraic.mercier_criterion.datatypes import (
+    GradShafVariables
+)
+from algebraic.mercier_criterion.straight_field_expansion import (
+    expand_chi
+)
 import sympy as sp
 from sympy import Derivative
 
@@ -51,11 +57,13 @@ def test_rhat_squared_equation():
     r = state.coords.r
     R0 = state.coords.R0
     omega = state.coords.omega
+    e = state.coords.ellip
+    eps = state.coords.epsilon
 
     chi_e = (1/2)*(E(r)/r - sp.diff(E(r),r)) * sp.sin(2*omega)
     chi_eps = (r/R0 + sp.diff(D(r), r))*sp.sin(omega)
     chi_eps_e = (
-        (E(r)*sp.diff(D(r), r)/r - sp.diff(r*E(r), r)/(2*R0))*sin(omega)+
+        (E(r)*sp.diff(D(r), r)/r - sp.diff(r*E(r), r)/(2*R0))*sp.sin(omega)+
         (E(r)-r*sp.diff(E(r), r))/(6*R0) * sp.sin(3*omega)
     ) 
     chi_eps_T = 1/3 * (2*T(r)/r - sp.diff(T(r), r))*sp.sin(3*omega)
@@ -71,10 +79,20 @@ def test_rhat_squared_equation():
         )
     )
     chi_eps_squared_T = (
-        
+        (T(r)*sp.diff(D(r),r)/r - r*sp.diff(T(r),r)/(4*R0)) * sp.sin(2*omega) +
+        (T(r)-r*sp.diff(T(r), r)/2) * sp.sin(4*omega)/(4*R0)
     )
 
+    chi_true = (
+        omega + e*chi_e + eps*chi_eps + e*eps*chi_eps_e +
+        eps*chi_eps_T + eps*e*chi_eps_e_T + eps**2 * chi_eps_squared +
+        eps**2 * chi_eps_squared_T
+    )
 
     chi = expand_chi(state.coords, state.jacobian)
 
-    assert sp.simplify(r_constraint-r_constraint_true)==0
+    diff = sp.simplify(chi_true - chi)
+
+    function_to_latex([chi, chi_true, diff])
+
+    assert diff==0
