@@ -11,6 +11,7 @@ from algebraic.mercier_criterion.datatypes import (
     Derivatives,
     MetricTensor,
     GradShafVariables,
+    ExpandedCoordinates,
     State
 )
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
@@ -370,6 +371,7 @@ if __name__=='__main__':
         state = State.from_disk(
             args.gs_funcs_filename
         )
+        logger.info("Loaded state from disk")
     else:
         coords, shaping = RZ_lutjens()
         derivatives = calc_derivatives(coords)
@@ -379,10 +381,18 @@ if __name__=='__main__':
         gs = GradShafVariables(
             None, None, None, None, None, None, None, None
         )
+        chi = expand_chi(coords, j)
+
+        omega_e_eps = expand_omega(chi, coords, 2, 2)
+        omega_eps_squared = expand_omega(chi, coords, 3, 1)
+
+        expanded_coords = ExpandedCoordinates(
+            chi, omega_e_eps, omega_eps_squared
+        )
 
         state = State(
             coords, shaping, derivatives,
-            metric, gs, j
+            metric, gs, j, expanded_coords
         )    
         # shaping = gs_simplify_lutjens(
         #     state.gs, state.coords, state.shaping
@@ -390,17 +400,4 @@ if __name__=='__main__':
         state.to_disk(
             "expand_mercier_state.pkl"
         )
-
-    logger.debug("Calculated state")
-    chi = expand_chi(state.coords, state.jacobian)
-
-    omega_expanded = expand_omega(chi, state.coords)
-
-    omega_eps_squared = sp.series(
-        omega_expanded, state.coords.ellip, 0, 1
-    )
-    omega_e_eps = sp.series(
-        omega_expanded, state.coords.epsilon, 2
-    )
-
-    function_to_latex([omega_eps_squared, omega_e_eps])
+        logger.info("Calculated state")

@@ -49,6 +49,8 @@ def expand_chi(coords: ToroidalCoordinates, jacobian: sp.Expr) -> sp.Expr:
 
 def expand_omega(chi_of_omega: sp.Expr, 
                  coords: ToroidalCoordinates,
+                 order_epsilon: int,
+                 order_ellip: int,
                  n_iter: int = 2) -> sp.Expr:
     """
     Invert chi expansion to get omega in terms of its own harmonics,
@@ -60,17 +62,16 @@ def expand_omega(chi_of_omega: sp.Expr,
     perturbed_part_of_chi = chi_of_omega - coords.omega
 
     perturbed_part_of_chi = sp.series(
-        perturbed_part_of_chi, coords.epsilon, 0, 2
+        perturbed_part_of_chi, coords.ellip, 0, order_ellip
     ).removeO()
     perturbed_part_of_chi = sp.series(
-        perturbed_part_of_chi, coords.ellip, 0, 2
+        perturbed_part_of_chi, coords.epsilon, 0, order_epsilon
     ).removeO()
 
     omega_expanded = coords.chi-perturbed_part_of_chi
 
     delta_chi = sp.Symbol('delta_chi')
     
-
 
     for i in range(n_iter):
         omega_expanded = omega_expanded.subs(
@@ -80,20 +81,19 @@ def expand_omega(chi_of_omega: sp.Expr,
         omega_expanded = sp.series(omega_expanded, delta_chi, 0, 2).removeO()
         omega_expanded = omega_expanded.subs(delta_chi, perturbed_part_of_chi)
         omega_expanded = sp.series(
-            omega_expanded, coords.epsilon, 0, 3
+            omega_expanded, coords.ellip, 0, order_ellip
+        ).removeO()
+        omega_expanded = sp.series(
+            omega_expanded, coords.epsilon, 0, order_epsilon
         ).removeO()
         logger.debug(f"Expanded omega, iteration {i}")
 
-    omega_expanded = sp.series(
-            omega_expanded, coords.ellip, 0, 2
-    ).removeO()
-    omega_expanded = omega_expanded = sp.series(
-            omega_expanded, coords.epsilon, 0, 3
-    ).removeO()
     #function_to_latex(omega_expanded); exit()
-    # omega_expanded = fourier_expression(
-    #     *fourier_coefficients(omega_expanded, coords.chi), 
-    #     coords.chi
-    # )
+    #omega_expanded = sp.simplify(omega_expanded)
+    
+    omega_expanded = sp.collect(
+        sp.series(omega_expanded, coords.epsilon, 0, 3), 
+        coords.epsilon
+    )
 
     return omega_expanded

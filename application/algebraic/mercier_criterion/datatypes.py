@@ -19,6 +19,18 @@ class ToroidalCoordinates:
     ellip: sp.Symbol # Ellipticity tag
 
 @dataclass
+class ExpandedCoordinates:
+    # Expanded straight field line angle as a function
+    # of r and omega
+    chi: sp.Expr
+    # Reverse-expanded geometric angle as a function of
+    # r and chi to order e*epsilon
+    omega_e_eps: sp.Expr
+    # Reverse-expanded geometric angle as a function of
+    # r and chi to order epsilon^2
+    omega_eps_squared: sp.Expr
+
+@dataclass
 class EPFLShaping:
     D: sp.Function # Shafranov shift Delta(r)
 
@@ -82,6 +94,7 @@ class State():
     metric: MetricTensor
     gs: GradShafVariables
     jacobian: sp.Expr
+    expanded_coords: ExpandedCoordinates
 
     def to_disk(self, filename: str):
         with open(filename, "wb") as f:
@@ -111,6 +124,9 @@ class State():
             )
             assert isinstance(
                 state.jacobian, sp.Expr
+            )
+            assert isinstance(
+                state.expanded_coords, ExpandedCoordinates
             )
 
             return state
