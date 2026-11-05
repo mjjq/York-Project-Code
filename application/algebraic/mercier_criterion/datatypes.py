@@ -29,6 +29,8 @@ class ExpandedCoordinates:
     # Reverse-expanded geometric angle as a function of
     # r and chi to order epsilon^2
     omega_eps_squared: sp.Expr
+    # sum of omega_e_eps+omega_eps_squared
+    omega: sp.Expr
 
 @dataclass
 class EPFLShaping:

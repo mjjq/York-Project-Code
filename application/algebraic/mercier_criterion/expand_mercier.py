@@ -22,7 +22,8 @@ from algebraic.mercier_criterion.identities import (
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 from algebraic.mercier_criterion.straight_field_expansion import (
-    expand_chi, expand_omega_e_eps, expand_omega_eps_sq
+    expand_chi, expand_omega_e_eps, expand_omega_eps_sq, 
+    combine_omega_expressions
 )
 
 
@@ -382,10 +383,17 @@ if __name__=='__main__':
             None, None, None, None, None, None, None, None
         )
         chi = expand_chi(coords, j)
-
-
+        omega_e_eps = expand_omega_e_eps(
+            chi, coords
+        )
+        omega_eps_squared = expand_omega_eps_sq(
+            chi, coords
+        )
+        omega = combine_omega_expressions(
+            omega_e_eps, omega_eps_squared, coords
+        )
         expanded_coords = ExpandedCoordinates(
-            chi, None, None
+            chi, omega_e_eps, omega_eps_squared, omega
         )
 
         state = State(
@@ -401,10 +409,11 @@ if __name__=='__main__':
         logger.info("Calculated state")
 
     
-    omega_e_eps = expand_omega_e_eps(
-        state.expanded_coords.chi, state.coords
+    j5 = integrals.integral_5(
+        state.coords,
+        state.expanded_coords
     )
-    omega_eps_squared = expand_omega_eps_sq(
-        state.expanded_coords.chi, state.coords
-    )
-    function_to_latex([omega_e_eps, omega_eps_squared])
+    
+    function_to_latex([
+        omega_combined, diff
+    ])

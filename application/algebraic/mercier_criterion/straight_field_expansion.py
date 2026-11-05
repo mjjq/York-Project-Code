@@ -97,13 +97,47 @@ def expand_omega(chi_of_omega: sp.Expr,
 
     #function_to_latex(omega_expanded); exit()
     #omega_expanded = sp.simplify(omega_expanded)
-    
     omega_expanded = sp.collect(
         sp.series(omega_expanded, coords.epsilon, 0, 3), 
         coords.epsilon
     )
 
     return omega_expanded
+
+def sub_omega_expr(expr: sp.Expr,
+                   omega_expanded: sp.Expr,
+                   coords: ToroidalCoordinates,
+                   order_epsilon: int = 3,
+                   order_ellip: int = 2) -> sp.Expr:
+    """
+    Expand expr(r,omega) into expr(r,chi) using the expansion
+    for omega(r, chi) 
+    """
+
+    delta_chi = sp.Symbol('delta_chi')
+
+    expr_expanded = expr.subs(
+            coords.omega, coords.chi+delta_chi
+        )
+    logger.debug("Sub in delta chi")
+    expr_expanded = sp.expand_trig(expr_expanded)
+    logger.debug("Separate delta chi in trig terms")
+    expr_expanded = fast_trig_expand(
+        sp.expand(expr_expanded), delta_chi
+    )
+    logger.debug("Taylor expanded delta chi trig terms")
+    perturbed_part_of_omega = omega_expanded - coords.chi
+    expr_expanded = expr_expanded.subs(delta_chi, perturbed_part_of_omega)
+    logger.debug("Sub delta chi")
+    expr_expanded = sp.series(
+        expr_expanded, coords.ellip, 0, order_ellip
+    ).removeO()
+    expr_expanded = sp.series(
+        expr_expanded, coords.epsilon, 0, order_epsilon
+    ).removeO()
+
+    return expr_expanded
+
 
 
 def expand_omega_e_eps(chi_of_omega: sp.Expr, 
@@ -125,3 +159,18 @@ def expand_omega_eps_sq(chi_of_omega: sp.Expr,
         chi_of_omega, coords,
         3,1
     )
+
+def combine_omega_expressions(omega_e_eps: sp.Expr,
+                              omega_eps_squared: sp.Expr,
+                              coords: ToroidalCoordinates) -> sp.Expr:
+    """
+    Combine different omega terms that are expanded to O(e*eps)
+    and O(eps^2)
+    """
+    omega_total = omega_e_eps + omega_eps_squared
+
+    order_eps_terms = omega_total - omega_total.subs(
+        coords.epsilon, 0
+    ).subs(coords.ellip, 0)
+
+    return coords.chi + order_eps_terms

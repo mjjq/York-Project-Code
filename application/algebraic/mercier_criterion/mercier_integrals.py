@@ -9,12 +9,17 @@ from algebraic.mercier_criterion.datatypes import (
     Derivatives,
     MetricTensor,
     GradShafVariables,
+    ExpandedCoordinates,
     State
 )
 from algebraic.mercier_criterion.rendering import function_to_latex, summarise_to_latex
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
-    fourier_expression
+    fourier_expression,
+    truncate
+)
+from algebraic.mercier_criterion.straight_field_expansion import (
+    sub_omega_expr
 )
 
 def expected_rhat_squared(coords: ToroidalCoordinates, 
@@ -147,11 +152,26 @@ def safety_factor(jac: sp.Expr,
 
     return q
 
-def integral_5(coords: ToroidalCoordinates, jac: sp.Expr) -> sp.Expr:
+def integral_5(coords: ToroidalCoordinates,
+               coords_expanded: ExpandedCoordinates) -> sp.Expr:
     """
-    Evaluate I_5 in A.2 (Lutjens 1992).
+    Evaluate J_5 in 5.12 (Lutjens thesis).
     """
-    integral = sp.integrate(jac, (coords.omega, 0, 2*sp.pi))/(2*sp.pi)
-    integral = sp.simplify(integral)
+    R_squared = sp.expand(coords.R**2)
+    R_squared = sp.series(R_squared, coords.ellip, 0, 2).removeO()
+    R_squared = sp.series(R_squared, coords.epsilon, 0, 3).removeO()
+    R_squared = sub_omega_expr(
+        R_squared, 
+        coords_expanded.omega,
+        coords
+    )
+    integral = sp.integrate(
+        R_squared, 
+        (coords.chi, 0, 2*sp.pi)
+    )/(2*sp.pi)
+    integral = sp.collect(
+        sp.expand(integral), 
+        coords.epsilon
+    )
 
     function_to_latex(integral);exit()
