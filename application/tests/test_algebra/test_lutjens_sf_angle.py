@@ -12,7 +12,7 @@ from algebraic.mercier_criterion.mercier_integrals import (
     drhat_squared_dr, expected_rhat_squared, safety_factor
 )
 from algebraic.mercier_criterion.datatypes import (
-    GradShafVariables, ToroidalCoordinates, LutjensShaping
+    GradShafVariables, ToroidalCoordinates, LutjensShaping, State
 )
 from algebraic.mercier_criterion.straight_field_expansion import (
     expand_chi, expand_omega_e_eps, expand_omega_eps_sq
@@ -138,18 +138,41 @@ def substitute_chi_terms(delta_chi_arguments: list[sp.Expr],
 def test_lutjens_omega():
     """
     Test lutjens thesis eq 5.17 and 5.18 derivations.
+
+    This test will also fail. It appears that the derivation
+    in Lutjens is missing a term proportional to eps^2 * sin(6*chi)
+    in 5.18. The term is related to squared terms in triangularity.
+
+    This is likely because the chi_eps_T term in 5.18 in the thesis
+    is only expanded in omega up to eps*chi_eps(r,chi), where as
+    it should surely be expanded up to eps*(chi_eps(r,chi)+chi_eps_T(r,chi)).
+    It is this extra term that generates the sin(6*chi) source.
+
+    Unsure why Hinrich ignores this extra term, since it's included
+    in the expansion of eps*chi_eps.
     """
     coords, shaping = RZ_lutjens()
     derivatives = calc_derivatives(coords)
     metric = calc_metric_tensor(derivatives)
     j = calc_jacobian(coords, derivatives)
     chi_expr = expand_chi(coords, j)
+    # state = State.from_disk('expand_mercier_state.pkl')
+    # coords = state.coords
+    # shaping = state.shaping
+    # chi_expr = state.expanded_coords.chi
 
     omega_e_eps = expand_omega_e_eps(
         chi_expr, coords
     )
     omega_e_eps = fourier_expression(
         *fourier_coefficients(sp.expand(omega_e_eps), coords.chi),
+        coords.chi
+    )
+    omega_eps_squared = expand_omega_eps_sq(
+        chi_expr, coords
+    )
+    omega_eps_squared = fourier_expression(
+        *fourier_coefficients(sp.expand(omega_eps_squared), coords.chi),
         coords.chi
     )
 
@@ -177,25 +200,47 @@ def test_lutjens_omega():
         -eps*e*chi_t.chi_eps_e,
         -eps*e*chi_t.chi_eps_e_T
     ]
-    chi_subbed = []
-
     omega_e_eps_true = substitute_chi_terms(
         delta_chi_arguments,
         chi_terms_to_sub,
         coords
     )
-
     omega_e_eps_true = fourier_expression(
         *fourier_coefficients(sp.expand(omega_e_eps_true), chi),
         chi
     )
-
     diff = sp.simplify(omega_e_eps - omega_e_eps_true)
+    assert diff==0
+
+
+    # Now test epsilon^2 term, equation 5.18
+    delta_chi_arguments = [
+        - eps*(chi_t.chi_eps.subs(omega, chi) + chi_t.chi_eps_T.subs(omega, chi)),
+        - eps*chi_t.chi_eps.subs(omega, chi),
+        0,
+        0
+    ]
+    chi_terms_to_sub = [
+        -eps*chi_t.chi_eps,
+        -eps*chi_t.chi_eps_T,
+        -eps**2*chi_t.chi_eps_squared,
+        -eps**2*chi_t.chi_eps_squared_T
+    ]
+    omega_eps_squared_true = substitute_chi_terms(
+        delta_chi_arguments,
+        chi_terms_to_sub,
+        coords
+    )
+    omega_eps_squared_true = fourier_expression(
+        *fourier_coefficients(sp.expand(omega_eps_squared_true), chi),
+        chi
+    )
+    diff = sp.simplify(omega_eps_squared - omega_eps_squared_true)
 
     function_to_latex([
-        sp.collect(omega_e_eps, eps), 
-        sp.collect(omega_e_eps_true, eps), 
-        sp.collect(diff, eps)
+        omega_eps_squared,
+        omega_eps_squared_true,
+        diff
     ])
 
     assert diff==0
