@@ -114,6 +114,27 @@ def test_lutjens_chi():
     assert diff==0
 
 
+def substitute_chi_terms(delta_chi_arguments: list[sp.Expr],
+                         chi_terms_to_sub: list[sp.Expr],
+                         coords: ToroidalCoordinates) -> sp.Expr:
+    """
+    Helper for substituting various chi terms in lutjens expansion.
+    """
+    chi_subbed = []
+
+    dchi = sp.Symbol('delta_chi')
+    for delta_chi_arg, chi_term in zip(delta_chi_arguments, chi_terms_to_sub):
+        chi_term_expanded = chi_term.subs(coords.omega, coords.chi+dchi)
+        chi_term_expanded = sp.expand_trig(chi_term_expanded)
+        chi_term_expanded = fast_trig_expand(
+            sp.expand(chi_term_expanded), dchi
+        )
+        chi_term_expanded = chi_term_expanded.subs(dchi, delta_chi_arg)
+        chi_term_expanded = sp.expand(chi_term_expanded)
+        chi_subbed.append(chi_term_expanded)
+
+    return sum(chi_subbed) + coords.chi
+
 def test_lutjens_omega():
     """
     Test lutjens thesis eq 5.17 and 5.18 derivations.
@@ -158,19 +179,11 @@ def test_lutjens_omega():
     ]
     chi_subbed = []
 
-    dchi = sp.Symbol('delta_chi')
-
-    for delta_chi_arg, chi_term in zip(delta_chi_arguments, chi_terms_to_sub):
-        chi_term_expanded = chi_term.subs(omega, chi+dchi)
-        chi_term_expanded = sp.expand_trig(chi_term_expanded)
-        chi_term_expanded = fast_trig_expand(
-            sp.expand(chi_term_expanded), dchi
-        )
-        chi_term_expanded = chi_term_expanded.subs(dchi, delta_chi_arg)
-        chi_term_expanded = sp.expand(chi_term_expanded)
-        chi_subbed.append(chi_term_expanded)
-    
-    omega_e_eps_true = sum(chi_subbed) + chi
+    omega_e_eps_true = substitute_chi_terms(
+        delta_chi_arguments,
+        chi_terms_to_sub,
+        coords
+    )
 
     omega_e_eps_true = fourier_expression(
         *fourier_coefficients(sp.expand(omega_e_eps_true), chi),
