@@ -85,7 +85,7 @@ def expand_omega(chi_of_omega: sp.Expr,
             sp.expand(omega_expanded), delta_chi
         )
         logger.debug("Taylor expanded delta chi trig terms")
-        omega_expanded = omega_expanded.subs(delta_chi, perturbed_part_of_chi)
+        omega_expanded = omega_expanded.subs(delta_chi, -perturbed_part_of_chi)
         logger.debug("Sub delta chi")
         omega_expanded = sp.series(
             omega_expanded, coords.ellip, 0, order_ellip

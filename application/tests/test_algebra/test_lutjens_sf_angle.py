@@ -128,8 +128,8 @@ def test_lutjens_omega():
         chi_expr, coords
     )
     omega_e_eps = fourier_expression(
-        *fourier_coefficients(omega_e_eps, chi),
-        chi
+        *fourier_coefficients(sp.expand(omega_e_eps), coords.chi),
+        coords.chi
     )
 
     chi_t = lutjens_chi_terms(coords, shaping)
@@ -173,7 +173,7 @@ def test_lutjens_omega():
     omega_e_eps_true = sum(chi_subbed) + chi
 
     omega_e_eps_true = fourier_expression(
-        *fourier_coefficients(omega_e_eps_true, chi),
+        *fourier_coefficients(sp.expand(omega_e_eps_true), chi),
         chi
     )
 
