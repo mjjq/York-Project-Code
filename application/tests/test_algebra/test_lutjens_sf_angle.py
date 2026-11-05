@@ -150,6 +150,10 @@ def test_lutjens_omega():
 
     Unsure why Hinrich ignores this extra term, since it's included
     in the expansion of eps*chi_eps.
+
+    This term is propto (T-T')^2, which is somewhat related to the
+    missing T^2 term in his derivation of the P,Q constraint.
+    Perhaps this is a propagation of that error.
     """
     coords, shaping = RZ_lutjens()
     derivatives = calc_derivatives(coords)
