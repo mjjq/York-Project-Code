@@ -160,18 +160,25 @@ def integral_5(coords: ToroidalCoordinates,
     R_squared = sp.expand(coords.R**2)
     R_squared = sp.series(R_squared, coords.ellip, 0, 2).removeO()
     R_squared = sp.series(R_squared, coords.epsilon, 0, 3).removeO()
-    R_squared = sub_omega_expr(
-        R_squared, 
-        coords_expanded.omega,
-        coords
-    )
-    integral = sp.integrate(
-        R_squared, 
-        (coords.chi, 0, 2*sp.pi)
-    )/(2*sp.pi)
-    integral = sp.collect(
-        sp.expand(integral), 
-        coords.epsilon
-    )
+    
+    res = []
+    r_sq = []
 
-    function_to_latex(integral);exit()
+    for omega in [coords_expanded.omega_e_eps, coords_expanded.omega_eps_squared]:
+        R_squared_sub = sub_omega_expr(
+            R_squared, 
+            omega,
+            coords
+        )
+        integral = sp.integrate(
+            R_squared_sub, 
+            (coords.chi, 0, 2*sp.pi)
+        )/(2*sp.pi)
+        integral = sp.collect(
+            sp.expand(integral), 
+            coords.epsilon
+        )
+        res.append(integral)
+        r_sq.append(R_squared_sub)
+
+    function_to_latex(res+r_sq);exit()
