@@ -414,6 +414,4 @@ if __name__=='__main__':
         state.expanded_coords
     )
     
-    function_to_latex([
-        omega_combined, diff
-    ])
+    function_to_latex(j5)

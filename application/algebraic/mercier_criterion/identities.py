@@ -15,6 +15,19 @@ def truncate(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp.Expr:
         if i + j <= 2
     ])
 
+def fast_truncate(expr: sp.Expr, x: sp.Symbol, order: int) -> sp.Expr:
+    """
+    Truncate expression to only retain terms up to order
+    x**2, y, and xy
+    """
+    poly = sp.Poly(sp.expand(expr), x)
+
+    return sp.Add(*[
+        coeff * x**i
+        for (i,), coeff in poly.terms()
+        if i < order
+    ])
+
 def integrate_by_parts(u: sp.Expr, dv: sp.Expr, x: sp.Symbol) -> sp.Expr:
     v = sp.integrate(dv, x)
     du = sp.diff(u, x)

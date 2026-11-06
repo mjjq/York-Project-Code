@@ -20,7 +20,8 @@ from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
     fourier_expression,
     truncate,
-    fast_trig_expand
+    fast_trig_expand,
+    fast_truncate
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 
@@ -123,18 +124,16 @@ def sub_omega_expr(expr: sp.Expr,
     expr_expanded = sp.expand_trig(expr_expanded)
     logger.debug("Separate delta chi in trig terms")
     expr_expanded = fast_trig_expand(
-        sp.expand(expr_expanded), delta_chi
+        sp.expand(expr_expanded), delta_chi, 3
     )
     logger.debug("Taylor expanded delta chi trig terms")
     perturbed_part_of_omega = omega_expanded - coords.chi
     expr_expanded = expr_expanded.subs(delta_chi, perturbed_part_of_omega)
     logger.debug("Sub delta chi")
-    expr_expanded = sp.series(
-        expr_expanded, coords.ellip, 0, order_ellip
-    ).removeO()
-    expr_expanded = sp.series(
-        expr_expanded, coords.epsilon, 0, order_epsilon
-    ).removeO()
+
+    expr_expanded = fast_truncate(expr_expanded, coords.ellip, 2)
+    expr_expanded = fast_truncate(expr_expanded, coords.epsilon, 3)
+    expr_expanded = sp.collect(expr_expanded, coords.epsilon)
 
     return expr_expanded
 

@@ -16,7 +16,7 @@ from algebraic.mercier_criterion.rendering import function_to_latex, summarise_t
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
     fourier_expression,
-    truncate
+    truncate, fast_truncate
 )
 from algebraic.mercier_criterion.straight_field_expansion import (
     sub_omega_expr
@@ -161,24 +161,19 @@ def integral_5(coords: ToroidalCoordinates,
     R_squared = sp.series(R_squared, coords.ellip, 0, 2).removeO()
     R_squared = sp.series(R_squared, coords.epsilon, 0, 3).removeO()
     
-    res = []
-    r_sq = []
-
-    for omega in [coords_expanded.omega_e_eps, coords_expanded.omega_eps_squared]:
-        R_squared_sub = sub_omega_expr(
-            R_squared, 
-            omega,
-            coords
-        )
-        integral = sp.integrate(
-            R_squared_sub, 
-            (coords.chi, 0, 2*sp.pi)
-        )/(2*sp.pi)
-        integral = sp.collect(
-            sp.expand(integral), 
-            coords.epsilon
-        )
-        res.append(integral)
-        r_sq.append(R_squared_sub)
-
-    function_to_latex(res+r_sq);exit()
+    omega = coords_expanded.omega_e_eps
+    R_squared_sub = sub_omega_expr(
+        R_squared, 
+        omega,
+        coords
+    )
+    integral = sp.integrate(
+        R_squared_sub, 
+        (coords.chi, 0, 2*sp.pi)
+    )/(2*sp.pi)
+    integral = sp.collect(
+        sp.expand(integral), 
+        coords.epsilon
+    )
+    
+    return integral
