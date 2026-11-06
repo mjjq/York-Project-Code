@@ -97,6 +97,7 @@ class State():
     gs: GradShafVariables
     jacobian: sp.Expr
     expanded_coords: ExpandedCoordinates
+    inv_grr: sp.Expr # 1/g^rr
 
     def to_disk(self, filename: str):
         with open(filename, "wb") as f:

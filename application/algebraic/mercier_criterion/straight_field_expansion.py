@@ -19,9 +19,13 @@ from algebraic.mercier_criterion.rendering import (
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
     fourier_expression,
+    fourier_rewrite,
     truncate,
     fast_trig_expand,
-    fast_truncate
+    fast_trig_expand_2,
+    fast_truncate,
+    faster_truncate,
+    truncated_product_2d
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 
@@ -83,7 +87,7 @@ def expand_omega(chi_of_omega: sp.Expr,
         omega_expanded = sp.expand_trig(omega_expanded)
         logger.debug("Separate delta chi in trig terms")
         omega_expanded = fast_trig_expand(
-            sp.expand(omega_expanded), delta_chi
+            sp.expand(omega_expanded), delta_chi, 2
         )
         logger.debug("Taylor expanded delta chi trig terms")
         omega_expanded = omega_expanded.subs(delta_chi, -perturbed_part_of_chi)
@@ -121,21 +125,37 @@ def sub_omega_expr(expr: sp.Expr,
             coords.omega, coords.chi+delta_chi
         )
     logger.debug("Sub in delta chi")
-    expr_expanded = sp.expand_trig(expr_expanded)
+
     logger.debug("Separate delta chi in trig terms")
-    expr_expanded = fast_trig_expand(
-        sp.expand(expr_expanded), delta_chi, 3
+    expr_expanded = fast_trig_expand_2(
+        expr_expanded, delta_chi, 3
     )
     logger.debug("Taylor expanded delta chi trig terms")
     perturbed_part_of_omega = omega_expanded - coords.chi
-    expr_expanded = expr_expanded.subs(delta_chi, perturbed_part_of_omega)
+    perturbed_part_of_omega = fourier_rewrite(
+        perturbed_part_of_omega, coords.chi
+    )
+    poly = sp.Poly(expr_expanded, delta_chi)
+
+    summed = 0
+    for (power,), coeff in poly.terms():
+        dchi_replacement = sp.expand(perturbed_part_of_omega**power)
+        trunc_prod = truncated_product_2d(
+            dchi_replacement, coeff,
+            coords.epsilon, coords.ellip, 2, 1
+        )
+        summed += trunc_prod
+
+
+    #expr_expanded = expr_expanded.subs(delta_chi, perturbed_part_of_omega)
     logger.debug("Sub delta chi")
+    #function_to_latex(summed); exit()
 
-    expr_expanded = fast_truncate(expr_expanded, coords.ellip, 2)
-    expr_expanded = fast_truncate(expr_expanded, coords.epsilon, 3)
-    expr_expanded = sp.collect(expr_expanded, coords.epsilon)
+    # expr_expanded = faster_truncate(expr_expanded, coords.ellip, 2)
+    # expr_expanded = faster_truncate(expr_expanded, coords.epsilon, 3)
+    # expr_expanded = sp.collect(expr_expanded, coords.epsilon)
 
-    return expr_expanded
+    return summed
 
 
 

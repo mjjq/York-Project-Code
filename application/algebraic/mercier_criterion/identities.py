@@ -28,6 +28,16 @@ def fast_truncate(expr: sp.Expr, x: sp.Symbol, order: int) -> sp.Expr:
         if i < order
     ])
 
+def faster_truncate(expr: sp.Expr, x: sp.Symbol, order: int) -> sp.Expr:
+    """
+    Truncate expression to only retain terms up to order
+    x**2, y, and xy
+    """
+    return sum(
+        term for term in sp.expand(expr).args 
+        if sp.degree(term, x) < order
+    )
+
 def integrate_by_parts(u: sp.Expr, dv: sp.Expr, x: sp.Symbol) -> sp.Expr:
     v = sp.integrate(dv, x)
     du = sp.diff(u, x)
@@ -57,6 +67,25 @@ def fast_trig_expand(expr: sp.Expr,
     )
 
     return result
+
+
+def fast_trig_expand_2(expr: sp.Expr,
+                     dx: sp.Symbol,
+                     order: int = 2) -> sp.Expr:
+
+    replacements = {}
+
+    # Find all sine and cosine terms containing dx
+    for f in expr.atoms(sp.sin, sp.cos):
+        if f.args[0].has(dx):
+            replacements[f] = sp.series(
+                f, dx, 0, order
+            ).removeO()
+
+    # Replace all matching terms
+    result = expr.xreplace(replacements)
+
+    return sp.collect(sp.expand(result), dx)
 
 def fourier_coefficients(expr, x):
     """
@@ -184,18 +213,48 @@ def fourier_rewrite(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
         *fourier_coefficients(expr, x), x
     )
 
+
+def truncated_product_2d(P: sp.Expr, 
+                         Q: sp.Expr, 
+                         x: sp.Symbol, 
+                         y: sp.Symbol, 
+                         a: int, 
+                         b: int):
+    """
+    Compute product of two polynomials up to order x^a * y^b.
+    Avoids computing unnecessary higher order terms
+    """
+    P = sp.Poly(P, x, y)
+    Q = sp.Poly(Q, x, y)
+
+    result = 0
+
+    for i in range(a + 1):
+        for j in range(b + 1):
+            for k in range(i + 1):
+                for l in range(j + 1):
+                    result += (
+                        P.coeff_monomial(x**k * y**l)
+                        * Q.coeff_monomial(x**(i-k) * y**(j-l))
+                        * x**i * y**j
+                    )
+
+    return sp.expand(result)
+
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
 
-    x = sp.symbols('x')
+    x, y = sp.symbols('x y')
     n = sp.symbols('n', integer=True, nonnegative=True)
     a0,a1,a2 = sp.symbols('a0 a1 a2')
 
-    expr = sp.cos(2*x)
-    expr = sp.expand_trig(expr)
+    expr_1 = a0+a1*x+a2*y
+    expr_2 = a0+a1*x*y + a2*x**2
 
-    expanded = fast_trig_expand(expr, x, 4)
-    series_expand = sp.series(expr, x, 0, 4)
+    expanded = truncated_product_2d(
+        expr_1, expr_2, x, y, 1, 1
+    )
+    series_expand = sp.expand(expr_1*expr_2)
     function_to_latex([expanded, series_expand])
     # expanded = sp.expand(expr.subs(sp.sin(x)**2, 1 - sp.cos(x)**2))
     # #expr_sum = trig_power_to_sum(expanded, x)

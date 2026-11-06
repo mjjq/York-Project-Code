@@ -162,7 +162,7 @@ def integral_1(coords: ToroidalCoordinates,
     res = []
     omegas = [coords_expanded.omega]
     for omega in omegas:
-        inv_g_sub = sp.expand_trig(inv_g_sup_rr)/coords.epsilon**2
+        inv_g_sub = inv_g_sup_rr/coords.epsilon**2
         inv_g_sub = sub_omega_expr(
             inv_g_sub, 
             omega,
@@ -190,7 +190,7 @@ def integral_5(coords: ToroidalCoordinates,
     R_squared = sp.expand(coords.R**2)
     R_squared = sp.series(R_squared, coords.ellip, 0, 2).removeO()
     R_squared = sp.series(R_squared, coords.epsilon, 0, 3).removeO()
-    
+
     omega = coords_expanded.omega_e_eps
     R_squared_sub = sub_omega_expr(
         R_squared, 

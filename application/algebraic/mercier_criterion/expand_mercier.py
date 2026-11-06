@@ -156,13 +156,15 @@ def inv_g_sup_rr(coords: ToroidalCoordinates,
 
     product = numerator*inv_denom
     product = fast_truncate(product, coords.ellip, 2)
-    product = fast_truncate(product, coords.epsilon, 2)
+    product = fast_truncate(product, coords.epsilon, 3)
     product = fourier_rewrite(product, coords.omega)
 
     # Preserve O(eps^3) terms but ignore O(eps^2*e)
-    product = truncate(product, coords.epsilon, coords.ellip, 1)
+    #product = truncate(product, coords.epsilon, coords.ellip, 1)
     # This restore the actual order of 1/grr
     product = coords.epsilon**2 * product
+
+    #function_to_latex(product); exit()
 
     logger.debug("Calculated 1/grr")
 
@@ -447,10 +449,11 @@ if __name__=='__main__':
         expanded_coords = ExpandedCoordinates(
             chi, omega_e_eps, omega_eps_squared, omega
         )
+        inv_g = inv_g_sup_rr(coords, derivatives)
 
         state = State(
             coords, shaping, derivatives,
-            metric, gs, j, expanded_coords
+            metric, gs, j, expanded_coords, inv_g
         )    
         # shaping = gs_simplify_lutjens(
         #     state.gs, state.coords, state.shaping
@@ -460,13 +463,13 @@ if __name__=='__main__':
         )
         logger.info("Calculated state")
     
+    
+    
 
-
-    inv_g = inv_g_sup_rr(state.coords, state.derivatives)
     j_1 = integrals.integral_1(
         state.coords,
         state.expanded_coords,
-        inv_g
+        state.inv_grr
     )
     
     function_to_latex([inv_g, j_1])
