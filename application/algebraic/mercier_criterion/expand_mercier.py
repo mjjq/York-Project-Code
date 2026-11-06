@@ -18,7 +18,8 @@ from algebraic.mercier_criterion.rendering import function_to_latex, summarise_t
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
     fourier_expression,
-    truncate
+    truncate,
+    fast_truncate
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 from algebraic.mercier_criterion.straight_field_expansion import (
@@ -116,6 +117,37 @@ def calc_metric_tensor(derivatives: Derivatives) -> MetricTensor:
     return MetricTensor(
         g_rr, g_rw, g_ww
     )
+
+def inv_g_sup_rr(coords: ToroidalCoordinates,
+                 jacobian: sp.Expr,
+                 g_ww: sp.Expr) -> sp.Expr:
+    """
+    Calculate (g^rr)^-1 = 1/|grad(r)|^2 (Lutjens thesis eq. 5.13)
+
+    Needed to O(e*eps^2)
+    """
+    denominator = (coords.R**2 * g_ww)
+    denominator = fast_truncate(denominator, coords.ellip, 2)
+    denominator = fast_truncate(denominator, coords.epsilon, 4)
+    denominator = sp.simplify(denominator)
+
+    jac = fast_truncate(jacobian, coords.ellip, 2)
+    jac = fast_truncate(jacobian, coords.epsilon, 5)
+    jac_squared = jac**2
+    jac_squared = fast_truncate(jac_squared, coords.ellip, 2)
+    jac_squared = fast_truncate(jac_squared, coords.epsilon, 5)
+    jac_squared = sp.simplify(jac_squared)
+
+    product = jac_squared/(denominator)
+    product = sp.series(product, coords.epsilon, 0, 3).removeO()
+    product = sp.series(product, coords.ellip, 0, 2).removeO()
+    
+    product = fourier_expression(
+        *fourier_coefficients(product, coords.omega), coords.omega
+    )
+
+    return product
+
 
 def calc_jacobian(coords: ToroidalCoordinates, 
                   derivatives: Derivatives) -> sp.Function:
@@ -409,9 +441,6 @@ if __name__=='__main__':
         logger.info("Calculated state")
 
     
-    j5 = integrals.integral_5(
-        state.coords,
-        state.expanded_coords
-    )
+    inv_g = inv_g_sup_rr(state.coords, state.jacobian, state.metric.g_ww)
     
-    function_to_latex(j5)
+    function_to_latex(inv_g)
