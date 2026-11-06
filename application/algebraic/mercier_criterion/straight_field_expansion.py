@@ -159,17 +159,22 @@ def expand_omega_eps_sq(chi_of_omega: sp.Expr,
         3,1
     )
 
-def combine_omega_expressions(omega_e_eps: sp.Expr,
-                              omega_eps_squared: sp.Expr,
-                              coords: ToroidalCoordinates) -> sp.Expr:
-    """
-    Combine different omega terms that are expanded to O(e*eps)
-    and O(eps^2)
-    """
-    omega_total = omega_e_eps + omega_eps_squared
+def combine_omega_expressions(omega_e_eps: sp.Expr, 
+                              omega_eps_squared: sp.Expr, 
+                              coords: ToroidalCoordinates):
+    eps = coords.epsilon
 
-    order_eps_terms = omega_total - omega_total.subs(
-        coords.epsilon, 0
-    ).subs(coords.ellip, 0)
+    a = sp.expand(omega_e_eps)        # valid through eps^1 (all e^0, e^1 terms)
+    b = sp.expand(omega_eps_squared)  # valid through eps^2 (e^0 only)
 
-    return coords.chi + order_eps_terms
+    # b's eps^0 and eps^1 terms are already in a, so take only b's eps^2 part
+    b_eps2 = eps**2 * b.coeff(eps, 2)
+
+    omega_total = a + b_eps2
+
+    # sanity check: the eps^1 part must come from a alone
+    assert sp.simplify(
+        omega_total.coeff(eps, 1) - a.coeff(eps, 1)
+    ) == 0
+
+    return omega_total

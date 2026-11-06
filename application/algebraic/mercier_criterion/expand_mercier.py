@@ -439,8 +439,12 @@ if __name__=='__main__':
             "expand_mercier_state.pkl"
         )
         logger.info("Calculated state")
-
     
     inv_g = inv_g_sup_rr(state.coords, state.jacobian, state.metric.g_ww)
+    j_1 = integrals.integral_1(
+        state.coords,
+        state.expanded_coords,
+        inv_g
+    )
     
-    function_to_latex(inv_g)
+    function_to_latex([inv_g, j_1, state.expanded_coords.omega])

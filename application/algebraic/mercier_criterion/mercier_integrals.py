@@ -152,6 +152,30 @@ def safety_factor(jac: sp.Expr,
 
     return q
 
+
+def integral_1(coords: ToroidalCoordinates,
+               coords_expanded: ExpandedCoordinates,
+               inv_g_sup_rr: sp.Expr) -> sp.Expr:
+    """
+    Evaluate J_1 in 5.12 (Lutjens thesis).
+    """
+    omega = coords_expanded.omega
+    inv_g_sub = sub_omega_expr(
+        inv_g_sup_rr/coords.epsilon**2, 
+        omega,
+        coords
+    )
+    integral = sp.integrate(
+        inv_g_sub, 
+        (coords.chi, 0, 2*sp.pi)
+    )/(2*sp.pi)
+    integral = sp.collect(
+        sp.expand(integral), 
+        coords.epsilon
+    )
+    
+    return integral
+
 def integral_5(coords: ToroidalCoordinates,
                coords_expanded: ExpandedCoordinates) -> sp.Expr:
     """
