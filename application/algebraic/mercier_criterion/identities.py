@@ -2,6 +2,8 @@ import sympy as sp
 import re
 from sympy.core.function import AppliedUndef
 
+from algebraic.mercier_criterion.rendering import function_to_latex
+
 def truncate(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol, total_order: int = 2) -> sp.Expr:
     """
     Truncate expression to only retain terms up to order
@@ -214,8 +216,8 @@ def fourier_rewrite(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
     )
 
 
-def truncated_product_2d(P: sp.Expr, 
-                         Q: sp.Expr, 
+def truncated_product_2d(expr1: sp.Expr, 
+                         expr2: sp.Expr, 
                          x: sp.Symbol, 
                          y: sp.Symbol, 
                          a: int, 
@@ -224,9 +226,9 @@ def truncated_product_2d(P: sp.Expr,
     Compute product of two polynomials up to order x^a * y^b.
     Avoids computing unnecessary higher order terms
     """
-    P = sp.Poly(P, x, y)
-    Q = sp.Poly(Q, x, y)
-
+    P = sp.Poly(sp.expand(expr1), x, y)
+    Q = sp.Poly(sp.expand(expr2), x, y)
+    
     result = 0
 
     for i in range(a + 1):

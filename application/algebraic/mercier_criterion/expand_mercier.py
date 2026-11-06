@@ -20,7 +20,8 @@ from algebraic.mercier_criterion.identities import (
     fourier_expression,
     fourier_rewrite,
     truncate,
-    fast_truncate
+    fast_truncate,
+    truncated_product_2d
 )
 import algebraic.mercier_criterion.mercier_integrals as integrals
 from algebraic.mercier_criterion.straight_field_expansion import (
@@ -142,8 +143,10 @@ def inv_g_sup_rr(coords: ToroidalCoordinates,
     # eps^4 and denom by eps^2), then restore correct 
     # ordering by mulitplying both sides by eps^2
     numerator = (R_omega * Z_r - R_r * Z_omega)**2/coords.epsilon**4
-    numerator = fast_truncate(numerator, coords.epsilon, 2)
+    numerator = fast_truncate(numerator, coords.epsilon, 3)
     numerator = fast_truncate(numerator, coords.ellip, 2)
+
+    logger.debug("Calculated numerator")
 
     denominator = (R_omega**2 + Z_omega**2)/coords.epsilon**2
     # denominator = fast_truncate(denominator, coords.ellip, 2)
@@ -152,19 +155,23 @@ def inv_g_sup_rr(coords: ToroidalCoordinates,
     inv_denom = sp.series(inv_denom, coords.ellip, 0, 2).removeO()
     inv_denom = sp.series(inv_denom, coords.epsilon, 0, 3).removeO()
 
-    #function_to_latex([numerator, denominator, inv_denom]); exit()
+    logger.debug("Calculated inverse denominator")
 
-    product = numerator*inv_denom
-    product = fast_truncate(product, coords.ellip, 2)
-    product = fast_truncate(product, coords.epsilon, 3)
+    product = truncated_product_2d(
+        numerator, inv_denom,
+        coords.epsilon, coords.ellip,
+        2, 1
+    )
+
+    # product = numerator*inv_denom
+    # product = fast_truncate(product, coords.ellip, 2)
+    # product = fast_truncate(product, coords.epsilon, 3)
     product = fourier_rewrite(product, coords.omega)
 
     # Preserve O(eps^3) terms but ignore O(eps^2*e)
     #product = truncate(product, coords.epsilon, coords.ellip, 1)
     # This restore the actual order of 1/grr
     product = coords.epsilon**2 * product
-
-    #function_to_latex(product); exit()
 
     logger.debug("Calculated 1/grr")
 
@@ -464,12 +471,17 @@ if __name__=='__main__':
         logger.info("Calculated state")
     
     
-    
+    inv_g = inv_g_sup_rr(
+        state.coords, state.derivatives
+    )
 
+    print("oioijs")
+    print()
     j_1 = integrals.integral_1(
         state.coords,
         state.expanded_coords,
-        state.inv_grr
+        inv_g
     )
-    
+    #j_1 = j_1.subs(state.coords.ellip, 0)
+
     function_to_latex([inv_g, j_1])

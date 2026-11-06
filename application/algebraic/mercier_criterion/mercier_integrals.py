@@ -177,8 +177,6 @@ def integral_1(coords: ToroidalCoordinates,
             coords.epsilon
         )
         res.append(integral)
-
-    function_to_latex(res+omegas); exit()
     
     return integral
 
