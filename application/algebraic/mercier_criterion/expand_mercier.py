@@ -18,6 +18,7 @@ from algebraic.mercier_criterion.rendering import function_to_latex, summarise_t
 from algebraic.mercier_criterion.identities import (
     fourier_coefficients,
     fourier_expression,
+    fourier_rewrite,
     truncate,
     fast_truncate
 )
@@ -119,32 +120,51 @@ def calc_metric_tensor(derivatives: Derivatives) -> MetricTensor:
     )
 
 def inv_g_sup_rr(coords: ToroidalCoordinates,
-                 jacobian: sp.Expr,
-                 g_ww: sp.Expr) -> sp.Expr:
+                 derivatives: Derivatives) -> sp.Expr:
     """
     Calculate (g^rr)^-1 = 1/|grad(r)|^2 (Lutjens thesis eq. 5.13)
 
+    Note: 5.13 simplifies to (R_omega Z_r - R_r Z_omega)^2/
+        (R_omega)^2 + (Z_omega)^2
+
     Needed to O(e*eps^2)
     """
-    denominator = (coords.R**2 * g_ww)
-    denominator = fast_truncate(denominator, coords.ellip, 2)
-    denominator = fast_truncate(denominator, coords.epsilon, 4)
-    denominator = sp.simplify(denominator)
-
-    jac = fast_truncate(jacobian, coords.ellip, 2)
-    jac = fast_truncate(jacobian, coords.epsilon, 5)
-    jac_squared = jac**2
-    jac_squared = fast_truncate(jac_squared, coords.ellip, 2)
-    jac_squared = fast_truncate(jac_squared, coords.epsilon, 5)
-    jac_squared = sp.simplify(jac_squared)
-
-    product = jac_squared/(denominator)
-    product = sp.series(product, coords.epsilon, 0, 3).removeO()
-    product = sp.series(product, coords.ellip, 0, 2).removeO()
-    
-    product = fourier_expression(
-        *fourier_coefficients(product, coords.omega), coords.omega
+    R_r, R_omega, Z_r, Z_omega = (
+        derivatives.R_r,
+        derivatives.R_omega,
+        derivatives.Z_r,
+        derivatives.Z_omega
     )
+
+    # 1/grr ~ O(eps^2) as numerator ~ O(eps^4) and denom ~ O(eps^2)
+    # so, first evaluate eps^{-2}/grr, then evaluate numerator and
+    # denominator at O(1) respectively (divide numerator by
+    # eps^4 and denom by eps^2), then restore correct 
+    # ordering by mulitplying both sides by eps^2
+    numerator = (R_omega * Z_r - R_r * Z_omega)**2/coords.epsilon**4
+    numerator = fast_truncate(numerator, coords.epsilon, 2)
+    numerator = fast_truncate(numerator, coords.ellip, 2)
+
+    denominator = (R_omega**2 + Z_omega**2)/coords.epsilon**2
+    # denominator = fast_truncate(denominator, coords.ellip, 2)
+    # denominator = fast_truncate(denominator, coords.epsilon, 2)
+    inv_denom = 1/denominator
+    inv_denom = sp.series(inv_denom, coords.ellip, 0, 2).removeO()
+    inv_denom = sp.series(inv_denom, coords.epsilon, 0, 3).removeO()
+
+    #function_to_latex([numerator, denominator, inv_denom]); exit()
+
+    product = numerator*inv_denom
+    product = fast_truncate(product, coords.ellip, 2)
+    product = fast_truncate(product, coords.epsilon, 2)
+    product = fourier_rewrite(product, coords.omega)
+
+    # Preserve O(eps^3) terms but ignore O(eps^2*e)
+    product = truncate(product, coords.epsilon, coords.ellip, 1)
+    # This restore the actual order of 1/grr
+    product = coords.epsilon**2 * product
+
+    logger.debug("Calculated 1/grr")
 
     return product
 
@@ -440,11 +460,13 @@ if __name__=='__main__':
         )
         logger.info("Calculated state")
     
-    inv_g = inv_g_sup_rr(state.coords, state.jacobian, state.metric.g_ww)
+
+
+    inv_g = inv_g_sup_rr(state.coords, state.derivatives)
     j_1 = integrals.integral_1(
         state.coords,
         state.expanded_coords,
         inv_g
     )
     
-    function_to_latex([inv_g, j_1, state.expanded_coords.omega])
+    function_to_latex([inv_g, j_1])

@@ -2,17 +2,17 @@ import sympy as sp
 import re
 from sympy.core.function import AppliedUndef
 
-def truncate(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp.Expr:
+def truncate(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol, total_order: int = 2) -> sp.Expr:
     """
     Truncate expression to only retain terms up to order
     x**2, y, and xy
     """
-    poly = sp.Poly(expr, x, y)
+    poly = sp.Poly(sp.expand(expr), x, y)
 
     return sp.Add(*[
         coeff * x**i * y**j
         for (i, j), coeff in poly.terms()
-        if i + j <= 2
+        if i + j <= total_order
     ])
 
 def fast_truncate(expr: sp.Expr, x: sp.Symbol, order: int) -> sp.Expr:
@@ -179,6 +179,11 @@ def fourier_expression(a, b, x):
 
     return sp.simplify(expr)
 
+def fourier_rewrite(expr: sp.Expr, x: sp.Symbol) -> sp.Expr:
+    return fourier_expression(
+        *fourier_coefficients(expr, x), x
+    )
+
 if __name__=='__main__':
     from algebraic.mercier_criterion.rendering import function_to_latex
 
@@ -186,10 +191,11 @@ if __name__=='__main__':
     n = sp.symbols('n', integer=True, nonnegative=True)
     a0,a1,a2 = sp.symbols('a0 a1 a2')
 
-    expr = (sp.sin(x) +  sp.cos(x))
+    expr = sp.cos(2*x)
+    expr = sp.expand_trig(expr)
 
-    expanded = fast_trig_expand(expr, x, 2)
-    series_expand = sp.series(expr, x, 0, 2)
+    expanded = fast_trig_expand(expr, x, 4)
+    series_expand = sp.series(expr, x, 0, 4)
     function_to_latex([expanded, series_expand])
     # expanded = sp.expand(expr.subs(sp.sin(x)**2, 1 - sp.cos(x)**2))
     # #expr_sum = trig_power_to_sum(expanded, x)

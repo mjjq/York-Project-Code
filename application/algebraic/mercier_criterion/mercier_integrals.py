@@ -159,20 +159,26 @@ def integral_1(coords: ToroidalCoordinates,
     """
     Evaluate J_1 in 5.12 (Lutjens thesis).
     """
-    omega = coords_expanded.omega
-    inv_g_sub = sub_omega_expr(
-        inv_g_sup_rr/coords.epsilon**2, 
-        omega,
-        coords
-    )
-    integral = sp.integrate(
-        inv_g_sub, 
-        (coords.chi, 0, 2*sp.pi)
-    )/(2*sp.pi)
-    integral = sp.collect(
-        sp.expand(integral), 
-        coords.epsilon
-    )
+    res = []
+    omegas = [coords_expanded.omega]
+    for omega in omegas:
+        inv_g_sub = sp.expand_trig(inv_g_sup_rr)/coords.epsilon**2
+        inv_g_sub = sub_omega_expr(
+            inv_g_sub, 
+            omega,
+            coords
+        )
+        integral = sp.integrate(
+            inv_g_sub, 
+            (coords.chi, 0, 2*sp.pi)
+        )/(2*sp.pi)
+        integral = sp.collect(
+            sp.expand(integral), 
+            coords.epsilon
+        )
+        res.append(integral)
+
+    function_to_latex(res+omegas); exit()
     
     return integral
 
